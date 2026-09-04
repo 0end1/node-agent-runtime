@@ -1,12 +1,16 @@
 # Changelog
 
+**文档作者：wangzhiyong** · GitHub：[0end1](https://github.com/0end1) · 联系邮箱：[y1378379002@gmail.com](mailto:y1378379002@gmail.com)
+
 本文件记录 **Agent Runtime（nodeRuntimes）** 的重要变更。
 
 > **维护约定**：每次代码提交（commit）时，请同步在 [Unreleased] 或对应版本段落追加条目，并将 CHANGELOG 更新与代码放入**同一个 commit**。分类参考 Conventional Commits：`Added` 新增 / `Changed` 变更 / `Fixed` 修复 / `Docs` 文档 / `Security` 安全。
 
 ## [Unreleased]
 
-> 尚无待发布变更。
+### Docs
+
+- 在 README / `docs/architecture.md` / CHANGELOG.md 中统一标注文档作者信息：wangzhiyong · GitHub：0end1 · 联系邮箱：y1378379002@gmail.com
 
 ## [v0.1.0] - 2026-09-04
 

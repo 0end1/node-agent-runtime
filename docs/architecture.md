@@ -2,7 +2,7 @@
 
 > 本文档把「单机 Agent 实验原型」演进为可承载**桌面产品（Desktop / Product Host）**的完整 Agent 运行时：既保留零依赖、事件驱动、可测试的内核哲学，又按目标架构补齐 Session、Task、Context、Memory、Permission、Sandbox、Checkpoint、MCP、Artifact、Persistence 等模块。
 >
-> 状态：草稿 · 作者：Agent Runtime 团队 · 关联代码版本：`v0.1.0`（`src/` 现有实现为 M0 基线）
+> 状态：草稿 · 文档作者：wangzhiyong（GitHub：[0end1](https://github.com/0end1)）· 联系邮箱：[y1378379002@gmail.com](mailto:y1378379002@gmail.com) · 关联代码版本：`v0.1.0`（`src/` 现有实现为 M0 基线）
 
 ---
 

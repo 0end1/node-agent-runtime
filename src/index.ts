@@ -24,7 +24,32 @@ export type {
   ToolEndEvent,
   RunEndEvent,
   RunErrorEvent,
+  SessionCreatedEvent,
+  SessionUpdatedEvent,
+  SessionClosedEvent,
+  TaskCreatedEvent,
+  TaskStatusEvent,
 } from "./events.js";
+
+// ---- Sessions, tasks & persistence (M1) ----
+export { SessionManager, SessionError } from "./session.js";
+export type {
+  Session,
+  SessionStatus,
+  Task,
+  TaskStatus,
+  RunRecord,
+  RunStatus,
+  ChatOutcome,
+  SessionManagerOptions,
+} from "./session.js";
+
+export { MemoryStorage } from "./store/memory.js";
+export { FileStorage } from "./store/file.js";
+export type { Storage, DocDomain, StreamDomain } from "./store/types.js";
+
+export { buildRunContext } from "./context.js";
+export type { RunContext, RunContextSeed } from "./context.js";
 
 // ---- Tools ----
 export { defineTool, findDuplicateToolNames } from "./tool.js";

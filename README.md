@@ -27,7 +27,9 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 | `ToolDefinition` | 工具 = 名称 + 描述 + JSON Schema 参数 + `execute()`。参数在本地做类型校验，结果序列化回填给模型。 |
 | `Agent` | 系统提示词 + 工具列表 + 步数/温度等运行参数。一个运行时可运行多个 Agent。 |
 | `AgentRuntime` | 事件循环核心：`run()` 内循环调用模型，直到无工具调用或达到 `maxSteps`。 |
-| `EventBus` | 每个生命周期节点（run / step / model / tool / 错误）都会发事件，便于 CLI、Web、SDK 消费推理过程。 |
+| `EventBus` | 每个生命周期节点（run / step / model / tool / 错误 / session / task）都会发事件，便于 CLI、Web、SDK 消费推理过程。 |
+| `SessionManager` | （M1）Session → Task → Run 生命周期管理：创建/关闭/删除会话、自动调度任务、消息流自动落盘，调用方不再手管 `history`。 |
+| `Storage` | （M1）统一持久化门面：`MemoryStorage`（零依赖）与 `FileStorage`（按目录落盘），文件/SQLite 等其它后端可注入替换。 |
 
 运行时主循环：
 
@@ -78,6 +80,26 @@ const result = await runtime.run({ agent, input: "把 18°C 转成华氏温度�
 console.log(result.output);   // 最终自然语言答案
 ```
 
+### 会话管理（M1：`SessionManager`）
+
+```ts
+import {
+  Agent, AgentRuntime, SessionManager, FileStorage,
+  MockProvider, builtinTools,
+} from "./src/index.js";
+
+const manager = new SessionManager({
+  runtime: new AgentRuntime({ provider: new MockProvider() }),
+  storage: new FileStorage(".runtime-data"),   // 或 new MemoryStorage()
+  agents: [new Agent({ name: "assistant", tools: builtinTools })],
+});
+
+const s = await manager.createSession({ agentId: "assistant" });
+await manager.chat(s.id, "2 + 2 = ?");
+// 进程重启后，用同一 storage 重建 manager 即可带完整上下文继续对话：
+const out2 = await manager.chat(s.id, "那 4 + 5 呢？");
+```
+
 ## 项目结构
 
 ```
@@ -86,6 +108,12 @@ src/
 ├── types.ts                 # 消息 / 工具调用等核心类型
 ├── schema.ts                # JSON Schema 子集校验器（无依赖）
 ├── tool.ts                  # 工具抽象
+├── context.ts               # Context 门面（M1：run 注入 session/task/run 上下文）
+├── session.ts               # SessionManager / Task / RunRecord（M1）
+├── store/
+│   ├── types.ts             # Storage 接口（M1）
+│   ├── memory.ts            # 内存实现（零依赖，M1）
+│   └── file.ts              # 文件实现（Node，M1）
 ├── tools/
 │   ├── calculator.ts        # 安全表达式求值（Pratt 解析，不用 eval）
 │   └── builtin.ts           # calculator / now / geocode / weather / exchange
@@ -94,14 +122,14 @@ src/
 │   ├── openai-compatible.ts # OpenAI 兼容端点（fetch）
 │   └── mock.ts              # 免密钥规则模型（演示/测试）
 ├── agent.ts                 # Agent 定义
-├── events.ts                # 事件总线
+├── events.ts                # 事件总线（含 session/task 事件，M1）
 └── runtime.ts               # 多步推理事件循环
 examples/
-├── cli.ts                   # 终端交互演示
+├── cli.ts                   # 终端交互演示（会话持久化到 .runtime-data/，M1）
 └── web/
-    ├── server.ts            # SSE 服务器（会话存内存）
+    ├── server.ts            # SSE 服务器（会话持久化，跨重启恢复，M1）
     └── public/index.html    # 流式控制台前端
-test/                        # node:test 自动化测试
+test/                        # node:test 自动化测试（runtime/schema/store/session）
 ```
 
 ## 运行中的事件
@@ -116,6 +144,8 @@ test/                        # node:test 自动化测试
 | `tool:end` | result, ok, durationMs | 工具执行结果 |
 | `run:end` | output, usage, steps | run 完成（output 为最终回答） |
 | `run:error` | error | 发生错误（含 Abort） |
+| `session:created/updated/closed` | sessionId 等 | 会话生命周期（M1，`SessionManager` 发出） |
+| `task:created` / `task:status` | taskId, sessionId, status | 任务创建与状态迁移（M1） |
 
 ## 内置工具
 
@@ -129,7 +159,7 @@ test/                        # node:test 自动化测试
 
 ```bash
 npm run typecheck   # tsc --noEmit（src + examples + test）
-npm test            # node:test，覆盖事件循环/多步推理/工具安全/参数校验/中止
+npm test            # node:test，覆盖事件循环/多步推理/工具安全/Storage/Session 重启恢复
 npm run build       # 产出 dist/（供作为库引用）
 ```
 
@@ -140,4 +170,4 @@ npm run build       # 产出 dist/（供作为库引用）
 - **前端友好**：运行时不接触 DOM/HTTP，所有过程以事件发布，Web 端通过 SSE 一行行还原。
 - **健壮性**：工具参数本地校验失败会回填错误让模型自纠；未知工具 / 工具抛异常 / 模型调用中止均有明确事件与错误传播；`maxSteps` 上限防止死循环。
 
-> 提示：Web 服务器把会话记录保存在内存（`Map`），重启即清空；多端隔离可使用不同 `session` 参数。
+> 提示（M1）：CLI 与 Web demo 的会话记录持久化在 `.runtime-data/`（可经 `RUNTIME_DATA` 环境变量重定向）；Web 端浏览器固定会话 id 存于 localStorage，服务重启后同一浏览器刷新即可续聊。多端隔离可传不同 `session` 参数。

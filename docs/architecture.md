@@ -2,7 +2,7 @@
 
 > 本文档把「单机 Agent 实验原型」演进为可承载**桌面产品（Desktop / Product Host）**的完整 Agent 运行时：既保留零依赖、事件驱动、可测试的内核哲学，又按目标架构补齐 Session、Task、Context、Memory、Permission、Sandbox、Checkpoint、MCP、Artifact、Persistence 等模块。
 >
-> 状态：草稿 · 文档作者：wangzhiyong（GitHub：[0end1](https://github.com/0end1)）· 联系邮箱：[y1378379002@gmail.com](mailto:y1378379002@gmail.com) · 关联代码版本：`v0.1.0`（`src/` 现有实现为 M0 基线）
+> 状态：草稿 · 文档作者：wangzhiyong（GitHub：[0end1](https://github.com/0end1)）· 联系邮箱：[y1378379002@gmail.com](mailto:y1378379002@gmail.com) · 关联代码版本：`v0.1.0`（M0 基线）+ dev 分支 M1（Session/Task/Run + Storage + Context）
 
 ---
 
@@ -76,22 +76,22 @@
 
 | 组 | 模块 | 一句话职责 | 现状 |
 | --- | --- | --- | --- |
-| 编排 | `Session` | 一次用户可见的对话线程：消息流、内存、所属 Agent | 待建（Web demo 仅内存 Map 近似） |
+| 编排 | `Session` | 一次用户可见的对话线程：消息流、内存、所属 Agent | ✅ M1：`SessionManager` 已实现（create/list/close/delete，可外部指定 id，消息流持久化） |
 | 编排 | `Agent` | 静态配方：指令 + 工具集 + 模型采样参数（已是现状） | 已有，微调 |
-| 编排 | `Task` | 会话内一个目标导向的请求，可跨多次 Run（中断/续推） | 待建 |
-| 编排 | `Run` | 引擎一次独立执行（现有 `run()`），自动落 Checkpoint | 已有（`RunResult` 需提升为实体） |
+| 编排 | `Task` | 会话内一个目标导向的请求，可跨多次 Run（中断/续推） | ✅ M1：Task 状态机（created→running→done/failed/cancelled）+ runIds/result 已落地 |
+| 编排 | `Run` | 引擎一次独立执行（现有 `run()`），自动落 Checkpoint | ✅ M1：提升为持久实体 `RunRecord`（Run doc 落 storage） |
 | 编排 | `Step` | Run 内一次模型往返 + 其工具调用组 | 已有（循环体） |
-| 依赖 | `Context` | Run/Step 内可见的运行上下文与能力门面 | 部分（`ToolExecutionContext` 雏形） |
+| 依赖 | `Context` | Run/Step 内可见的运行上下文与能力门面 | ✅ M1：`context.ts` 门面已建（`buildRunContext`），runtime 注入 session/task/run |
 | 依赖 | `Model` | 模型后端抽象（`ModelProvider`） | 已有 |
 | 依赖 | `Tool` | 具名、带 Schema 的可调用能力 | 已有 |
-| 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建 |
-| 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | 待建 |
-| 治理 | `Sandbox` | 工具执行的环境隔离与资源限制 | 待建（calculator 已自证"安全解析"） |
-| 状态 | `Event` | 生命周期事件总线 | 已有 |
-| 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | 待建（消息流现由调用方维护） |
-| 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建 |
-| 状态 | `Checkpoint` | Run/Step 级可恢复快照 | 待建 |
-| 状态 | `Persistence` | 上述全部实体的存取接口与实现 | 待建 |
+| 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建（M4） |
+| 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | 待建（M3） |
+| 治理 | `Sandbox` | 工具执行的环境隔离与资源限制 | 待建（M3；calculator 已自证"安全解析"） |
+| 状态 | `Event` | 生命周期事件总线 | 已有（M1 追加 session/task 事件） |
+| 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | 部分：消息流已入 storage（消息域），长期事实层待 M2 |
+| 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建（M4） |
+| 状态 | `Checkpoint` | Run/Step 级可恢复快照 | 待建（M2） |
+| 状态 | `Persistence` | 上述全部实体的存取接口与实现 | ✅ M1：`Storage` 接口 + `MemoryStorage`/`FileStorage` 已落地 |
 
 ---
 
@@ -473,7 +473,7 @@ packages/                        # [未来，若拆包]
 | 里程碑 | 范围 | 交付物 | 验收 |
 | --- | --- | --- | --- |
 | **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例） |
-| **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | 会话可重启恢复，`history` 从调用方消失；用例 ≥ 8 |
+| **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | ✅ dev 分支已完成（2026-09-04）：会话可重启恢复、`history` 不再由调用方维护；`npm test` 35 通过 |
 | **M2 · 记忆与续跑** | `Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 断电/断网从 checkpoint 续跑等价新跑 |
 | **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` Local 实现（超时/白名单） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny；审批可超时 |
 | **M4 · 外部能力** | MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用 |
@@ -499,3 +499,4 @@ packages/                        # [未来，若拆包]
 | 版本 | 日期 | 说明 |
 | --- | --- | --- |
 | v1 draft | 2026-09-04 | 依据产品架构图 1（分层）与图 2（Runtime 模块树）初稿；建立 M0~M5 路线 |
+| v1.1 (M1) | 2026-09-04 | 落地 M1 生命周期：`Session`/`Task`/`Run` 实体化（`session.ts`）、`Storage` 接口 + `MemoryStorage`/`FileStorage`（`store/`）、`Context` 门面（`context.ts`）、session/task 事件；CLI/Web 会话化；模块表“现状”列更新 |

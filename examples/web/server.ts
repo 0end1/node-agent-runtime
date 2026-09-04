@@ -15,12 +15,14 @@ import { fileURLToPath } from "node:url";
 import {
   Agent,
   AgentRuntime,
+  FileStorage,
   MockProvider,
   OpenAIClientProvider,
+  SessionManager,
   builtinTools,
-  type ChatMessage,
   type ModelProvider,
   type RuntimeEvent,
+  type Session,
 } from "../../src/index.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -29,7 +31,6 @@ const HOST = process.env.HOST ?? "127.0.0.1";
 const argv = process.argv.slice(2);
 
 const HTML_PATH = join(__dirname, "public", "index.html");
-const sessions = new Map<string, ChatMessage[]>();
 
 // ---- provider selection ----------------------------------------------------
 
@@ -49,6 +50,35 @@ const agent = new Agent({
   name: "assistant",
   tools: builtinTools,
 });
+
+// Sessions are persisted to disk (M1): the browser keeps a stable session id
+// in localStorage, so refreshes — and even server restarts — resume the same
+// conversation with full context.
+const DATA_DIR = process.env.RUNTIME_DATA ?? join(process.cwd(), ".runtime-data");
+const manager = new SessionManager({
+  runtime,
+  storage: new FileStorage(DATA_DIR),
+  agents: [agent],
+});
+
+async function getOrCreateSession(sessionKey: string): Promise<Session> {
+  const existing = await manager.getSession(sessionKey);
+  if (existing) return existing;
+  return manager.createSession({ id: sessionKey, agentId: agent.name, title: "web console" });
+}
+
+/** Events the classic console UI knows how to render (session/task events are
+ *  new in M1 and ignored by the current front-end). */
+const UI_EVENTS = new Set<RuntimeEvent["type"]>([
+  "run:start",
+  "message:user",
+  "step:start",
+  "model:response",
+  "tool:start",
+  "tool:end",
+  "run:end",
+  "run:error",
+]);
 
 // ---- helpers ---------------------------------------------------------------
 
@@ -120,25 +150,16 @@ const server = createServer(async (req, res) => {
       await sleep(provider.id === "mock" ? 350 : 120);
 
       const buf: Array<{ type: string; payload: unknown }> = [];
-      const unsubscribe = runtime.subscribe((e: RuntimeEvent) =>
-        buf.push({ type: e.type, payload: e })
-      );
+      const unsubscribe = runtime.subscribe((e: RuntimeEvent) => {
+        if (UI_EVENTS.has(e.type)) buf.push({ type: e.type, payload: e });
+      });
 
-      let history = sessions.get(sessionId) ?? [];
       let runError: string | null = null;
-      let result:
-        | Awaited<ReturnType<AgentRuntime["run"]>>
-        | undefined;
+      let outcome: Awaited<ReturnType<SessionManager["chat"]>> | undefined;
 
       try {
-        result = await runtime.run({
-          agent,
-          input,
-          history,
-          conversationId: sessionId,
-        });
-        // persist full transcript for multi-turn continuity
-        sessions.set(sessionId, result.messages);
+        const session = await getOrCreateSession(sessionId);
+        outcome = await manager.chat(session.id, input);
       } catch (err) {
         runError = err instanceof Error ? err.message : String(err);
       } finally {
@@ -167,9 +188,12 @@ const server = createServer(async (req, res) => {
         type: "done",
         payload: {
           ok: !runError,
-          steps: result?.steps ?? 0,
-          output: result?.output ?? "",
-          usage: result?.usage,
+          sessionId: outcome?.session.id ?? sessionId,
+          taskId: outcome?.task.id,
+          runId: outcome?.run.id,
+          steps: outcome?.run.steps ?? 0,
+          output: outcome?.run.output ?? "",
+          usage: outcome?.run.usage,
           error: runError,
         },
       });
@@ -191,7 +215,7 @@ const server = createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   console.log(`Agent Runtime console  ->  http://${HOST}:${PORT}`);
   console.log(`Provider                ->  ${provider.label}`);
-  console.log(`Sessions in-memory, use query 'session' to create new ones.`);
+  console.log(`Session storage         ->  ${DATA_DIR} (M1: sessions persist across restarts)`);
 });
 
 process.on("SIGINT", () => {

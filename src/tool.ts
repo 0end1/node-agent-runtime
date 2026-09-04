@@ -6,6 +6,10 @@ export interface ToolExecutionContext {
   conversationId: string;
   /** Id of the current run. */
   runId: string;
+  /** Hosting session id (M1; populated when run through a SessionManager). */
+  sessionId?: string;
+  /** Hosting task id (M1; populated when run through a SessionManager). */
+  taskId?: string;
   now(): Date;
 }
 

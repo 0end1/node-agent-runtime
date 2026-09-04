@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.examples.json",
-    "test": "tsx --test test/runtime.test.ts test/schema.test.ts",
+    "test": "tsx --test test/runtime.test.ts test/schema.test.ts test/store.test.ts test/session.test.ts",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
     "clean": "rm -rf dist"

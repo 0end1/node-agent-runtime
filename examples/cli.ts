@@ -1,11 +1,18 @@
 #!/usr/bin/env tsx
 /**
- * Interactive CLI demo of the Agent runtime.
+ * Interactive CLI demo of the Agent runtime (M1: Session-managed).
  *
  *   npm run demo:cli                    # mock provider (no API key)
  *   OPENAI_API_KEY=sk-xxx npm run demo:cli   # real OpenAI-compatible provider
  *
- * Type 'exit' or press Ctrl+C to quit.
+ * Conversations live in a SessionManager backed by FileStorage, so quitting
+ * and re-running resumes the most recent session with full context.
+ *
+ * Commands:
+ *   /new            start a brand-new session
+ *   /list           list persisted sessions
+ *   /use <id>       switch to an existing session
+ *   exit / Ctrl+C   quit
  */
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
@@ -13,12 +20,14 @@ import { stdin as input, stdout as output } from "node:process";
 import {
   Agent,
   AgentRuntime,
+  FileStorage,
   MockProvider,
   OpenAIClientProvider,
+  SessionManager,
   builtinTools,
-  type ChatMessage,
   type ModelProvider,
   type RuntimeEvent,
+  type Session,
 } from "../src/index.js";
 
 const argv = process.argv.slice(2);
@@ -68,37 +77,100 @@ async function main() {
     tools: builtinTools,
   });
 
-  const history: ChatMessage[] = [];
+  const DATA_DIR = process.env.RUNTIME_DATA ?? ".runtime-data";
+  const manager = new SessionManager({
+    runtime,
+    storage: new FileStorage(DATA_DIR),
+    agents: [agent],
+  });
   const rl = readline.createInterface({ input, output });
 
+  // Resume the most recent open session if one exists.
+  let current: Session | undefined = (await manager.listSessions())
+    .filter((s) => s.status !== "closed")
+    .sort((a, b) => b.updatedAt - a.updatedAt)[0];
+
+  async function startNewSession(): Promise<void> {
+    current = await manager.createSession({ agentId: agent.name });
+    console.log(`\n\x1b[36m新会话已创建：${current.id}\x1b[0m`);
+  }
+
+  async function useSession(id: string): Promise<void> {
+    const s = await manager.getSession(id);
+    if (!s) {
+      console.log(`\x1b[31m没有找到会话 ${id}（试试 /list）\x1b[0m`);
+      return;
+    }
+    if (s.status === "closed") {
+      console.log(`\x1b[31m会话 ${id} 已关闭，无法继续\x1b[0m`);
+      return;
+    }
+    current = s;
+    const history = await manager.messages(s.id);
+    console.log(`\x1b[36m已切换到会话 ${s.id}（历史 ${history.length} 条消息）\x1b[0m`);
+  }
+
+  if (!current) {
+    await startNewSession();
+  }
   console.log(
-    `\x1b[1mAgent Runtime · CLI demo\x1b[0m\n` +
+    `\x1b[1mAgent Runtime · CLI demo (Session 化 · M1)\x1b[0m\n` +
     `Provider : \x1b[36m${provider.label}\x1b[0m\n` +
-    `Agent    : ${agent.name} (tools: ${agent.tools.map((t) => t.name).join(", ")})\n` +
-    `试试     : 3.5 + 2 * 4 = ?  /  现在几点了？  /  北京天气怎么样  /  100 美元等于多少人民币\n`
+    `Storage  : \x1b[36m${DATA_DIR}/\x1b[0m\n` +
+    `Session  : \x1b[36m${current!.id}\x1b[0m${current!.title ? ` · “${current!.title}”` : ""}\n` +
+    `试试     : 3.5 + 2 * 4 = ?  /  现在几点了？  /  北京天气怎么样  /  100 美元等于多少人民币\n` +
+    `命令     : /new   /list   /use <id>   exit\n`
   );
 
   for (;;) {
     let input: string;
     try {
-      input = (await rl.question("\x1b[1m你\x1b[0m > ")).trim();
+      input = (await rl.question(`\x1b[1m你 [${current!.id.slice(-6)}]\x1b[0m > `)).trim();
     } catch {
       break; // stdin closed (e.g. piped input reached EOF)
     }
     if (!input) continue;
     if (/^(exit|quit|q)$/i.test(input)) break;
+    if (input === "/new") {
+      await startNewSession();
+      continue;
+    }
+    if (input === "/list") {
+      const sessions = await manager.listSessions();
+      if (!sessions.length) {
+        console.log("（暂无会话）");
+        continue;
+      }
+      for (const s of sessions) {
+        const msgs = (await manager.messages(s.id)).length;
+        const mark = s.id === current?.id ? "  \x1b[36m← 当前\x1b[0m" : "";
+        console.log(
+          `  ${s.id}  \x1b[2m${s.title || "(无标题)"} · ${s.status} · ${msgs} msgs\x1b[0m${mark}`
+        );
+      }
+      continue;
+    }
+    const useMatch = input.match(/^\/use\s+(\S+)$/);
+    if (useMatch) {
+      await useSession(useMatch[1]!);
+      continue;
+    }
+    if (input.startsWith("/")) {
+      console.log("未知命令。可用：/new  /list  /use <id>  exit");
+      continue;
+    }
 
+    if (!current) await startNewSession();
     const unsubscribe = runtime.subscribe((e) => {
       const line = describeEvent(e);
       if (line) console.log(line);
     });
 
     try {
-      const result = await runtime.run({ agent, input, history, conversationId: "cli" });
-      history.push({ role: "user", content: input }, result.finalMessage);
-      console.log(`\n\x1b[1m助手\x1b[0m > ${result.output}`);
+      const outcome = await manager.chat(current!.id, input);
+      console.log(`\n\x1b[1m助手\x1b[0m > ${outcome.run.output}`);
       console.log(
-        `\x1b[90m(round-trips=${result.usage.modelCalls} · input=${result.usage.inputTokens} · output=${result.usage.outputTokens})\x1b[0m`
+        `\x1b[90m(task=${outcome.task.id.slice(-6)} · run=${outcome.run.id.slice(-6)} · round-trips=${outcome.run.usage.modelCalls} · input=${outcome.run.usage.inputTokens} · output=${outcome.run.usage.outputTokens})\x1b[0m`
       );
     } catch (err) {
       console.error(`\x1b[31m出错：\x1b[0m${err instanceof Error ? err.message : err}`);

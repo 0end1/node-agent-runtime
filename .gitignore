@@ -3,3 +3,5 @@ dist/
 *.log
 .DS_Store
 .env
+# M1: demo persistence (FileStorage) — session transcripts are runtime data
+.runtime-data/

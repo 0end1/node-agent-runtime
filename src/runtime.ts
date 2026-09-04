@@ -1,4 +1,6 @@
 import type { Agent } from "./agent.js";
+import { buildRunContext } from "./context.js";
+import type { ToolExecutionContext } from "./tool.js";
 import {
   EventBus,
   type ModelResponseEvent,
@@ -35,6 +37,10 @@ export interface RunOptions {
   history?: readonly ChatMessage[];
   /** Identifier grouping this run with a conversation (for tool context). */
   conversationId?: string;
+  /** Hosting session id (M1): threaded through to the tool context. */
+  sessionId?: string;
+  /** Hosting task id (M1): threaded through to the tool context. */
+  taskId?: string;
   /** Abort the loop; throws AbortError at the next await point. */
   signal?: AbortSignal;
 }
@@ -190,11 +196,13 @@ export class AgentRuntime {
           this.log(`    tool:start ${parsed.name} ${JSON.stringify(parsed.arguments).slice(0, 120)}`);
 
           const toolStartMs = Date.now();
-          const outcome = await this.executeTool(
-            toolMap,
-            parsed,
-            { runId, conversationId, now: () => new Date() }
-          );
+          const ctx = buildRunContext({
+            runId,
+            conversationId,
+            ...(options.sessionId ? { sessionId: options.sessionId } : {}),
+            ...(options.taskId ? { taskId: options.taskId } : {}),
+          });
+          const outcome = await this.executeTool(toolMap, parsed, ctx);
 
           const endEvt: ToolEndEvent = {
             type: "tool:end",
@@ -282,7 +290,7 @@ export class AgentRuntime {
   private async executeTool(
     toolMap: Map<string, AnyTool>,
     call: ToolCall,
-    ctx: { runId: string; conversationId: string; now: () => Date }
+    ctx: ToolExecutionContext
   ): Promise<{ content: string; ok: boolean }> {
     const tool = toolMap.get(call.name);
     if (!tool) {

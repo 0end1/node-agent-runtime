@@ -67,6 +67,41 @@ export interface RunErrorEvent {
   error: string;
 }
 
+// ---- Session & Task lifecycle events (M1) -------------------------------
+
+export interface SessionCreatedEvent {
+  type: "session:created";
+  sessionId: string;
+  agentId: string;
+  title: string;
+}
+
+export interface SessionUpdatedEvent {
+  type: "session:updated";
+  sessionId: string;
+  status?: string;
+  title?: string;
+}
+
+export interface SessionClosedEvent {
+  type: "session:closed";
+  sessionId: string;
+}
+
+export interface TaskCreatedEvent {
+  type: "task:created";
+  taskId: string;
+  sessionId: string;
+  goal: string;
+}
+
+export interface TaskStatusEvent {
+  type: "task:status";
+  taskId: string;
+  sessionId: string;
+  status: string;
+}
+
 export type RuntimeEvent =
   | RunStartEvent
   | UserMessageEvent
@@ -75,7 +110,13 @@ export type RuntimeEvent =
   | ToolStartEvent
   | ToolEndEvent
   | RunEndEvent
-  | RunErrorEvent;
+  | RunErrorEvent
+  // ---- Session & Task lifecycle events (M1) ----
+  | SessionCreatedEvent
+  | SessionUpdatedEvent
+  | SessionClosedEvent
+  | TaskCreatedEvent
+  | TaskStatusEvent;
 
 /**
  * A tiny, typed event bus. The runtime emits lifecycle events so that

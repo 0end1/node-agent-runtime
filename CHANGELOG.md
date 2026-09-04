@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+（自 v0.2.0 起的新变更将记录于此；当前 dev 分支已就绪，下一步见 `docs/architecture.md` §11 路线图 —— 计划 M2 · 恢复与记忆，或先回 `main` 发布 v0.2.0。）
+
+## [v0.2.0] - 2026-09-04
+
+M1 · 生命周期：完成 Session/Task/Run 实体化、统一持久化层与运行时上下文注入。dev 分支开发完成（commit `1df585b`），`npm test` 35 通过 0 失败。
+
 ### Added（M1 · 生命周期）
 
 - **Storage 抽象** `src/store/`：统一持久化门面（文档域 `saveDoc/loadDoc/listDocs/deleteDoc`、Blob 域、追加式流域），内置 `MemoryStorage`（核心，零依赖）与 Node 版 `FileStorage`（按 domain 落目录，JSON/NDJSON 行式，写入走临时文件 + rename 原子化）
@@ -18,9 +24,15 @@
 - **examples 演进**：CLI（会话持久化到 `.runtime-data/`，新增 `/new` `/list` `/use <id>`，重启自动续最近会话）；Web 控制台（RUNTIME_DATA 目录持久化，浏览器 localStorage 固定会话跨刷新/跨服务重启恢复）
 - **测试**：新增 `store`（Storage 契约双实现 13+1 例）与 `session`（生命周期 / 重启恢复 / 并发锁 / 事件序）用例；全量 `npm test` 35 通过
 
+### Changed
+
+- 运行时版本升至 `v0.2.0`
+
 ### Docs
 
 - 在 README / `docs/architecture.md` / CHANGELOG.md 中统一标注文档作者信息：wangzhiyong · GitHub：0end1 · 联系邮箱：y1378379002@gmail.com
+- README：新增 `SessionManager` / `Storage` 概念、会话管理示例（M1）、事件表补充 session/task 事件、项目结构与提示更新
+- `docs/architecture.md`：模块表"现状"列、路线图 M1 行标记为 ✅ 已完成；修订记录新增 v1.1 (M1)
 
 ## [v0.1.0] - 2026-09-04
 

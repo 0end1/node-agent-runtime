@@ -1,6 +1,6 @@
 {
   "name": "agent-runtime",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers.",
   "private": true,
   "type": "module",

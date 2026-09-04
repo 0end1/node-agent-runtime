@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agent Runtime · Console</title>
+<style>
+  :root {
+    --bg: #0b0f17;
+    --panel: #111827;
+    --panel-2: #0f1522;
+    --border: #1f2a3d;
+    --text: #e6edf7;
+    --muted: #8b9bb4;
+    --accent: #38bdf8;
+    --accent-2: #a78bfa;
+    --ok: #34d399;
+    --err: #f87171;
+    --warn: #fbbf24;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(56,189,248,.10), transparent 60%),
+      radial-gradient(900px 480px at 90% -10%, rgba(167,139,250,.12), transparent 60%),
+      var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(15, 21, 34, .7);
+    backdrop-filter: blur(8px);
+  }
+  .logo {
+    width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #071018; font-weight: 800; font-size: 16px;
+    box-shadow: 0 4px 18px rgba(56,189,248,.35);
+  }
+  .title { font-weight: 700; font-size: 15px; letter-spacing: .2px; }
+  .subtitle { color: var(--muted); font-size: 12px; }
+  .status-wrap { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .badge {
+    font-size: 11px; color: var(--muted);
+    border: 1px solid var(--border); background: var(--panel);
+    padding: 4px 10px; border-radius: 999px;
+    font-family: var(--mono);
+  }
+  .status {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--border);
+    padding: 5px 12px; border-radius: 999px;
+  }
+  .status .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #64748b; transition: background .2s;
+  }
+  .status.running .dot { background: var(--accent); animation: blink 1s infinite; }
+  .status.done .dot { background: var(--ok); }
+  .status.error .dot { background: var(--err); }
+  @keyframes blink { 50% { opacity: .25; } }
+
+  /* ---------- transcript ---------- */
+  main { flex: 1; overflow-y: auto; padding: 26px 0 12px; }
+  .thread { max-width: 780px; margin: 0 auto; padding: 0 18px; display: flex; flex-direction: column; gap: 18px; }
+
+  .row { display: flex; gap: 12px; animation: rise .28s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  .avatar {
+    flex: none; width: 30px; height: 30px; border-radius: 9px;
+    display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  }
+  .row.user .avatar { background: #1e3a5f; color: #7dd3fc; }
+  .row.agent .avatar { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #08121f; }
+  .bubble {
+    min-width: 0; max-width: 86%;
+    padding: 9px 14px; border-radius: 4px 14px 14px 14px;
+    background: var(--panel); border: 1px solid var(--border);
+    white-space: pre-wrap; overflow-wrap: break-word;
+  }
+  .row.user .bubble { background: #16283f; border-color: #1f3b5c; border-radius: 14px 4px 14px 14px; }
+
+  .row.agent .bubble { max-width: 100%; background: transparent; border: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+
+  /* step / tool trace */
+  .trace { display: flex; flex-direction: column; gap: 6px; }
+  .step-hd {
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .step-hd .no {
+    color: var(--accent); border: 1px solid #244b66; background: #0e2233;
+    padding: 1px 7px; border-radius: 999px;
+  }
+  .thinking {
+    font-size: 13px; color: var(--muted); font-style: italic;
+    border-left: 2px solid #2c3e57; padding-left: 10px; margin: 2px 0;
+  }
+  .tool-card {
+    font-family: var(--mono); font-size: 12px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--panel-2); overflow: hidden;
+  }
+  .tool-card .head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 11px; border-bottom: 1px solid var(--border);
+  }
+  .tool-card .head .ico { color: var(--warn); font-weight: 700; }
+  .tool-card .head .name { color: #93c5fd; font-weight: 600; }
+  .tool-card .head .args { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool-card .head .spin {
+    margin-left: auto; width: 12px; height: 12px; flex: none;
+    border: 2px solid #2b4058; border-top-color: var(--accent);
+    border-radius: 50%; animation: rot .8s linear infinite;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .tool-card .result {
+    padding: 7px 11px; color: var(--muted); font-size: 11.5px;
+    max-height: 110px; overflow: auto; white-space: pre-wrap;
+  }
+  .tool-card.ok { border-color: #1c3a31; }
+  .tool-card.ok .head .ico { color: var(--ok); }
+  .tool-card.ok .head .spin { display: none; }
+  .tool-card.fail { border-color: #4a2326; }
+  .tool-card.fail .head .ico { color: var(--err); }
+  .tool-card.fail .head .spin { display: none; }
+  .tool-card .time { color: #3f4f66; margin-left: auto; font-size: 10.5px; }
+
+  .answer {
+    font-size: 14.5px; line-height: 1.75; color: var(--text);
+    background: linear-gradient(180deg, rgba(56,189,248,.06), rgba(167,139,250,.05));
+    border: 1px solid #1e3350; border-radius: 12px; padding: 12px 16px;
+  }
+  .answer.cursor::after {
+    content: "▍"; color: var(--accent); animation: blink 1s infinite;
+  }
+  .meta { font-family: var(--mono); font-size: 10.5px; color: #41516a; }
+  .meta b { color: var(--muted); font-weight: 600; }
+
+  .typing {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--muted); font-size: 12.5px;
+  }
+  .typing .bar { display: flex; gap: 4px; }
+  .typing .bar i {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent); animation: bob 1.2s infinite;
+  }
+  .typing .bar i:nth-child(2) { animation-delay: .15s; }
+  .typing .bar i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bob { 0%,60%,100% { transform: translateY(0); opacity:.4 } 30% { transform: translateY(-4px); opacity:1 } }
+
+  /* ---------- suggestions ---------- */
+  .suggest {
+    max-width: 780px; margin: 0 auto; padding: 4px 18px 0;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .suggest button {
+    font-size: 12px; color: #9fd8f5; cursor: pointer;
+    background: rgba(30,58,95,.25); border: 1px solid #24425f;
+    padding: 6px 12px; border-radius: 999px;
+    transition: .15s;
+  }
+  .suggest button:hover { background: #1c3a5a; border-color: #3b6a97; }
+
+  /* ---------- composer ---------- */
+  footer { padding: 12px 22px 18px; border-top: 1px solid var(--border); background: rgba(11,15,23,.8); }
+  .composer {
+    max-width: 780px; margin: 0 auto;
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; padding: 8px 8px 8px 14px;
+  }
+  .composer:focus-within { border-color: #2e5a7a; box-shadow: 0 0 0 3px rgba(56,189,248,.12); }
+  textarea {
+    flex: 1; resize: none; border: none; outline: none; background: transparent;
+    color: var(--text); font: inherit; line-height: 1.5; max-height: 140px; padding: 6px 0;
+  }
+  textarea::placeholder { color: #4b5c75; }
+  button.send {
+    flex: none; border: none; cursor: pointer;
+    width: 40px; height: 40px; border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #08121f; font-size: 17px; font-weight: 700;
+    transition: filter .15s, transform .1s;
+  }
+  button.send:hover { filter: brightness(1.1); }
+  button.send:active { transform: scale(.95); }
+  button.send:disabled { filter: grayscale(1) brightness(.55); cursor: not-allowed; }
+
+  .thread .err-bubble {
+    border: 1px solid #4a2326; background: rgba(127,29,29,.18);
+    color: #fca5a5; border-radius: 12px; padding: 10px 14px; font-size: 13px;
+  }
+  @media (max-width: 620px) {
+    .bubble { max-width: 100%; }
+    .row.agent .bubble { max-width: 100%; }
+    .subtitle { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">◇</div>
+  <div>
+    <div class="title">Agent Runtime Console</div>
+    <div class="subtitle">事件驱动 · 多步推理 · 工具调用 · TypeScript</div>
+  </div>
+  <div class="status-wrap">
+    <span class="badge" id="provider">connecting…</span>
+    <span class="status" id="status"><span class="dot"></span><span id="statusText">就绪</span></span>
+  </div>
+</header>
+
+<main id="main">
+  <div class="thread" id="thread"></div>
+</main>
+
+<div class="suggest" id="suggest">
+  <button data-q="3.5 + 2 * 4 = ?">🧮 (3.5+2)×4</button>
+  <button data-q="现在几点了？">🕐 现在几点</button>
+  <button data-q="北京天气怎么样？">🌤 北京天气</button>
+  <button data-q="100 美元等于多少人民币？">💱 汇率换算</button>
+  <button data-q="你今天能做什么？">🤖 能力介绍</button>
+</div>
+
+<footer>
+  <div class="composer">
+    <textarea id="input" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行"></textarea>
+    <button class="send" id="send" title="发送">↵</button>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* global EventSource */
+
+const $ = (id) => document.getElementById(id);
+const thread = $("thread");
+const input = $("input");
+const sendBtn = $("send");
+const statusEl = $("status");
+const statusText = $("statusText");
+const providerEl = $("provider");
+
+const sessionId =
+  localStorage.getItem("agent-session") ||
+  (crypto.randomUUID ? crypto.randomUUID() : "s-" + Date.now());
+localStorage.setItem("agent-session", sessionId);
+
+let busy = false;
+let source = null;
+const MAX_TRANSCRIPT = 120; // drop oldest agent rows to keep DOM lean
+
+function setStatus(mode, text) {
+  statusEl.classList.remove("running", "done", "error");
+  if (mode) statusEl.classList.add(mode);
+  statusText.textContent = text;
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+}
+function autoGrow() {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 140) + "px";
+}
+function scrollDown() { requestAnimationFrame(() => {
+  const m = $("main"); m.scrollTop = m.scrollHeight;
+}); }
+
+function row(kind) {
+  while (thread.children.length > MAX_TRANSCRIPT) thread.removeChild(thread.firstChild);
+  const el = document.createElement("div");
+  el.className = "row " + kind;
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = kind === "user" ? "你" : "AI";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  el.append(avatar, bubble);
+  thread.append(el);
+  scrollDown();
+  return bubble;
+}
+
+function showUser(text) {
+  const b = row("user");
+  b.textContent = text;
+}
+function showError(text) {
+  const b = row("agent");
+  const box = document.createElement("div");
+  box.className = "err-bubble";
+  box.textContent = text;
+  b.append(box);
+}
+
+// ---- trace rendering state ---------------------------------------------
+let active = null; // { stepEl, stepNo, cards:Map<toolCallId,{el,finish}> }
+
+function traceBlock() {
+  if (active && !active.closed) return active;
+  const bubble = row("agent");
+  const trace = document.createElement("div");
+  trace.className = "trace";
+  bubble.append(trace);
+  active = { el: trace, no: 0, cards: new Map(), closed: false };
+  return active;
+}
+
+function beginStep(no) {
+  if (active && !active.closed) closeStep();
+  const t = traceBlock();
+  t.no = no;
+  const hd = document.createElement("div");
+  hd.className = "step-hd";
+  hd.innerHTML = '<span class="no">STEP ' + no + "</span><span>推理中…</span>";
+  t.el.append(hd);
+}
+function closeStep() {
+  if (!active || active.closed) return;
+  // if it only ever contained its header & nothing else, drop it
+  if (active.el.childElementCount <= 1) active.el.remove();
+  active.closed = true;
+}
+
+function addThinking(text) {
+  const t = traceBlock();
+  const p = document.createElement("div");
+  p.className = "thinking";
+  p.textContent = text;
+  t.el.append(p);
+  scrollDown();
+}
+function addToolStart(call) {
+  const t = traceBlock();
+  const card = document.createElement("div");
+  card.className = "tool-card";
+  const args = call.arguments ? JSON.stringify(call.arguments) : "{}";
+  card.innerHTML =
+    '<div class="head">' +
+    '<span class="ico">⚙</span>' +
+    '<span class="name"></span>' +
+    '<span class="args"></span>' +
+    '<span class="spin"></span></div>' +
+    '<div class="result" hidden></div>';
+  card.querySelector(".name").textContent = call.name + "()";
+  card.querySelector(".args").textContent = args.length > 120 ? args.slice(0, 120) + "…" : args;
+  t.el.append(card);
+  t.cards.set(call.id, card);
+  scrollDown();
+}
+function addToolEnd(call, result, ok) {
+  if (active) {
+    const card = active.cards.get(call.id);
+    if (card) {
+      card.classList.add(ok ? "ok" : "fail");
+      const resBox = card.querySelector(".result");
+      resBox.hidden = false;
+      const pretty = (() => {
+        try { const j = JSON.parse(result); return JSON.stringify(j, null, 1); }
+        catch { return result; }
+      })();
+      resBox.textContent = pretty.length > 600 ? pretty.slice(0, 600) + "…" : pretty;
+      active.cards.delete(call.id);
+      const head = card.querySelector(".head");
+      if (ok) {
+        head.querySelector(".ico").textContent = "✓";
+        const t = document.createElement("span");
+        t.className = "time";
+        t.textContent = result.length + "B";
+        head.append(t);
+      }
+    }
+  }
+  scrollDown();
+}
+
+function finishRun(ev) {
+  closeStep();
+  const bubble = row("agent");
+  const answer = document.createElement("div");
+  answer.className = "answer cursor";
+  answer.textContent = " ";
+  bubble.append(answer);
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.innerHTML =
+    "round-trips <b>" + ev.steps + "</b>" +
+    " · tokens <b>" + (ev.usage ? ev.usage.inputTokens + "+" + ev.usage.outputTokens : "n/a") + "</b>";
+  bubble.append(meta);
+
+  // typewriter reveal
+  const out = ev.output || "（空回复）";
+  let i = 0;
+  const speed = Math.max(4, Math.min(14, Math.round(420 / Math.max(out.length, 1))));
+  const timer = setInterval(() => {
+    i = Math.min(out.length, i + 2);
+    answer.textContent = out.slice(0, i);
+    scrollDown();
+    if (i >= out.length) {
+      clearInterval(timer);
+      answer.classList.remove("cursor");
+    }
+  }, speed);
+  return { answer, out };
+}
+
+function send(text) {
+  if (busy) return;
+  const q = (text ?? input.value).trim();
+  if (!q) return;
+  input.value = "";
+  autoGrow();
+  showUser(q);
+  setBusy(true);
+
+  if (source) source.close();
+  source = new EventSource(
+    "/api/chat?input=" + encodeURIComponent(q) + "&session=" + encodeURIComponent(sessionId)
+  );
+
+  source.onmessage = (ev) => {
+    let msg;
+    try { msg = JSON.parse(ev.data); } catch { return; }
+    handle(msg.type, msg.payload);
+  };
+  source.onerror = () => {
+    if (source) { source.close(); source = null; }
+  };
+}
+
+function handle(type, payload) {
+  switch (type) {
+    case "system":
+      providerEl.textContent = payload.provider === "mock"
+        ? "mock · 免密钥" : "openai · 兼容端点";
+      break;
+    case "message:user":
+      break; // we already echoed the user bubble locally
+    case "step:start":
+      beginStep(payload.step);
+      setStatus("running", "步骤 " + payload.step);
+      break;
+    case "model:response": {
+      const text = payload.message && payload.message.content;
+      const hasTools = payload.message && payload.message.toolCalls && payload.message.toolCalls.length;
+      if (text) addThinking(text);
+      if (hasTools) setStatus("running", "执行工具…");
+      break;
+    }
+    case "tool:start":
+      addToolStart(payload.toolCall);
+      break;
+    case "tool:end":
+      addToolEnd(payload.toolCall, payload.result, payload.ok);
+      break;
+    case "run:end":
+      finishRun({ steps: payload.steps, output: payload.output, usage: payload.usage });
+      setStatus("done", "完成 · " + payload.steps + " 步");
+      break;
+    case "run:error":
+      closeStep();
+      showError("⚠ " + payload.error);
+      setStatus("error", "出错");
+      break;
+    case "done":
+      if (source) { source.close(); source = null; }
+      if (!payload.ok && payload.error) {
+        closeStep();
+        showError("⚠ " + payload.error);
+        setStatus("error", "出错");
+      }
+      setBusy(false);
+      break;
+  }
+}
+
+function setBusy(v) {
+  busy = v;
+  sendBtn.disabled = v;
+  input.disabled = v;
+  if (v) { input.placeholder = "Agent 正在思考…"; }
+  else { input.placeholder = "输入消息，Enter 发送，Shift+Enter 换行"; input.focus(); }
+}
+
+// ---- wiring --------------------------------------------------------------
+sendBtn.addEventListener("click", () => send(input.value));
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input.value); }
+  autoGrow();
+});
+$("suggest").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-q]");
+  if (btn) send(btn.dataset.q);
+});
+input.focus();
+</script>
+</body>
+</html>

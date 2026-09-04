@@ -1,0 +1,501 @@
+# Agent Runtime 架构设计（v1 草案）
+
+> 本文档把「单机 Agent 实验原型」演进为可承载**桌面产品（Desktop / Product Host）**的完整 Agent 运行时：既保留零依赖、事件驱动、可测试的内核哲学，又按目标架构补齐 Session、Task、Context、Memory、Permission、Sandbox、Checkpoint、MCP、Artifact、Persistence 等模块。
+>
+> 状态：草稿 · 作者：Agent Runtime 团队 · 关联代码版本：`v0.1.0`（`src/` 现有实现为 M0 基线）
+
+---
+
+## 1. 架构总览（对应图 1：整体分层）
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Desktop 壳层                                                │
+│  Electron / Tauri：窗口、渲染进程、系统集成、应用生命周期      │
+│  通过 IPC / localhost 桥接，展示事件流，不可直接触碰核心       │
+└──────────────────────────────┬──────────────────────────────┘
+                               │  Product Host API（进程内 or 子进程）
+┌──────────────────────────────▼──────────────────────────────┐
+│  Product Host（宿主层：策略与编排，属于"产品"而非"引擎"）      │
+│  · 多 Agent 路由 / 子任务拆分与汇总                            │
+│  · 用户意图 → Task 创建；对话线程（Session）管理               │
+│  · 权限策略、审核日志、资源配额的唯一入口                     │
+│  · 会话语义化：标题、摘要、分类                               │
+└───────┬───────────────────────────────┬─────────────────────┘
+        │                              │
+┌───────▼─────────┐        ┌───────────▼──────────┐
+│  Runtime 核心    │        │  Storage             │
+│  （本设计主体）   │        │  Session / Run /     │
+│  事件循环引擎     │        │  Checkpoint /        │
+│  见第 3、4 节     │        │  Artifact / Memory   │
+└───────┬─────────┘        └───────────────────────┘
+        │
+┌───────▼──────────────────────────────────────────┐
+│ 能力接入层                                        │
+│  Model API（OpenAI 兼容） · Tool · MCP Server      │
+│  外部世界：HTTP / 文件 / shell（受 Sandbox 约束）   │
+└───────────────────────────────────────────────────┘
+```
+
+| 层 | 职责 | 约束 / 边界 |
+| --- | --- | --- |
+| **Desktop** | 原生壳（Electron/Tauri），负责窗口、系统菜单、快捷键、托盘、启动驻留 | 只通过 Product Host API 通信；不 import `core/`；UI 订阅事件流 |
+| **Product Host** | 产品策略与编排：Task/Session 语义、权限决策、路由、额度、审计 | 可依赖 `core/`；是核心的唯一"客户"；同一 host 可服务多桌面窗口 |
+| **Runtime core** | 引擎：模型往返、工具执行、事件、状态记录 | 零外部依赖、纯函数友好、可在 Node/Worker/测试中运行 |
+| **Storage** | 状态持久化抽象 | 由接口 + 多实现组成（内存 / 文件 / 可选 SQLite） |
+| **接入层** | Model API、Tool、MCP 的适配边界 | 每个 adapter 只做协议翻译 |
+
+**关键决策**
+1. `core`（引擎）与 `host`（产品策略）分层隔离——引擎不感知"审批弹窗""会话标题"这类产品概念，只暴露可编排的原语与事件。
+2. Storage 作为 `core` 依赖注入的接口存在；`core` 自带内存实现，文件/SQLite 由宿主管道化。
+3. 事件流是唯一的进程内观察通道（延续现状 `EventBus` 设计），也是跨进程/跨设备（SSE）的传输单元。
+
+---
+
+## 2. Runtime 模块地图（对应图 2：模块树）
+
+目标模块树按四个职责域分组：
+
+```
+                    ┌──────────────────────────┐
+                    │   Session  Agent         │  ← 编排：会话与配方
+                    │   Task    Run   Step     │  ← 编排：执行生命周期
+                    └──────────────────────────┘
+                    ┌──────────────┬───────────┐
+                    │  Context     │  Memory   │
+                    │  Model Tool  │  Artifact │
+                    │  MCP         │           │
+                    └──────┬───────┴─────┬─────┘
+                           │             │
+                 ┌─────────▼─────┐ ┌─────▼────────────┐
+                 │ Permission    │ │ Event            │
+                 │ Sandbox       │ │ Checkpoint       │
+                 │               │ │ Persistence      │
+                 └───────────────┘ └──────────────────┘
+```
+
+| 组 | 模块 | 一句话职责 | 现状 |
+| --- | --- | --- | --- |
+| 编排 | `Session` | 一次用户可见的对话线程：消息流、内存、所属 Agent | 待建（Web demo 仅内存 Map 近似） |
+| 编排 | `Agent` | 静态配方：指令 + 工具集 + 模型采样参数（已是现状） | 已有，微调 |
+| 编排 | `Task` | 会话内一个目标导向的请求，可跨多次 Run（中断/续推） | 待建 |
+| 编排 | `Run` | 引擎一次独立执行（现有 `run()`），自动落 Checkpoint | 已有（`RunResult` 需提升为实体） |
+| 编排 | `Step` | Run 内一次模型往返 + 其工具调用组 | 已有（循环体） |
+| 依赖 | `Context` | Run/Step 内可见的运行上下文与能力门面 | 部分（`ToolExecutionContext` 雏形） |
+| 依赖 | `Model` | 模型后端抽象（`ModelProvider`） | 已有 |
+| 依赖 | `Tool` | 具名、带 Schema 的可调用能力 | 已有 |
+| 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建 |
+| 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | 待建 |
+| 治理 | `Sandbox` | 工具执行的环境隔离与资源限制 | 待建（calculator 已自证"安全解析"） |
+| 状态 | `Event` | 生命周期事件总线 | 已有 |
+| 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | 待建（消息流现由调用方维护） |
+| 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建 |
+| 状态 | `Checkpoint` | Run/Step 级可恢复快照 | 待建 |
+| 状态 | `Persistence` | 上述全部实体的存取接口与实现 | 待建 |
+
+---
+
+## 3. 生命周期语义（Session → Agent → Task → Run → Step）
+
+四层实体使用**严格包含关系**，与既有心智一致：
+
+```
+Session (1) ── contains many ─▶ Task (n)
+  · 唯一持久的对话上下文      · goal: 用户一次请求 / 一段自动任务
+  · 固定的 agent + memory     · 状态机：created → running → done/failed/cancelled
+                                    · 可多次调度 Run（追问 / 续推 / 恢复）
+Agent (recipe)                Run (1) ── contains many ─▶ Step (n)
+  · 静态，可被多个 Session 复用 · 引擎一次 run() 的执行记录     · 1 次模型往返
+  · 编译时校验（工具名查重等）  · 从 Task 继承 messages 起点   · 往返含 0..k 工具调用
+```
+
+关键状态机：
+
+```
+Session: idle ─▶ busy ─▶ idle        （busy 期间锁定写入；可同时多个 Task 排队的场景由 host 仲裁）
+Task   : created ─▶ running ─┬─▶ done
+                             ├─▶ failed
+                             └─▶ cancelled          （cancelled 可 ——▶ resumed）
+Run    : queued ─▶ running ─┬─▶ succeeded ─▶（task 未完 → 再次 run）
+                            ├─▶ stopped(maxSteps)
+                            ├─▶ aborted(信号)
+                            └─▶ failed
+Step   : 仅在 Run 内存在，无独立生命周期；结束后写入 checkpoint
+```
+
+### 3.1 接口草案
+
+```ts
+// ── 编排 ──────────────────────────────────────────────
+
+interface Session {
+  readonly id: string;
+  agentId: string;                 // 引用 Agent 配方（未来可用快照版本号）
+  title: string;                   // host 可自动生成
+  status: "idle" | "busy" | "closed";
+  meta: Record<string, unknown>;   // 宿主自定义（标签、目录、图标…）
+  createdAt: number; updatedAt: number;
+}
+
+interface Task {
+  readonly id: string;
+  sessionId: string;
+  goal: string;                    // 本次请求的输入
+  status: "created" | "running" | "done" | "failed" | "cancelled";
+  runIds: string[];                // 该 task 历次 run
+  result?: string;                 // done 时的最终答复
+  createdAt: number; updatedAt: number;
+}
+
+// Run 提升为持久实体（现状 RunResult 是纯内存返回）
+interface Run extends RunResult {          // 复用现有字段 runId/steps/messages/usage…
+  readonly id: string;                     // = runId
+  taskId: string;
+  status: "running" | "succeeded" | "stopped" | "aborted" | "failed";
+  parentCheckpointId?: string;             // resume 时的来源
+  startedAt: number; finishedAt?: number;
+}
+
+interface SessionManager {
+  create(opts: { agentId: string; title?: string }): Promise<Session>;
+  get(id: string): Promise<Session | undefined>;
+  list(): Promise<Session[]>;
+  close(id: string): Promise<void>;
+}
+```
+
+> 现状对应：`runtime.run()` 内的 `runId/newId`、`conversationId`、`history` 参数即为 Run/Session 的最简形态；目标是把隐式概念显式化并落盘。
+
+### 3.2 Agent 演进
+
+`Agent` 保持静态配方不变（v0.1 已正确建模），仅补充：
+- `agentId` 显式版本/快照：Session 引用创建时刻的配方快照，避免配方改动破坏历史会话。
+- 工具来源扩展：本地 `ToolDefinition[]` 或 `McpToolRef[]`（见 §5）延迟解析。
+- 新增编译期校验函数：`compileAgent()` → 校验重名、MCP 可达性、Schema 合法性，产物可缓存。
+
+---
+
+## 4. 数据流
+
+### 4.1 现状：无状态 Run（已实现）
+
+```
+调用方 ── runtime.run({ agent, input, history })
+   └─ 循环 { provider.chat → 解析 → 校验 → executeTool → 回填 } → RunResult
+   └─ 全部生命周期发布 EventBus；调用方自行持久化 history
+```
+
+### 4.2 目标：宿主驱动的 Task 流水线
+
+```
+┌ host/user ────── Session.create() ────────────────────────────────┐
+│                                                                   │
+│  user msg ─▶ session.createTask(goal) ─▶ task = running           │
+│                                                                   │
+│      task.scheduleRun()                                          │
+│        ─▶ runtime.run({ taskCtx })                                │
+│            每 Step 结束 ──▶ store.checkpoint.save(run,step)       │
+│            每 Step 结束 ──▶ memory.append(messages)               │
+│            工具执行前 ──▶ permission.decide() ──▶ 允许则执行        │
+│            ask 决策 ──▶ emit(permission:request) ── 宿主批准/拒绝   │
+│            执行环境 ──▶ sandbox.wrap(tool)                       │
+│        run 结束 ──▶ task.result 写入；task = done                  │
+│                                                                   │
+│  中断恢复：host 重启 ─▶ store 载入 session/task ─▶ resume last      │
+│            checkpoint ─▶ runtime.run(resumeCheckpointId)          │
+└───────────────────────────────────────────────────────────────────┘
+```
+
+### 4.3 Run 循环（引擎内部，v1 保留现状主循环并外挂扩展点）
+
+```
+for step in 1..maxSteps:
+  decision = model.chat(messages + tools)            [M]
+  if no toolCalls: break                             [回答完成]
+  for each toolCall:
+    permission = policy.decide(toolCall)             [P]   ← 新增
+      ask → emit + await 宿主审批（可超时/拒绝）
+    execute = sandbox.wrap(tool)                     [S]   ← 新增
+    result = execute(args, ctx)                      [ctx 含 Context 门面]
+    memory.append(tool result)                       [E]
+    events.emit(tool:end)
+  checkpoint.save(step)                              [E]   ← 新增
+```
+
+---
+
+## 5. 能力接入：Tool、Model、MCP
+
+### 5.1 Tool（保持现状接口，v0.1 已稳定）
+
+```ts
+interface ToolDefinition<Args, Result> {
+  name: string; description: string;
+  parameters?: JsonSchema;                 // 本地校验 + 模型提示双用
+  execute(args: Args, ctx: ToolExecutionContext): Result | Promise<Result>;
+}
+```
+
+### 5.2 Model（保持现状接口）
+
+```ts
+interface ModelProvider {
+  readonly id: string; readonly label: string;
+  chat(req: ModelRequest): Promise<ModelResponse>;
+}
+```
+
+### 5.3 MCP（新增适配层，接缝在 Tool）
+
+设计原则：**MCP Server 的唯一产物是「动态 Tool 集合」**，注册后引擎路径完全复用本地工具路径。
+
+```ts
+interface McpServerHandle {
+  readonly name: string;                       // 唯一，作为工具名前缀作用域
+  connect(): Promise<void>;                    // stdio / Streamable HTTP / SSE
+  listTools(): Promise<McpToolMeta[]>;         // { name, description, inputSchema }
+  callTool(name: string, args: unknown): Promise<McpToolResult>;
+  close(): Promise<void>;
+}
+
+// 注册器：把远端工具物化为本地 ToolDefinition（带前缀防碰撞）
+interface McpRegistry {
+  register(server: McpServerHandle): Promise<void>;   // 拉取 → 缓存
+  unregister(name: string): Promise<void>;
+  resolve(ref: McpToolRef): ToolDefinition | undefined; // Agent 配方延迟解析
+  list(): McpServerHandle[];
+}
+```
+
+协议翻译注意点：
+- 参数：MCP `inputSchema`（JSON Schema）可直接复用现有 `validate()`。
+- 命名空间：远程工具以 `serverName::toolName`（或前缀 `mcp__server__tool`）注册，避免与本地工具冲突；错误回填格式与本地工具一致，模型可自纠。
+- 产物：MCP 的文本/二进制资源映射为 `Artifact`（§8）。
+
+---
+
+## 6. 治理：Permission 与 Sandbox
+
+### 6.1 Permission（授权决策）
+
+```
+决策链（工具调用前）：policy.decide(ctx, call)
+  → allow  : 放行，写入 audit
+  → deny   : 拒绝并回填错误给模型（可给出拒绝原因）
+  → ask    : emit(permission:request, {decisionId, call, reason})
+             宿主展示 → approve/deny → resume 该 run
+             超时（host 配置，默认如 60s）→ 视为 deny
+```
+
+```ts
+export type Decision = { verdict: "allow" | "deny"; reason?: string }
+                    | { verdict: "ask"; reason: string };
+
+interface PermissionPolicy {
+  decide(ctx: PermissionContext, call: { name: string; arguments: unknown }):
+    Decision | Promise<Decision>;
+  // ctx: sessionId / taskId / runId / userId / 敏感级别 / 当前审批 handle
+}
+
+interface PermissionManager {
+  setPolicy(p: PermissionPolicy): void;
+  gate(call, ctx): Promise<{ ok: boolean; reason?: string }>; // run 主循环内调用
+  events:  // permission:request | permission:approved | permission:denied
+}
+```
+
+策略示例（内置 `FileAccessPolicy`、`NetworkPolicy` 未来按工具类别挂载）。敏感分类建议：`无害(计算/时钟)`、`只读网络(天气)`、`写文件`、`执行命令`、`访问凭据`；默认分级 allow / ask / deny。
+
+### 6.2 Sandbox（执行隔离）
+
+引擎不假设工具在何处运行，由 host 注入 sandbox：
+
+```ts
+interface Sandbox {
+  wrap<T extends AnyTool>(tool: T): T;               // 装饰：限时/限流/隔离
+  // 参考实现：
+  //  - LocalSandbox   ：超时(AbortController) + 递归深度/大小上限 + 无权限则拒绝
+  //  - WorkerSandbox  ：工具下沉 worker_threads / child_process，宿主可控
+  //  - RemoteSandbox  ：本身就是 MCP 远端进程 → 自然边界
+}
+```
+
+现状衔接：`calculator` 的 Pratt 解析与 `schema.ts` 校验即"自包含安全"，可先归入 LocalSandbox 白名单；`geocode/weather/exchange` 归入只读网络策略。
+
+---
+
+## 7. Event（事件契约扩展）
+
+保持「事件 = 类型判别联合 + 无侵入总线」的现状风格。扩展后全集：
+
+| 域 | 事件 | 说明 |
+| --- | --- | --- |
+| run（已有） | `run:start` `step:start` `model:response` `tool:start` `tool:end` `run:end` `run:error` | 保持兼容 |
+| session | `session:created` `session:updated` `session:closed` | 会话生命周期 |
+| task | `task:created` `task:status` | 任务状态迁移 |
+| permission | `permission:request` `permission:approved` `permission:denied` | 审批流（含 decisionId） |
+| checkpoint | `checkpoint:created` `checkpoint:resumed` | 快照落盘/恢复 |
+| artifact | `artifact:created` | 新产物可用（含可展示元数据） |
+| memory | `memory:updated` | 记忆写入 |
+
+约束：所有事件保持 JSON 可序列化（跨进程/SSE 传输前提）；`runtime.run()` 内的旧事件字段不回退删改。
+
+---
+
+## 8. Artifact 与 Memory
+
+### 8.1 Artifact（产物）
+
+工具或 Agent 可产出用户可见/可引用结果：
+
+```ts
+interface Artifact {
+  readonly id: string;
+  kind: "text" | "file" | "chart" | "mcp-resource" | "url";
+  name: string;                       // 展示名
+  mime: string;                       // 由 kind 归一化
+  locator: string;                    // blobKey / path / url（透明由 store 解析）
+  meta: Record<string, unknown>;
+  sessionId: string; runId?: string;
+  createdAt: number;
+}
+```
+
+落点：小文本入 KV，大文件走 Blob store（`Storage` 见 §9）；UI 通过 `locator` 拉取，无需关心实现。
+
+### 8.2 Memory（记忆）
+
+```ts
+interface Memory {
+  // 会话层（session 生命周期）
+  append(message: ChatMessage): Promise<void>;
+  messages(limit?: number): Promise<ChatMessage[]>;
+
+  // 长期事实层（可选后端：KV / 向量化占位），供 Agent 配方注入"summary/facts"
+  remember(key: string, value: unknown): Promise<void>;
+  recall(query: string, limit?: number): Promise<Array<{ key: string; value: unknown; score: number }>>;
+}
+```
+
+现状衔接：`runtime.run()` 的 `history` 参数由 Session 的 Memory 取代；引擎只读 `memory.messages()`。
+
+---
+
+## 9. Persistence 与 Storage
+
+引擎需要持久化的实体域：`Session`、`Task`、`Run`、`Step`（随 Run 内嵌）、`Checkpoint`、`Message`（属 session）、`Artifact`、`Memory`。
+
+```ts
+// 统一存储门面（core 内置内存实现；host 可选文件 / SQLite 实现）
+interface Storage {
+  // 文档域：JSON 行式
+  saveDoc<T>(domain: DocDomain, id: string, doc: T): Promise<void>;
+  loadDoc<T>(domain: DocDomain, id: string): Promise<T | undefined>;
+  listDocs<T>(domain: DocDomain, filter?: Partial<T>): Promise<T[]>;
+  deleteDoc(domain: DocDomain, id: string): Promise<void>;
+
+  // Blob 域：Artifact 大文件
+  putBlob(key: string, data: Buffer | Uint8Array): Promise<void>;
+  getBlob(key: string): Promise<Buffer | undefined>;
+
+  // 流域：消息追加 / 事件日志（追加式，天然适配 Run 记录）
+  appendStream(domain: StreamDomain, id: string, line: string): Promise<void>;
+  readStream(domain: StreamDomain, id: string): Promise<string[]>;
+}
+```
+
+实现约定：
+- `MemoryStorage`（core 内置）：Map 实现，供测试与无盘 demo。
+- `FileStorage`：目录即 domain，JSON 文件即 doc；供单机桌面（默认）。
+- `SQLiteStorage`（可选、不进入 core 依赖）：`better-sqlite3` 仅存在于独立包 `@agent-runtime/store-sqlite`，不影响"核心零依赖"。
+- 原子性：单文档整体覆盖写；Checkpoint 单独成域，天然可回滚。
+
+Checkpoint 结构：
+
+```ts
+interface Checkpoint {
+  readonly id: string;
+  runId: string; sessionId: string; taskId: string;
+  step: number;                        // 已完成到第几步
+  messages: ChatMessage[];             // 该步后的完整消息流（含工具结果）
+  usage: RunUsage;                     // 累计
+  agentSnapshot: { agentId: string; toolsHash: string };  // 恢复一致性校验
+  createdAt: number;
+}
+```
+
+恢复协议：`resume(checkpointId, continuation)` = 载入 messages + 校验 toolsHash → 以「用户追加消息」继续跑同一 run 语义（status 回到 running）。
+
+---
+
+## 10. 目标目录结构
+
+```
+src/
+├── index.ts                     # 公共 API（保持向下兼容导出）
+├── core/                        # ← 现有逻辑迁移，接口不动
+│   ├── runtime.ts  events.ts  agent.ts  tool.ts
+│   ├── provider.ts  types.ts  schema.ts  util.ts
+│   ├── providers/   tools/
+│   └── context.ts               # Context 门面（由 run 注入）
+├── session.ts                   # SessionManager / Task
+├── memory.ts
+├── checkpoint.ts
+├── permission.ts
+├── sandbox.ts
+├── artifact.ts
+├── mcp/
+│   ├── types.ts                 # McpServerHandle / McpToolMeta / McpToolRef
+│   ├── registry.ts              # 物化到本地 ToolDefinition
+│   ├── transport.ts             # stdio / http(sse) 客户端
+│   └── client.ts                # JSON-RPC 2.0 协议实现
+└── store/
+    ├── types.ts                 # Storage 接口（本核心仓库内）
+    ├── memory.ts                # 内存实现（内置）
+    └── file.ts                  # 文件实现（内置，Node）
+examples/
+├── cli.ts                       # 演进：Session 化 + Permission ask 命令行审批
+├── web/                         # 演进：读 Persistence、权限弹窗 SSE
+└── desktop/                     # [未来] Electron/Tauri 壳示例
+packages/                        # [未来，若拆包]
+├── agent-runtime-core/          # 零依赖核心（上述 src/core + store/memory）
+├── agent-runtime-store-sqlite/
+├── agent-runtime-mcp/           # mcp/*（依赖 JSON-RPC 但对 core 零侵入）
+└── agent-runtime-host/          # Session/Task/权限策略等产品面
+```
+
+拆分原则：**`core` + `store/memory` 永远零依赖**；IO 与协议翻译（MCP、SQLite）下沉独立包。
+
+---
+
+## 11. 演进路线图
+
+| 里程碑 | 范围 | 交付物 | 验收 |
+| --- | --- | --- | --- |
+| **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例） |
+| **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | 会话可重启恢复，`history` 从调用方消失；用例 ≥ 8 |
+| **M2 · 记忆与续跑** | `Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 断电/断网从 checkpoint 续跑等价新跑 |
+| **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` Local 实现（超时/白名单） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny；审批可超时 |
+| **M4 · 外部能力** | MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用 |
+| **M5 · 产品化** | 独立分包 + Desktop 壳 + Web 控制台全面 Session 化 | `packages/` `examples/desktop/` | 桌面 demo 全流程可用 |
+
+> M1~M5 均要求保持 `npm run typecheck` 与 `npm test` 全绿；每模块独立 `*.test.ts`，测试即规格。
+
+---
+
+## 12. 设计原则（延续并明确化）
+
+1. **分层依赖单向**：Desktop → Host → Core →（Tool/Model/MCP）；禁止反向引用。
+2. **事件即接口**：UI/审计/可观测都从事件流获取信息，不向引擎加回调专属 API。
+3. **核心零依赖、可移植**：一切外部 IO（HTTP/MCP/SQLite）都藏在注入实现后面。
+4. **接缝最小化**：MCP 的唯一接缝是 `ToolDefinition`；Persistence 的唯一接缝是 `Storage`；权限的唯一接缝是 Run 主循环里一个 `gate()` 调用点。
+5. **失败可恢复**：任何一步都可通过 Checkpoint 重建；工具失败回填错误让模型自纠（现状已实现）。
+6. **产品概念不进引擎**：Session 标题、审批弹窗、多窗口路由属于 host；引擎只保留通用原语。
+
+---
+
+## 13. 修订记录
+
+| 版本 | 日期 | 说明 |
+| --- | --- | --- |
+| v1 draft | 2026-09-04 | 依据产品架构图 1（分层）与图 2（Runtime 模块树）初稿；建立 M0~M5 路线 |

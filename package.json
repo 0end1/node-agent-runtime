@@ -4,6 +4,19 @@
   "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers.",
   "private": true,
   "type": "module",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/nodeRuntimes.git"
+  },
+  "homepage": "https://github.com/0end1/nodeRuntimes",
+  "bugs": {
+    "url": "https://github.com/0end1/nodeRuntimes/issues"
+  },
   "engines": {
     "node": ">=18.17"
   },

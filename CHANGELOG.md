@@ -8,7 +8,11 @@
 
 ## [Unreleased]
 
-（自 v0.2.0 起的新变更将记录于此；当前 dev 分支已就绪，下一步见 `docs/architecture.md` §11 路线图 —— 计划 M2 · 恢复与记忆，或先回 `main` 发布 v0.2.0。）
+（自 v0.2.0 起的新变更将记录于此；下一步见 `docs/architecture.md` §11 路线图 —— 计划 M2 · 恢复与记忆，或先回 `main` 发布 v0.2.0。）
+
+### Docs
+
+- `docs/architecture.md` §6/§7/§11 修订（v1.2，2026-09-05）：**Sandbox 由工具装饰器升格为运行层执行域边界**——引入 `SandboxMode` 三档（read-only / workspace-write / full-access，对齐 Codex）与 `SandboxScope`（workspace 可写域、网络默认禁网、环境变量精简），文件/命令访问先过 `gate()`、越界 deny，写操作发布 `sandbox:write`（含 diff）事件；`PermissionContext` 携带 sandbox 边界；Run 循环增加 `sandbox.begin()`；路线图 M3 验收更新
 
 ## [v0.2.0] - 2026-09-04
 

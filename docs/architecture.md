@@ -86,7 +86,7 @@
 | 依赖 | `Tool` | 具名、带 Schema 的可调用能力 | 已有 |
 | 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建（M4） |
 | 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | 待建（M3） |
-| 治理 | `Sandbox` | 工具执行的环境隔离与资源限制 | 待建（M3；calculator 已自证"安全解析"） |
+| 治理 | `Sandbox` | 运行层执行域边界：`SandboxMode` 三档 + `SandboxScope` 声明域 + 资源限制 | 待建（M3；v1.2 设计定稿，对齐 Codex 三档模式） |
 | 状态 | `Event` | 生命周期事件总线 | 已有（M1 追加 session/task 事件） |
 | 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | 部分：消息流已入 storage（消息域），长期事实层待 M2 |
 | 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建（M4） |
@@ -209,13 +209,14 @@ interface SessionManager {
 ### 4.3 Run 循环（引擎内部，v1 保留现状主循环并外挂扩展点）
 
 ```
+sandbox = sandbox.begin(run.mode, run.scope)          [S]   ← 运行层执行域（每次 run）
 for step in 1..maxSteps:
   decision = model.chat(messages + tools)            [M]
   if no toolCalls: break                             [回答完成]
   for each toolCall:
-    permission = policy.decide(toolCall)             [P]   ← 新增
+    permission = policy.decide(toolCall, sandbox)    [P]   ← 新增
       ask → emit + await 宿主审批（可超时/拒绝）
-    execute = sandbox.wrap(tool)                     [S]   ← 新增
+    execute = sandbox.wrap(tool)                     [S]   ← 越界先 deny
     result = execute(args, ctx)                      [ctx 含 Context 门面]
     memory.append(tool result)                       [E]
     events.emit(tool:end)
@@ -276,6 +277,22 @@ interface McpRegistry {
 
 ## 6. 治理：Permission 与 Sandbox
 
+> **执行边界模型（v1.2，对齐 Codex 三档模式）**：Sandbox 不再是"工具装饰器"，而是**运行层的执行域边界**——每次 Run 启动即绑定一个 `SandboxMode`，文件/网络/命令访问全部在该边界内判据。引擎不亲自实现 OS 级隔离（容器/VM 仍由 host 注入），但**边界语义由运行时强制下发**：工具拿到的 `scope` 来自运行时，而非工具自行声明。
+
+### 6.0.1 SandboxMode（运行层三档）
+
+| 档位 | 语义 | 放行示例 | 典型工具 |
+| --- | --- | --- | --- |
+| `read-only` | 只读、无副作用 | 计算/时钟/只读查询 | calculator、now、只读网络工具 |
+| `workspace-write` | **默认档**：仅可写声明的 workspace，写操作以 diff 可见 | 改项目文件、跑项目内测试 | edit_file、run(test) |
+| `full-access` | 放开边界，仅 host 显式启用（建议隔离 VM/容器） | 任意命令/任意路径 | danger（--yolo 等价） |
+
+运行层约束（workspace-write 及以上）：
+- **网络默认禁网**：白名单由 host 注入（如 npm/pypi 镜像），越界直接 `deny`
+- **文件访问走声明域**：Run 上下文携带 `SandboxScope { workspace, writablePaths, allowedReads }`，文件类工具先过 `gate()`
+- **命令执行分级**：workspace 内的构建/测试命令 = workspace-write 自动放行；脱离 workspace 的高危命令 = ask/deny
+- **写操作发布 `sandbox:write` 事件（含 diff）**，对齐 Codex 的"写即可见"
+
 ### 6.1 Permission（授权决策）
 
 ```
@@ -294,7 +311,8 @@ export type Decision = { verdict: "allow" | "deny"; reason?: string }
 interface PermissionPolicy {
   decide(ctx: PermissionContext, call: { name: string; arguments: unknown }):
     Decision | Promise<Decision>;
-  // ctx: sessionId / taskId / runId / userId / 敏感级别 / 当前审批 handle
+  // ctx: sessionId / taskId / runId / userId / 敏感级别 /
+  //      sandboxMode + scope（运行层边界） / 当前审批 handle
 }
 
 interface PermissionManager {
@@ -312,11 +330,24 @@ interface PermissionManager {
 
 ```ts
 interface Sandbox {
+  // 运行层（v1.2）：为一次 Run 建立执行域（模式 + 声明域 + 网络策略）
+  begin(mode: SandboxMode, scope: SandboxScope): Promise<SandboxHandle>;
+  // SandboxHandle.openTool(name) → 包裹后的工具：先 scope/gate 校验再执行
+
   wrap<T extends AnyTool>(tool: T): T;               // 装饰：限时/限流/隔离
   // 参考实现：
-  //  - LocalSandbox   ：超时(AbortController) + 递归深度/大小上限 + 无权限则拒绝
-  //  - WorkerSandbox  ：工具下沉 worker_threads / child_process，宿主可控
-  //  - RemoteSandbox  ：本身就是 MCP 远端进程 → 自然边界
+  //  - LocalSandbox     ：超时(AbortController) + 递归深度/大小上限 + 越界(scope)拒绝
+  //  - WorkerSandbox    ：工具下沉 worker_threads / child_process，宿主可控
+  //  - ContainerSandbox ：docker/VM 级隔离（full-access 与高危执行推荐）← 对齐 Codex
+  //  - RemoteSandbox    ：本身就是 MCP 远端进程 → 自然边界
+}
+
+// v1.2：边界语义由运行时下发，工具不可自报 scope
+interface SandboxScope {
+  workspace: string;                 // 可写根目录（read-only 档为空）
+  writablePaths: string[];           // 额外可写白名单（host 配置）
+  network: "deny" | "allowlist";     // 默认 deny，白名单列表由 host 给
+  env?: Record<string, string>;      // 精简环境变量（剥离敏感项）
 }
 ```
 
@@ -334,6 +365,7 @@ interface Sandbox {
 | session | `session:created` `session:updated` `session:closed` | 会话生命周期 |
 | task | `task:created` `task:status` | 任务状态迁移 |
 | permission | `permission:request` `permission:approved` `permission:denied` | 审批流（含 decisionId） |
+| sandbox | `sandbox:write` | 写操作发生（含 diff），"写即可见"对齐 Codex |
 | checkpoint | `checkpoint:created` `checkpoint:resumed` | 快照落盘/恢复 |
 | artifact | `artifact:created` | 新产物可用（含可展示元数据） |
 | memory | `memory:updated` | 记忆写入 |
@@ -475,7 +507,7 @@ packages/                        # [未来，若拆包]
 | **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例） |
 | **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | ✅ dev 分支已完成（2026-09-04）：会话可重启恢复、`history` 不再由调用方维护；`npm test` 35 通过 |
 | **M2 · 记忆与续跑** | `Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 断电/断网从 checkpoint 续跑等价新跑 |
-| **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` Local 实现（超时/白名单） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny；审批可超时 |
+| **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` 运行层执行域（Local 实现：`SandboxMode` 三档 + `SandboxScope` 声明域 + 网络默认禁网 + 超时） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny，审批可超时；写操作可见（`sandbox:write` 含 diff）；网络默认 deny、文件越界拒绝 |
 | **M4 · 外部能力** | MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用 |
 | **M5 · 产品化** | 独立分包 + Desktop 壳 + Web 控制台全面 Session 化 | `packages/` `examples/desktop/` | 桌面 demo 全流程可用 |
 
@@ -500,3 +532,4 @@ packages/                        # [未来，若拆包]
 | --- | --- | --- |
 | v1 draft | 2026-09-04 | 依据产品架构图 1（分层）与图 2（Runtime 模块树）初稿；建立 M0~M5 路线 |
 | v1.1 (M1) | 2026-09-04 | 落地 M1 生命周期：`Session`/`Task`/`Run` 实体化（`session.ts`）、`Storage` 接口 + `MemoryStorage`/`FileStorage`（`store/`）、`Context` 门面（`context.ts`）、session/task 事件；CLI/Web 会话化；模块表“现状”列更新 |
+| v1.2 (M3 设计) | 2026-09-05 | Sandbox 由工具装饰器升格为**运行层执行域边界**：引入 `SandboxMode`（read-only / workspace-write / full-access，对齐 Codex 三档）与 `SandboxScope`（workspace 可写域、网络默认禁网、环境变量精简）；文件/命令访问先过 `gate()`、越界 deny；写操作发布 `sandbox:write`（含 diff）事件；`PermissionContext` 携带 sandbox 边界；§4.3 Run 循环增加 `sandbox.begin()`；模块表/事件表/路线图 M3 验收同步更新 |

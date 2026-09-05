@@ -1,5 +1,5 @@
 import type { AnyTool } from "./tool.js";
-import type { ChatMessage } from "./types.js";
+import type { ChatMessage } from "@agent-runtime/types";
 
 /** A tool call exactly as the provider emitted it (arguments still as raw text). */
 export interface RawToolCall {

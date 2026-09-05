@@ -1,4 +1,4 @@
-import type { JsonSchema } from "./schema.js";
+import type { JsonSchema } from "@agent-runtime/types";
 
 /** Extra context handed to a tool when it executes. */
 export interface ToolExecutionContext {

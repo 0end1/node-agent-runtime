@@ -8,7 +8,7 @@ import {
   FileStorage,
   MemoryStorage,
   type Storage,
-} from "../src/index.js";
+} from "@agent-runtime/core";
 
 interface Doc {
   id: string;

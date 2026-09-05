@@ -1,9 +1,9 @@
 import type { Agent } from "./agent.js";
 import { AgentRuntime } from "./runtime.js";
-import type { RunUsage } from "./types.js";
-import type { ChatMessage } from "./types.js";
+import type { RunUsage } from "@agent-runtime/types";
+import type { ChatMessage } from "@agent-runtime/types";
 import type { Storage } from "./store/types.js";
-import { newId } from "./util.js";
+import { newId } from "@agent-runtime/types";
 
 /**
  * Lifecycle entities + SessionManager (docs/architecture.md §3).

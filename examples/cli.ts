@@ -28,7 +28,7 @@ import {
   type ModelProvider,
   type RuntimeEvent,
   type Session,
-} from "../src/index.js";
+} from "@agent-runtime/core";
 
 const argv = process.argv.slice(2);
 const wantsOpenAI = argv.includes("--provider=openai") || argv.includes("--openai");

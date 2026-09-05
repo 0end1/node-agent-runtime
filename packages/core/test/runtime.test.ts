@@ -9,7 +9,7 @@ import {
   defineTool,
   type AnyTool,
   type RuntimeEvent,
-} from "../src/index.js";
+} from "@agent-runtime/core";
 
 function makeRuntime() {
   return new AgentRuntime({

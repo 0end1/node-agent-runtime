@@ -1,4 +1,7 @@
 // ---- Agent runtime core ----
+// 公共 API 兼容面：core 同时转发 C1 叶子包（@agent-runtime/types）的全部导出，
+// 因此 `import { validate, type ChatMessage } from "@agent-runtime/core"` 仍可用。
+export * from "@agent-runtime/types";
 export { AgentRuntime, RunAbortedError } from "./runtime.js";
 export type {
   AgentRuntimeOptions,
@@ -62,10 +65,6 @@ export { CURRENCY_ALIASES } from "./tools/builtin.js";
 
 export { evaluate } from "./tools/calculator.js";
 
-// ---- Schema validation ----
-export { validate } from "./schema.js";
-export type { JsonSchema, JsonSchemaType } from "./schema.js";
-
 // ---- Model providers ----
 export type {
   ModelProvider,
@@ -80,16 +79,3 @@ export { OpenAIClientProvider } from "./providers/openai-compatible.js";
 export type { OpenAIClientOptions } from "./providers/openai-compatible.js";
 
 export { MockProvider } from "./providers/mock.js";
-
-// ---- Shared types & utils ----
-export type {
-  ChatMessage,
-  SystemMessage,
-  UserMessage,
-  AssistantMessage,
-  ToolResultMessage,
-  ToolCall,
-  RunUsage,
-} from "./types.js";
-
-export { newId, fmtNumber, stringifyResult } from "./util.js";

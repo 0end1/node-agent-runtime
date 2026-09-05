@@ -23,7 +23,7 @@ import {
   type ModelProvider,
   type RuntimeEvent,
   type Session,
-} from "../../src/index.js";
+} from "@agent-runtime/core";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);

@@ -5,8 +5,8 @@ import type {
   RawToolCall,
 } from "../provider.js";
 import { CURRENCY_ALIASES } from "../tools/builtin.js";
-import type { ChatMessage, ToolCall } from "../types.js";
-import { newId } from "../util.js";
+import type { ChatMessage, ToolCall } from "@agent-runtime/types";
+import { newId } from "@agent-runtime/types";
 
 /**
  * A deterministic, KEYLESS model provider for demos / tests / offline runs.

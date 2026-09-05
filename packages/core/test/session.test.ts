@@ -12,7 +12,7 @@ import {
   type ModelRequest,
   type ModelResponse,
   type Session,
-} from "../src/index.js";
+} from "@agent-runtime/core";
 
 function makeManager(storage = new MemoryStorage()) {
   const runtime = new AgentRuntime({

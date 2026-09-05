@@ -1,9 +1,12 @@
 {
   "name": "agent-runtime",
   "version": "0.2.0",
-  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers.",
+  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers. Organized as an npm-workspaces monorepo (packages/types · packages/core).",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "author": {
     "name": "wangzhiyong",
     "email": "y1378379002@gmail.com",
@@ -21,12 +24,13 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.examples.json",
-    "test": "tsx --test test/runtime.test.ts test/schema.test.ts test/store.test.ts test/session.test.ts",
+    "build": "npm run build -w @agent-runtime/types && npm run build -w @agent-runtime/core",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "pretest": "npm run build",
+    "test": "npm run test -w @agent-runtime/types && npm run test -w @agent-runtime/core",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

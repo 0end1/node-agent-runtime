@@ -1,8 +1,9 @@
-# Runtime crate 化边界与依赖图（workspace 形态草案 v0.1）
+# Runtime crate 化边界与依赖图（workspace 形态草案 v0.2）
 
 > 本文是 `docs/architecture.md` 的**研究附篇**：把 §2 的 Runtime 模块树按 codex-rs 的 workspace 组织方式重排为一张「模块边界 / 依赖图」，供后续决定是否及如何拆包 / 移植。
-> 约定：**只产出边界设计，不改任何代码、不承诺落地**。相关机制出处见 `docs/codex-reference.md`。
-> 日期：2026-09-05 · 状态：草案（未评审）
+> 约定：v0.1 只产出边界设计，不改代码、不承诺落地；**v0.2 起按 §7.1 方案 A（npm workspaces）落地 C1/C2，公共 API 不变**。
+> 相关机制出处见 `docs/codex-reference.md`。
+> 日期：2026-09-05 · 状态：C1/C2 已落地（v0.2-with-workspaces，`npm test` 35 通过）
 
 ---
 
@@ -12,6 +13,7 @@
 - 拟议拓扑（自底向上）：**types 底座 → core（引擎唯一实现面）→ 外置能力面（memory / sandbox+policy / mcp / model 后端）→ host（Session 等产品面）→ apps**。
 - 边界是否落地的两个候选形态：**npm workspaces（TS，保留现码）** 与 **Rust workspace（对齐 codex，等于重写）**；本文给出两者的迁移路径对比与建议（见 §7）。
 - 无论最终选哪种形态，现在即可执行且两形态通用的收敛动作见 §7.3。
+- **v0.2 落地进度**：已按 §7.1 方案 A 完成 C1（types 底座）与 C2（core 引擎）两包的 npm workspaces 收敛，公共 API 不变；§8 待决项中 #1（形态）、#6（createDemoAgent）已定，其余待里程碑推进。
 
 ---
 
@@ -33,7 +35,7 @@ codex-rs 的真实布局：`core` 是唯一大 crate（内含 `session/`、`cont
 
 ---
 
-## 2. 现状依赖快照（src，2026-09-05，单包平铺）
+## 2. 迁移前依赖快照（src，2026-09-05，单包平铺；v0.2 已拆为 packages/{types,core}）
 
 ```
 L4 生命周期  session.ts ─────────────▶ runtime.ts（AgentRuntime 主循环）＋ store/types
@@ -120,7 +122,7 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 2. **type-only 不算依赖**：TS 中 `import type` 不构成运行时环，但**新增包之间仍尽量把共享契约下沉 C1**；若未来转 Rust，trait 归属主 crate、实现 crate 单向依赖（与 §3 C7/C6 标注一致）。
 3. **接缝即 trait**：`Storage` / `ModelProvider` / `ToolDefinition` / `PermissionPolicy` / `Sandbox` 五条接缝（architecture §12-4）；core 只认 trait，实现在 C3~C9 注入。
 4. **事件类型进 C1、总线实现在 C2**：所有包都能发/订阅 `RuntimeEvent`，但只经 C2 的 EventBus（或每包自带事件，靠类型 union 进 C1）。
-5. **可独立验证**：每个单元都有独立 `typecheck` 与测试入口——现有 `test/store.test.ts`→C2 内置存储、`test/session.test.ts`→C8、`test/runtime.test.ts`→C2、`test/schema.test.ts`→C1，归属与拆包同步迁移；Rust 形态对应 `cargo test -p`。
+5. **可独立验证**：每个单元都有独立 `typecheck` 与测试入口——v0.2 起已随包迁移：`schema.test.ts`→`packages/types/test`（C1）；`runtime/store/calculator.test.ts`→`packages/core/test`（C2）；`session.test.ts` 随 session 暂留 C2（C8 拆分待定，见 §8-5）。Rust 形态对应 `cargo test -p`。
 6. **IO 与协议翻译永远外置**：HTTP/MCP/SQLite 等不进 core（architecture §12-3），维持「core 零依赖」。
 
 ---
@@ -158,16 +160,27 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 - 保留当前 `src/` 不动或原地收敛（§6 表格），`tsc -p` 项目引用代替全局单 tsconfig。
 - 测试命令改为逐包 `--test`（先保持一条总命令全绿）。
 
+**已按本条落地（v0.2-with-workspaces，2026-09-05）**：
+
+- 根包成为 workspace 容器：`workspaces: ["packages/*"]`；`packages/types`（C1）与 `packages/core`（C2）两个私有包，`core` 显式声明 `@agent-runtime/types` 依赖。
+- `src/` 单包平铺拆为两包：契约层（`schema/types/util`）入 C1；引擎实现（runtime/agent/context/events/session/store/tools/providers）入 C2。
+- C2 聚合出口 `packages/core/src/index.ts` **顶部 re-export C1 全部导出**（`export * from "@agent-runtime/types"`），公共 API 面与拆包前一致，`examples` 与测试改为从 `@agent-runtime/core` / `@agent-runtime/types` 包名导入。
+- 类型检查：根 `tsconfig.json`（paths 别名直指 `packages/*/src`，覆盖 packages + examples，`noEmit`）；构建：逐包 `tsc -p` 产出 `dist`（`main/types/exports` 指向 dist）。
+- 测试随包迁移（§5.5）：`test/schema.test.ts`→`packages/types/test`（C1）；`runtime/session/store/calculator`→`packages/core/test`（C2，session 暂留 C2 而非 C8，见 §8-5）；根命令 `npm test` 先 `pretest` build 再逐包 `tsx --test`。
+- 已清理：旧根 `src/`、`test/`、`tsconfig.examples.json`（被根 tsconfig 覆盖）删除。
+
 ---
 
 ## 8. 待决清单（开放问题，未定不阻塞 C1/C2 收敛）
 
-1. **形态二选一**：npm workspaces（推荐先做）还是 Rust workspace（长期向 codex 看齐）。
+> 状态标注：`[已定]` = 已落地 / 已明确；其余为开放项。
+
+1. **形态二选一**：npm workspaces（推荐先做）还是 Rust workspace（长期向 codex 看齐）。`[已定]` 阶段 1 已按 **npm workspaces** 落地 C1/C2（v0.2）；Rust 移植保留为未来选项，届时本文即移植蓝本。
 2. `tool.ts` 是否拆「契约描述层 → C1」与「执行门面 → C2」：TS 下靠 `import type` 可不拆；一旦转 Rust 必须拆。
 3. permission 与 sandbox **是否独立两包**：本草案按 codex 推荐独立（C4/C5）。
 4. Artifact（architecture §8）归 memory 包还是随 mcp 独立：草案倾向并入 C3 memory（同为 Storage 读写），M4 时定。
-5. Session/Task/RunRecord 放 host（C8）：接受其依赖 runtime 公开 API 的事实；若想引擎侧也能用 Task，需再评估是否拆出 task 状态机。
-6. `src/index.ts` 收窄为 facade 后，`createDemoAgent` 去向（保留顶部 vs 移 examples）。
+5. Session/Task/RunRecord 放 host（C8）：接受其依赖 runtime 公开 API 的事实；若想引擎侧也能用 Task，需再评估是否拆出 task 状态机。v0.2 暂留 C2，随 M5 收口再评估。
+6. `src/index.ts` 收窄为 facade 后，`createDemoAgent` 去向（保留顶部 vs 移 examples）。`[已定]` v0.2 死代码清理中移除 `createDemoAgent`（examples 均自行 `new Agent`）。
 7. 远期是否引入 codex `config/features` 式的配置与特性开关模块（当前无，暂不入图）。
 
 ---
@@ -177,3 +190,4 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 | 版本 | 日期 | 说明 |
 | --- | --- | --- |
 | v0.1 | 2026-09-05 | 按 codex-rs workspace 形态把 architecture §2 模块树重排为 crate/包边界与依赖图；给出 C1~C9+A1 映射、边界规则、形态对比与待决清单；纯设计研究，未改代码 |
+| v0.2 | 2026-09-05 | 落地 §7.1 方案 A：根包改 npm workspaces 容器，C1 `@agent-runtime/types` / C2 `@agent-runtime/core` 两包先行（`git mv` 代码、C2 顶部 re-export C1、导入改包名、测试随包）；`npm run typecheck` / `npm run build` / `npm test`（35 通过）全绿，公共 API 不变 |

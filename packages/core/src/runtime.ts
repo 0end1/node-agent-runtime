@@ -11,7 +11,6 @@ import {
   type UserMessageEvent,
 } from "./events.js";
 import type { ModelProvider } from "./provider.js";
-import { validate } from "./schema.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
 import type {
@@ -19,8 +18,8 @@ import type {
   RunUsage,
   ToolCall,
   ToolResultMessage,
-} from "./types.js";
-import { newId, stringifyResult } from "./util.js";
+} from "@agent-runtime/types";
+import { newId, stringifyResult, validate } from "@agent-runtime/types";
 
 export interface AgentRuntimeOptions {
   /** Chat model backend. */

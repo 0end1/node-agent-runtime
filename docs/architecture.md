@@ -498,13 +498,15 @@ packages/                        # [未来，若拆包]
 
 拆分原则：**`core` + `store/memory` 永远零依赖**；IO 与协议翻译（MCP、SQLite）下沉独立包。
 
+> 现状注记（v0.2，2026-09-05）：上表为**目标**目录结构。当前已按 `docs/crate-architecture.md` §7.1 方案 A（npm workspaces）先行落地 C1 `@agent-runtime/types` 与 C2 `@agent-runtime/core`（`packages/types`、`packages/core`），引擎代码位于 C2 的 `src/`（runtime/agent/context/session/events/tool/provider/tools/providers/store），测试随包；其余包（store-sqlite/mcp/host/desktop）仍按里程碑逐步增补。
+
 ---
 
 ## 11. 演进路线图
 
 | 里程碑 | 范围 | 交付物 | 验收 |
 | --- | --- | --- | --- |
-| **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例） |
+| **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例）；v0.2 起代码迁入 `packages/core`（C2）与 `packages/types`（C1） |
 | **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | ✅ dev 分支已完成（2026-09-04）：会话可重启恢复、`history` 不再由调用方维护；`npm test` 35 通过 |
 | **M2 · 记忆与续跑** | `Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 断电/断网从 checkpoint 续跑等价新跑 |
 | **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` 运行层执行域（Local 实现：`SandboxMode` 三档 + `SandboxScope` 声明域 + 网络默认禁网 + 超时） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny，审批可超时；写操作可见（`sandbox:write` 含 diff）；网络默认 deny、文件越界拒绝 |
@@ -533,3 +535,4 @@ packages/                        # [未来，若拆包]
 | v1 draft | 2026-09-04 | 依据产品架构图 1（分层）与图 2（Runtime 模块树）初稿；建立 M0~M5 路线 |
 | v1.1 (M1) | 2026-09-04 | 落地 M1 生命周期：`Session`/`Task`/`Run` 实体化（`session.ts`）、`Storage` 接口 + `MemoryStorage`/`FileStorage`（`store/`）、`Context` 门面（`context.ts`）、session/task 事件；CLI/Web 会话化；模块表“现状”列更新 |
 | v1.2 (M3 设计) | 2026-09-05 | Sandbox 由工具装饰器升格为**运行层执行域边界**：引入 `SandboxMode`（read-only / workspace-write / full-access，对齐 Codex 三档）与 `SandboxScope`（workspace 可写域、网络默认禁网、环境变量精简）；文件/命令访问先过 `gate()`、越界 deny；写操作发布 `sandbox:write`（含 diff）事件；`PermissionContext` 携带 sandbox 边界；§4.3 Run 循环增加 `sandbox.begin()`；模块表/事件表/路线图 M3 验收同步更新 |
+| v1.3 (workspace 化) | 2026-09-05 | 代码按 `docs/crate-architecture.md` §7.1 收敛为 npm workspaces：C1 `@agent-runtime/types` / C2 `@agent-runtime/core`（C2 re-export C1 保持公共 API 不变）；§10 目标结构下包形态落地注记；详见 crate-architecture.md v0.2 修订 |

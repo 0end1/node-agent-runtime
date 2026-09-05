@@ -7,7 +7,7 @@ import {
   type RawToolCall,
 } from "../provider.js";
 import type { AnyTool } from "../tool.js";
-import type { ChatMessage } from "../types.js";
+import type { ChatMessage } from "@agent-runtime/types";
 
 /**
  * OpenAI-compatible chat provider implemented on top of the built-in fetch.

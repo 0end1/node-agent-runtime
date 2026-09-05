@@ -86,7 +86,7 @@ console.log(result.output);   // 最终自然语言答案
 import {
   Agent, AgentRuntime, SessionManager, FileStorage,
   MockProvider, builtinTools,
-} from "./src/index.js";
+} from "@agent-runtime/core";
 
 const manager = new SessionManager({
   runtime: new AgentRuntime({ provider: new MockProvider() }),
@@ -102,35 +102,38 @@ const out2 = await manager.chat(s.id, "那 4 + 5 呢？");
 
 ## 项目结构
 
+npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
+
 ```
-src/
-├── index.ts                 # 公共 API
-├── types.ts                 # 消息 / 工具调用等核心类型
-├── schema.ts                # JSON Schema 子集校验器（无依赖）
-├── tool.ts                  # 工具抽象
-├── context.ts               # Context 门面（M1：run 注入 session/task/run 上下文）
-├── session.ts               # SessionManager / Task / RunRecord（M1）
-├── store/
-│   ├── types.ts             # Storage 接口（M1）
-│   ├── memory.ts            # 内存实现（零依赖，M1）
-│   └── file.ts              # 文件实现（Node，M1）
-├── tools/
-│   ├── calculator.ts        # 安全表达式求值（Pratt 解析，不用 eval）
-│   └── builtin.ts           # calculator / now / geocode / weather / exchange
-├── provider.ts              # ModelProvider 接口 + 错误类型
-├── providers/
-│   ├── openai-compatible.ts # OpenAI 兼容端点（fetch）
-│   └── mock.ts              # 免密钥规则模型（演示/测试）
-├── agent.ts                 # Agent 定义
-├── events.ts                # 事件总线（含 session/task 事件，M1）
-└── runtime.ts               # 多步推理事件循环
+packages/
+├── types/                   # C1 共享叶子包 @agent-runtime/types（零依赖）
+│   ├── src/
+│   │   ├── types.ts         # 消息 / 工具调用 / RunUsage 等核心契约类型
+│   │   ├── schema.ts        # JSON Schema 子集校验器（validate / JsonSchema）
+│   │   └── util.ts          # 零 IO 纯函数（newId / stringifyResult 等）
+│   └── test/                # node:test（schema 校验）
+└── core/                    # C2 引擎实现包 @agent-runtime/core（仅依赖 C1）
+    ├── src/
+    │   ├── index.ts         # 公共 API（同时 re-export @agent-runtime/types 的全部导出）
+    │   ├── runtime.ts       # 多步推理事件循环（AgentRuntime）
+    │   ├── agent.ts         # Agent 定义
+    │   ├── context.ts       # Context 门面（M1：run 注入 session/task/run 上下文）
+    │   ├── session.ts       # SessionManager / Task / RunRecord（M1）
+    │   ├── events.ts        # 事件总线（含 session/task 事件，M1）
+    │   ├── tool.ts          # 工具抽象
+    │   ├── provider.ts      # ModelProvider 接口 + 错误类型
+    │   ├── tools/           # calculator（安全求值）· builtin（内置工具集）
+    │   ├── providers/       # openai-compatible（fetch）· mock（免密钥规则模型）
+    │   └── store/           # Storage 接口 + Memory/File 实现（M1）
+    └── test/                # node:test（runtime/session/store/calculator）
 examples/
 ├── cli.ts                   # 终端交互演示（会话持久化到 .runtime-data/，M1）
 └── web/
     ├── server.ts            # SSE 服务器（会话持久化，跨重启恢复，M1）
     └── public/index.html    # 流式控制台前端
-test/                        # node:test 自动化测试（runtime/schema/store/session）
 ```
+
+> 兼容：`@agent-runtime/core` re-export `@agent-runtime/types`，故从两包任意一处都可拿到消息类型 / `validate` / `newId` 等，公共导入面与拆包前一致。
 
 ## 运行中的事件
 
@@ -158,9 +161,9 @@ test/                        # node:test 自动化测试（runtime/schema/store/
 ## 验证
 
 ```bash
-npm run typecheck   # tsc --noEmit（src + examples + test）
-npm test            # node:test，覆盖事件循环/多步推理/工具安全/Storage/Session 重启恢复
-npm run build       # 产出 dist/（供作为库引用）
+npm run typecheck   # tsc --noEmit（packages + examples，经 paths 别名走源码）
+npm run build       # 逐包产出 dist/（npm test 会自动先执行它）
+npm test            # node:test（types + core 逐包，覆盖事件循环/工具安全/Storage/Session/schema）
 ```
 
 ## 目录结构 & 设计取舍

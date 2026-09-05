@@ -1,6 +1,3 @@
-import { Agent } from "./agent.js";
-import { builtinTools } from "./tools/builtin.js";
-
 // ---- Agent runtime core ----
 export { AgentRuntime, RunAbortedError } from "./runtime.js";
 export type {
@@ -95,14 +92,4 @@ export type {
   RunUsage,
 } from "./types.js";
 
-export { newId, fmtNumber, stringifyResult, prettyJson } from "./util.js";
-
-/**
- * Convenience: build the demo agent wired with all built-in tools.
- */
-export function createDemoAgent(): Agent {
-  return new Agent({
-    name: "assistant",
-    tools: builtinTools,
-  });
-}
+export { newId, fmtNumber, stringifyResult } from "./util.js";

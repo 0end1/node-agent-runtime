@@ -10,6 +10,10 @@
 
 （自 v0.2.0 起的新变更将记录于此；下一步见 `docs/architecture.md` §11 路线图 —— 计划 M2 · 恢复与记忆，或先回 `main` 发布 v0.2.0。）
 
+### Changed
+
+- `src/` 死代码清理（2026-09-05）：移除无消费方的 `prettyJson`（`util.ts` 定义 + `index.ts`/`runtime.ts` 转发导出）与演示工厂 `createDemoAgent`（examples 均自行 `new Agent`）；`builtin.ts` 5 个内置工具改为模块私有常量（仅经 `builtinTools` 暴露）、`CURRENCY_ALIASES` 改 `export const` 消除重复导出；`schema.ts` 精简恒等三元判断；公共 API 其余导出不变，`npm test` 35 通过
+
 ### Docs
 
 - `docs/architecture.md` §6/§7/§11 修订（v1.2，2026-09-05）：**Sandbox 由工具装饰器升格为运行层执行域边界**——引入 `SandboxMode` 三档（read-only / workspace-write / full-access，对齐 Codex）与 `SandboxScope`（workspace 可写域、网络默认禁网、环境变量精简），文件/命令访问先过 `gate()`、越界 deny，写操作发布 `sandbox:write`（含 diff）事件；`PermissionContext` 携带 sandbox 边界；Run 循环增加 `sandbox.begin()`；路线图 M3 验收更新

@@ -3,7 +3,7 @@ import { defineTool } from "../tool.js";
 import { fmtNumber } from "../util.js";
 
 /** Evaluate arithmetic expressions, e.g. "(3.5 + 2) * 4". */
-export const calculatorTool = defineTool({
+const calculatorTool = defineTool({
   name: "calculator",
   description:
     "计算一个纯数学表达式并返回数值结果。支持 + - * / % ^（乘方）、括号、小数与一元正负号，例如 (3.5 + 2) * 4 或 2 ^ 10。",
@@ -24,7 +24,7 @@ export const calculatorTool = defineTool({
 });
 
 /** Get the current wall-clock time. */
-export const nowTool = defineTool({
+const nowTool = defineTool({
   name: "now",
   description: "获取当前本地日期与时间（年/月/日、星期、时分秒、ISO 时间戳）。",
   parameters: {
@@ -77,7 +77,7 @@ const GAZETTEER: Record<string, { lat: number; lon: number; country: string }> =
 };
 
 /** Resolve a city name to coordinates. */
-export const geocodeTool = defineTool({
+const geocodeTool = defineTool({
   name: "geocode",
   description: "把城市名称解析为经纬度坐标，用于后续查询天气等场景。",
   parameters: {
@@ -100,7 +100,7 @@ export const geocodeTool = defineTool({
 const CONDITIONS = ["晴", "多云", "阴", "小雨", "雷阵雨"] as const;
 
 /** Deterministic pseudo weather so the demo is reproducible offline. */
-export const weatherTool = defineTool({
+const weatherTool = defineTool({
   name: "weather",
   description: "根据经纬度查询当地当前天气（温度、体感、天气状况、湿度、风速）。",
   parameters: {
@@ -145,7 +145,7 @@ const RATES: Record<string, Record<string, number>> = {
 
 export type CurrencyCode = keyof typeof RATES;
 
-const CURRENCY_ALIASES: Record<string, CurrencyCode> = {
+export const CURRENCY_ALIASES: Record<string, CurrencyCode> = {
   美元: "USD",
   美金: "USD",
   人民币: "CNY",
@@ -158,7 +158,7 @@ const CURRENCY_ALIASES: Record<string, CurrencyCode> = {
 };
 
 /** Convert a currency amount at static reference rates. */
-export const exchangeTool = defineTool({
+const exchangeTool = defineTool({
   name: "exchange",
   description:
     "按参考汇率换算货币金额。币种支持：USD 美元、CNY 人民币、EUR 欧元、JPY 日元、GBP 英镑、HKD 港币。",
@@ -208,5 +208,3 @@ export const builtinTools = [
   weatherTool,
   exchangeTool,
 ];
-
-export { CURRENCY_ALIASES };

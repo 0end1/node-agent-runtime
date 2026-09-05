@@ -20,7 +20,7 @@ import type {
   ToolCall,
   ToolResultMessage,
 } from "./types.js";
-import { newId, prettyJson, stringifyResult } from "./util.js";
+import { newId, stringifyResult } from "./util.js";
 
 export interface AgentRuntimeOptions {
   /** Chat model backend. */
@@ -368,5 +368,3 @@ function parseToolCall(
   }
   return { id: raw.id, name: raw.name, arguments: argumentsObj };
 }
-
-export { prettyJson };

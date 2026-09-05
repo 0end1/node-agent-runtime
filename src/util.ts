@@ -23,11 +23,3 @@ export function fmtNumber(n: number): string {
   if (Number.isInteger(n) && Math.abs(n) < 1e15) return String(n);
   return String(Number(n.toPrecision(12)));
 }
-
-export function prettyJson(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-}

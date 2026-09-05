@@ -40,7 +40,7 @@ function jsonTypeOf(v: unknown): JsonTypeName {
     case "string":
       return "string";
     case "number":
-      return Number.isInteger(v) ? "number" : "number";
+      return "number";
     case "boolean":
       return "boolean";
     case "object":

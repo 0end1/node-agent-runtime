@@ -85,12 +85,12 @@
 | 依赖 | `Model` | 模型后端抽象（`ModelProvider`） | 已有 |
 | 依赖 | `Tool` | 具名、带 Schema 的可调用能力 | 已有 |
 | 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建（M4） |
-| 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | 待建（M3） |
-| 治理 | `Sandbox` | 运行层执行域边界：`SandboxMode` 三档 + `SandboxScope` 声明域 + 资源限制 | 待建（M3；v1.2 设计定稿，对齐 Codex 三档模式） |
+| 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | ✅ M3：`permission.ts` 的 `DefaultPermissionPolicy`（决策矩阵）+ `PermissionManager.gate/approve/deny`（审批流 + 超时）已落地 |
+| 治理 | `Sandbox` | 运行层执行域边界：`SandboxMode` 三档 + `SandboxScope` 声明域 + 资源限制 | ✅ M3：`sandbox.ts` 的 `LocalSandbox`（read-only 拦副作用 / 禁网开关 / 路径越界拒绝 / 每调用超时 / `sandbox:write` 含 diff）已落地 |
 | 状态 | `Event` | 生命周期事件总线 | 已有（M1 追加 session/task 事件） |
-| 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | 部分：消息流已入 storage（消息域），长期事实层待 M2 |
+| 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | ✅ M2：`memory.ts` 的 `SessionMemory`（消息流 + 每会话 KV 事实层 `remember/recall`）已落地 |
 | 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建（M4） |
-| 状态 | `Checkpoint` | Run/Step 级可恢复快照 | 待建（M2） |
+| 状态 | `Checkpoint` | Run/Step 级可恢复快照 | ✅ M2：`checkpoint.ts`（步级快照 + `toolsHash` 校验）与 `SessionManager.resume()` 已落地 |
 | 状态 | `Persistence` | 上述全部实体的存取接口与实现 | ✅ M1：`Storage` 接口 + `MemoryStorage`/`FileStorage` 已落地 |
 
 ---
@@ -324,6 +324,8 @@ interface PermissionManager {
 
 策略示例（内置 `FileAccessPolicy`、`NetworkPolicy` 未来按工具类别挂载）。敏感分类建议：`无害(计算/时钟)`、`只读网络(天气)`、`写文件`、`执行命令`、`访问凭据`；默认分级 allow / ask / deny。
 
+> 实现注记（M3，2026-09-07）：`permission.ts` 已落地——`DefaultPermissionPolicy` 按 `ToolKind × SandboxMode` 决策矩阵（写文件/执行命令在 read-only 档直接 deny、可写档与 full-access 档 ask；凭据全档 deny；无害工具全档 allow）+ `PermissionManager.gate/approve/deny`，ask 挂起等待宿主（超时=按拒绝处理并触发 `permission:denied(timedOut)`）；`combinePolicies` 多策略命中取最严（对齐 codex execpolicy）。口径确认：**`network-read` 在可写/全权限档为 ask、read-only 档为 allow**——出网与否由 sandbox 的 `scope.network` 开关独立把关（能力与授权二维正交）；`approve({ always: true })` 把决定沉淀为会话级白名单，对齐 dsh 权限预设的"切档追加持久化事件"语义。敏感级别由 `ToolDefinition.meta.kind` 声明，缺省时按工具名启发式归类。
+
 ### 6.2 Sandbox（执行隔离）
 
 引擎不假设工具在何处运行，由 host 注入 sandbox：
@@ -351,7 +353,7 @@ interface SandboxScope {
 }
 ```
 
-现状衔接：`calculator` 的 Pratt 解析与 `schema.ts` 校验即"自包含安全"，可先归入 LocalSandbox 白名单；`geocode/weather/exchange` 归入只读网络策略。
+> 实现注记（M3，2026-09-07）：`sandbox.ts` 已落地——`Sandbox.begin(mode, scope, ctx)` 建立一次 Run 的执行域，`LocalSandbox`（进程内，默认）对每个工具执行五点检查：① read-only 档拦截副作用类工具、② `scope.network === "deny"` 时拦只读网络类、③ 写工具的 path 参数解析后必须落在 workspace/writablePaths 声明域内、④ 每调用超时（默认 30s，超时抛 `SandboxTimeoutError`）、⑤ 写类工具执行后发 `sandbox:write`（尽力行级 diff，`simpleDiff`）——拦截一律抛 `SandboxViolationError`，由引擎回填给模型自纠。`SessionManager` 默认 `sandboxMode: workspace-write` + `workspace: cwd` + `network: deny`；策略层放行也过不了 read-only 沙箱（纵深防御）。OS 级 `WorkerSandbox`/`ContainerSandbox` 仍是宿主侧插口，接口不变。
 
 ---
 
@@ -411,6 +413,8 @@ interface Memory {
 
 现状衔接：`runtime.run()` 的 `history` 参数由 Session 的 Memory 取代；引擎只读 `memory.messages()`。
 
+> 实现注记（M2，2026-09-07）：`SessionMemory` 已落地——会话层复用 per-session 追加式消息流，事实层为每会话一个 KV 文档；`recall` 当前是零依赖词面 + CJK bigram 打分，向量后端可后续替换而引擎不动。
+
 ---
 
 ## 9. Persistence 与 Storage
@@ -457,6 +461,8 @@ interface Checkpoint {
 ```
 
 恢复协议：`resume(checkpointId, continuation)` = 载入 messages + 校验 toolsHash → 以「用户追加消息」继续跑同一 run 语义（status 回到 running）。
+
+> 实现注记（M2，2026-09-07）：`SessionManager.resume()` 以 checkpoint 为基线重放 transcript，工具指纹不一致时抛 `CheckpointMismatchError`；未提供 `continuation` 时不追加用户轮次（`RunOptions.appendUserMessage = false`），因此续跑 transcript 与一次性跑完逐条一致。步级快照由引擎的 `RunOptions.onStepEnd` 回调产出，宿主负责落盘——引擎自身不持有 checkpoint 状态。
 
 ---
 
@@ -508,8 +514,8 @@ packages/                        # [未来，若拆包]
 | --- | --- | --- | --- |
 | **M0（现状 v0.1）** | 引擎主循环、事件、工具、双 provider | 现状 `src/` | `npm test`（14 用例）；v0.2 起代码迁入 `packages/core`（C2）与 `packages/types`（C1） |
 | **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | ✅ dev 分支已完成（2026-09-04）：会话可重启恢复、`history` 不再由调用方维护；`npm test` 35 通过 |
-| **M2 · 记忆与续跑** | `Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 断电/断网从 checkpoint 续跑等价新跑 |
-| **M3 · 治理** | `Permission` 策略 + ask 审批流；`Sandbox` 运行层执行域（Local 实现：`SandboxMode` 三档 + `SandboxScope` 声明域 + 网络默认禁网 + 超时） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny，审批可超时；写操作可见（`sandbox:write` 含 diff）；网络默认 deny、文件越界拒绝 |
+| **M2 · 记忆与续跑** | ✅ dev 分支已完成（2026-09-07）：`Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 中断（abort/崩溃）后从 checkpoint 续跑，transcript 与最终输出与一次性跑完一致；`npm test` types 4 + core 50 通过 |
+| **M3 · 治理** | ✅ dev 分支已完成（2026-09-07）：`Permission` 策略 + ask 审批流；`Sandbox` 运行层执行域（`LocalSandbox`：`SandboxMode` 三档 + `SandboxScope` 声明域 + 网络默认禁网 + 超时） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny、审批超时=拒绝（自动化）；read-only 档 exec/write 被拒并回填错误给模型自纠；write ask → 宿主 approve → 落盘且 `sandbox:write` 含 diff（自动化）；**策略 allow 也过不了 read-only 沙箱**（纵深防御，自动化）；网络默认 deny、路径越界拒绝；`npm test` types 4 + core 77 通过 |
 | **M4 · 外部能力** | MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用 |
 | **M5 · 产品化** | 独立分包 + Desktop 壳 + Web 控制台全面 Session 化 | `packages/` `examples/desktop/` | 桌面 demo 全流程可用 |
 
@@ -536,3 +542,5 @@ packages/                        # [未来，若拆包]
 | v1.1 (M1) | 2026-09-04 | 落地 M1 生命周期：`Session`/`Task`/`Run` 实体化（`session.ts`）、`Storage` 接口 + `MemoryStorage`/`FileStorage`（`store/`）、`Context` 门面（`context.ts`）、session/task 事件；CLI/Web 会话化；模块表“现状”列更新 |
 | v1.2 (M3 设计) | 2026-09-05 | Sandbox 由工具装饰器升格为**运行层执行域边界**：引入 `SandboxMode`（read-only / workspace-write / full-access，对齐 Codex 三档）与 `SandboxScope`（workspace 可写域、网络默认禁网、环境变量精简）；文件/命令访问先过 `gate()`、越界 deny；写操作发布 `sandbox:write`（含 diff）事件；`PermissionContext` 携带 sandbox 边界；§4.3 Run 循环增加 `sandbox.begin()`；模块表/事件表/路线图 M3 验收同步更新 |
 | v1.3 (workspace 化) | 2026-09-05 | 代码按 `docs/crate-architecture.md` §7.1 收敛为 npm workspaces：C1 `@agent-runtime/types` / C2 `@agent-runtime/core`（C2 re-export C1 保持公共 API 不变）；§10 目标结构下包形态落地注记；详见 crate-architecture.md v0.2 修订 |
+| v1.4 (M2) | 2026-09-07 | 落地 M2 记忆与续跑：`memory.ts`（`SessionMemory`：消息流 + 事实层 `remember/recall`）、`checkpoint.ts`（步级快照 + `CheckpointStore` + `computeToolsHash`/`assertResumable`）、`SessionManager.resume()`；引擎新增 `RunOptions.onStepEnd` / `initialUsage` / `appendUserMessage` 与 `StepSnapshot`，新增 `checkpoint:saved` / `checkpoint:restored` 事件，`DocDomain` 扩展 `checkpoint` / `memory`；每步增量落盘取代 run 结束时一次性落盘；§2 模块表、§8.2、§9、§11 M2 行同步 |
+| v1.5 (M3) | 2026-09-07 | 落地 M3 治理：`permission.ts`（`ToolKind` 敏感分类 + `DefaultPermissionPolicy` 决策矩阵 + `PermissionManager` ask 审批流/超时/`approve({always})`/`combinePolicies` 取最严）、`sandbox.ts`（`SandboxMode` 三档 + `SandboxScope` + `LocalSandbox`：read-only 拦副作用、禁网开关、路径越界拒绝、每调用超时、`sandbox:write` 含 diff）；`ToolDefinition` 增 `meta.kind`/`pathArgs`；引擎新增 `RunOptions.gate` 单一授权接缝，新增 `permission:request/approved/denied` 与 `sandbox:write` 事件（§7 v1.2 表已预留，命名一致）；`SessionManager` 默认注入 `LocalSandbox` + `PermissionManager` 并公开 `pendingApprovals/approve/deny`；§2 模块表、§6.1/§6.2 实现注记、§11 M3 行同步 |

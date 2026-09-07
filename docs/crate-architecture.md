@@ -14,6 +14,7 @@
 - 边界是否落地的两个候选形态：**npm workspaces（TS，保留现码）** 与 **Rust workspace（对齐 codex，等于重写）**；本文给出两者的迁移路径对比与建议（见 §7）。
 - 无论最终选哪种形态，现在即可执行且两形态通用的收敛动作见 §7.3。
 - **v0.2 落地进度**：已按 §7.1 方案 A 完成 C1（types 底座）与 C2（core 引擎）两包的 npm workspaces 收敛，公共 API 不变；§8 待决项中 #1（形态）、#6（createDemoAgent）已定，其余待里程碑推进。
+- **后续进度**：M2（memory/checkpoint，2026-09-07）与 M3（sandbox/permission，2026-09-07）功能均先落 C2 包内（`packages/core/src/`），C3~C5 拆包留待 M5 收口。
 
 ---
 
@@ -135,8 +136,8 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 | 里程碑 | 本布局动作 |
 |---|---|
 | 现状 M0/M1 | src 按 C2 内部目录收敛（runtime/agent/context/tools/events/store），不改变公共 API；现有 35 测试必须全绿 |
-| M2 记忆与续跑 | 直接在 `@agent-runtime/memory` 包内实现 `memory.ts`/`checkpoint.ts`，随包测试 |
-| M3 治理 | 新开 `@agent-runtime/sandbox`、`@agent-runtime/policy` 两包；run 循环的 gate 接入点由 C2 提供最小扩展点 |
+| M2 记忆与续跑 | 已在 C2 `packages/core/src/memory.ts`、`checkpoint.ts` 内实现（含随包测试），**遵循§6 前言「先做功能、后做拆包」**：C3 `@agent-runtime/memory` 拆包留待 M5，避免 core ↔ memory 双向依赖 |
+| M3 治理 | 已在 C2 `packages/core/src/sandbox.ts`、`permission.ts` 内实现（含随包测试），**遵循§6 前言「先做功能、后做拆包」**：C4 `@agent-runtime/sandbox`、C5 `@agent-runtime/policy` 拆包留待 M5；run 循环的 gate 接入点已由 C2 的 `RunOptions.gate` 提供 |
 | M4 外部能力 | 新开 `@agent-runtime/mcp`；registry 物化结果复用 C2 工具注册路径 |
 | M5 产品化 | 包化收口：facade index、provider-openai 外置、store-sqlite 可选包、host 承接 Session 全流程；Desktop 壳只依赖 C8/C1 |
 

@@ -30,6 +30,11 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 | `EventBus` | 每个生命周期节点（run / step / model / tool / 错误 / session / task）都会发事件，便于 CLI、Web、SDK 消费推理过程。 |
 | `SessionManager` | （M1）Session → Task → Run 生命周期管理：创建/关闭/删除会话、自动调度任务、消息流自动落盘，调用方不再手管 `history`。 |
 | `Storage` | （M1）统一持久化门面：`MemoryStorage`（零依赖）与 `FileStorage`（按目录落盘），文件/SQLite 等其它后端可注入替换。 |
+| `Memory` | （M2）记忆门面 `SessionMemory`：会话层=对话流（跨进程重启可读），事实层=`remember`/`recall` 长期事实 KV。 |
+| `Checkpoint` | （M2）步级快照：每完成一步写入 messages + usage + 工具指纹（`toolsHash`），引擎只发快照、宿主负责落盘。 |
+| `SessionManager.resume()` | （M2）从 checkpoint 校验工具指纹后续跑同一 task：`resume(ckptId, continuation?)`，输出与一次性跑完等价。 |
+| `Permission` | （M3）授权决策 allow/deny/ask：`DefaultPermissionPolicy` 决策矩阵 + `PermissionManager.gate/approve/deny` 审批流，超时即拒，`approve({always})` 沉淀白名单。 |
+| `Sandbox` | （M3）运行层执行域：`SandboxMode` 三档（read-only / workspace-write / full-access）+ 声明域 + 网络开关 + 每调用超时；`sandbox:write` 事件让"写操作可见"。 |
 
 运行时主循环：
 

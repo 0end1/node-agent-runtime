@@ -1,0 +1,27 @@
+{
+  "name": "@agent-runtime/store-sqlite",
+  "version": "0.2.0",
+  "description": "C9 optional Storage backend of the Agent runtime: SQLiteStorage implementing the core Storage trait via node:sqlite (bundled with Node, no third-party native deps). Deliberately kept out of the core dependency graph.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "@agent-runtime/core": "0.2.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

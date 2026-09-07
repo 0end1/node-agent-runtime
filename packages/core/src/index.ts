@@ -172,7 +172,6 @@ export type {
 } from "./provider.js";
 export { ModelRequestError } from "./provider.js";
 
-export { OpenAIClientProvider } from "./providers/openai-compatible.js";
-export type { OpenAIClientOptions } from "./providers/openai-compatible.js";
-
+// OpenAIClientProvider 已外置到 C7 @agent-runtime/provider-openai（HTTP/IO 不进 core，
+// docs/crate-architecture.md §5.6）。MockProvider 是零 IO 演示/测试桩，留在 core。
 export { MockProvider } from "./providers/mock.js";

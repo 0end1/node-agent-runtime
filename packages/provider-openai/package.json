@@ -1,0 +1,28 @@
+{
+  "name": "@agent-runtime/provider-openai",
+  "version": "0.2.0",
+  "description": "C7 OpenAI-compatible chat backend of the Agent runtime: fetch-based client for OpenAI / DeepSeek / Qwen / Moonshot / Ollama etc. Injected by the caller; the core never imports it.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@agent-runtime/core": "0.2.0",
+    "@agent-runtime/types": "0.2.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

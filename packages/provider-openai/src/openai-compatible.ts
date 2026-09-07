@@ -1,12 +1,12 @@
 import {
   ModelRequestError,
+  type AnyTool,
   type FinishReason,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
   type RawToolCall,
-} from "../provider.js";
-import type { AnyTool } from "../tool.js";
+} from "@agent-runtime/core";
 import type { ChatMessage } from "@agent-runtime/types";
 
 /**

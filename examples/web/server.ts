@@ -17,13 +17,13 @@ import {
   AgentRuntime,
   FileStorage,
   MockProvider,
-  OpenAIClientProvider,
   SessionManager,
   builtinTools,
   type ModelProvider,
   type RuntimeEvent,
   type Session,
 } from "@agent-runtime/core";
+import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);

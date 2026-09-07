@@ -91,9 +91,10 @@ console.log(result.output);   // 最终自然语言答案
 
 ```ts
 import {
-  Agent, AgentRuntime, SessionManager, FileStorage,
+  Agent, AgentRuntime, FileStorage,
   MockProvider, builtinTools,
 } from "@agent-runtime/core";
+import { SessionManager } from "@agent-runtime/host";
 
 const manager = new SessionManager({
   runtime: new AgentRuntime({ provider: new MockProvider() }),
@@ -137,6 +138,7 @@ packages/
 │   │   ├── providers/       # mock（免密钥规则模型；openai-compatible 已外置，C7）
 │   │   └── store/           # Storage 接口 + Memory/File 实现（M1）
 │   └── test/                # node:test（runtime/session/store/calculator）
+├── host/                    # C8 @agent-runtime/host（SessionManager 会话/任务生命周期，M6 外置）
 ├── provider-openai/         # C7 可插拔模型后端 @agent-runtime/provider-openai（OpenAI 兼容 fetch）
 └── store-sqlite/            # C9 可选存储后端 @agent-runtime/store-sqlite（SQLiteStorage，node:sqlite）
 examples/

@@ -38,18 +38,10 @@ export type {
   SandboxWriteEvent,
 } from "./events.js";
 
-// ---- Sessions, tasks & persistence (M1) ----
-export { SessionManager, SessionError } from "./session.js";
-export type {
-  Session,
-  SessionStatus,
-  Task,
-  TaskStatus,
-  RunRecord,
-  RunStatus,
-  ChatOutcome,
-  SessionManagerOptions,
-} from "./session.js";
+// ---- Sessions, tasks (M1) ----
+// 已外置为 C8 `@agent-runtime/host`（M6 拆包）：依赖方向为 host → core，core 不能
+// 反向 re-export（会成环），请改从新包导入：
+//   import { SessionManager } from "@agent-runtime/host";
 
 // ---- Memory & checkpoint (M2) ----
 export {

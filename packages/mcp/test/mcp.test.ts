@@ -8,12 +8,12 @@ import {
   Agent,
   AgentRuntime,
   MemoryStorage,
-  SessionManager,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
 } from "@agent-runtime/core";
+import { SessionManager } from "@agent-runtime/host";
 import {
   McpClient,
   McpConnectionError,

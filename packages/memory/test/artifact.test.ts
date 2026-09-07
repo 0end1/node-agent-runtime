@@ -5,11 +5,11 @@ import {
   Agent,
   AgentRuntime,
   MemoryStorage,
-  SessionManager,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
 } from "@agent-runtime/core";
+import { SessionManager } from "@agent-runtime/host";
 import { ArtifactError, ArtifactManager } from "@agent-runtime/memory";
 
 class NeverProvider implements ModelProvider {

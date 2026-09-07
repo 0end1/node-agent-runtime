@@ -8,15 +8,14 @@ import {
   Agent,
   AgentRuntime,
   MemoryStorage,
-  SessionManager,
   defineTool,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
-  type SessionManagerOptions,
   type ToolExecutionContext,
 } from "@agent-runtime/core";
+import { SessionManager, type SessionManagerOptions } from "@agent-runtime/host";
 import {
   LocalSandbox,
   SandboxTimeoutError,

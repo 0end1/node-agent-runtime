@@ -8,6 +8,24 @@
 
 ## [Unreleased]
 
+**M6-7 · 拆包批次 B2（C8 host）**（2026-09-07，split 分支）：**修订 C1 决策**——原判定「不拆 host」的前提（memory/permission/artifact/sandbox 在 core 内与 session 互引）已随 B3/B4 消失，实测 core 内**无任何模块依赖 `session.ts`**，故恢复 C8：`session.ts`(721 行) + `session.test.ts` 外置为 `@agent-runtime/host`（`packages/host/`），依赖方向 **host → {core, memory, sandbox, policy, types}**，单向无环；`core/src/index.ts` 移除 Session/Task 导出（host → core，core 不可反向 re-export，与 mcp 同理）。**破坏性变更**：`import { SessionManager } from "@agent-runtime/core"` 失效，宿主需改从 `@agent-runtime/host` 导入——当前 0.x 且全部包 `private`（无外部消费者），为成本最低窗口。引用点已更新：`examples/cli.ts`、`examples/web/server.ts`、core/memory/mcp/sandbox 四处测试。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / **host 8** / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；`examples/` 与四处测试的导入已全部切换到新包（运行时冒烟随 M6 P2 的自动化 E2E 覆盖）。
+
+### Added（M6-7 · 拆包 B2）
+- `packages/host/`：C8 `@agent-runtime/host`（`SessionManager` / `SessionError` 与 Session/Task/Run 类型）
+
+### Changed（M6-7 · 拆包 B2 接线）
+- `packages/core/src/index.ts`：移除 Session/Task 导出段（改指引注释）
+- `examples/cli.ts` / `examples/web/server.ts`：`SessionManager` / `Session` 改从 `@agent-runtime/host` 导入
+- `packages/{core,memory,mcp,sandbox}/test/*.test.ts`：`SessionManager` 改从 host 导入
+- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 host（序 …→core→host→mcp→…）
+- `README.md`：会话管理示例与包结构同步
+
+### Docs（M6-7）
+- `docs/remaining-tasks.md`：C1 决策修订为「拆 host」，B2 恢复并完成
+- `docs/crate-split-todo.md`、`docs/crate-architecture.md`：C8 状态与修订记录
+
+---
+
 **M6-6 · 拆包批次 B4（core facade 收窄）**（2026-09-07，split 分支）：`core/src/index.ts` 由各模块直出改为 **facade 聚合出口**——统一 `export *` 转发 C3 `@agent-runtime/memory`、C4 `@agent-runtime/sandbox`、C5 `@agent-runtime/policy`（**C6 mcp 不在此列**：其依赖方向为 mcp → core，反向 re-export 会形成循环，仍需 `import { McpRegistry } from "@agent-runtime/mcp"`）。宿主既可继续从 `@agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。`checkpoint.ts` 经评估仍留 core：`computeToolsHash` / `assertResumable` 依赖 core 的 `Agent` 类。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Changed（M6-6 · facade 收窄）

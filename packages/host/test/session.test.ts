@@ -6,13 +6,12 @@ import {
   AgentRuntime,
   MemoryStorage,
   MockProvider,
-  SessionManager,
   builtinTools,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
-  type Session,
 } from "@agent-runtime/core";
+import { SessionManager, type Session } from "@agent-runtime/host";
 
 function makeManager(storage = new MemoryStorage()) {
   const runtime = new AgentRuntime({

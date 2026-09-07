@@ -27,7 +27,7 @@
 | # | 包 | 迁移源 | 迁移测试 | 依赖 | 前置条件 | 批次 | 状态 |
 |---|---|---|---|---|---|---|---|
 | C6 | `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + fixture | C1 + core 工具契约 | core 无反向 import；收窄 index 的 mcp 导出 | 1 | ✅ |
-| ~~C8~~ | ~~`@agent-runtime/host`~~ | — | — | — | — | 2 | ⏸ 移出（C1 决策：不拆 host；重评触发见 remaining-tasks §3 C1） |
+| C8 | `@agent-runtime/host` | `core/src/session.ts`(721 行) | `core/test/session.test.ts` | core 引擎 API + memory/sandbox/policy + types | ✅ 已完成（2026-09-07）：C1 决策经重评**修订为「拆」**（原阻碍已随 B3/B4 消失，core 内无模块依赖 session）；core 不可反向 re-export host，故为破坏性变更，宿主改从新包导入 | 2 | ✅ |
 | C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（checkpoint 待契约下沉后再迁） |
 | C4 | `@agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（工具契约已下沉 C1） | C2 决策：独立两包 | 3 | ✅ |
 | C5 | `@agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ✅ |

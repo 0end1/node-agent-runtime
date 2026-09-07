@@ -14,7 +14,7 @@
 | A 验收收口 | A3 | 质量门总闸：`npm run typecheck` + `npm test` 全绿 | m5 §6 | ☐ |
 | A 验收收口 | A4 | `architecture.md` §11 M5 行补 ✅（含修订记录 v1.7） | architecture §11 | ☐ |
 | B 拆包批次 | B1 | 批次 1：C6 `@agent-runtime/mcp` | crate-split-todo §3/§4 | ✅ |
-| B 拆包批次 | B2 | 批次 2：C8 `@agent-runtime/host`（先决 C4） | crate-split-todo §3/§4 | ⏸ 移出（C1 决策：不拆 host） |
+| B 拆包批次 | B2 | 批次 2：C8 `@agent-runtime/host`（先决 C4） | crate-split-todo §3/§4 | ✅（C1 决策重评为「拆」，2026-09-07 完成） |
 | B 拆包批次 | B3 | 批次 3：C3 memory；C4 sandbox + C5 policy（视 C2 分/合） | crate-split-todo §3/§4 | ✅ |
 | B 拆包批次 | B4 | 批次 4：core facade 收窄（逐包 re-export） | crate-split-todo §3/§4 | ✅ |
 | C 开放决策 | C1 | Session/Task 是否出 core（C8 host 做不做） | crate-architecture §8-5 | ✅ 已定 |
@@ -59,7 +59,7 @@
 
 | # | 决策 | 影响 | 决策结论 | 状态 |
 |---|---|---|---|---|
-| C1 | **Session/Task 是否出 core**（C8 host） | 决定 C8 做不做，及 C3~C5 能否拆干净（session.ts 是唯一宿主） | **不拆 C8 host**：`SessionManager` 留 core。理由：session 依赖 runtime/agent/memory/permission/artifact/checkpoint，拆出需 examples 全量改 import，收益不抵 M6 发布前风险；「产品概念不进引擎」由 facade 收窄（B4）与新宿主能力外置逐步满足。**重评触发**：引擎侧需复用 Task 状态机 / 出现多宿主形态 | ✅ |
+| C1 | **Session/Task 是否出 core**（C8 host） | 决定 C8 做不做，及 C3~C5 能否拆干净（session.ts 是唯一宿主） | ✅ **2026-09-07 修订为「拆」**（原判定「不拆」）：原阻碍（memory/permission/artifact/sandbox 在 core 内与 session 互引）已随 B3/B4 消失，实测 core 内无模块依赖 `session.ts`，方向 host → {core, memory, sandbox, policy, types} 单向无环；且当前 0.x 全包 `private`（无外部消费者），破坏性变更成本最低。**已执行**：`packages/host/` 外置完成（host 8 测试通过），core 不再导出 `SessionManager` | ✅（已修订并执行） |
 | C2 | sandbox 与 policy 独立两包 or 合成 `@agent-runtime/governance` | 决定批次 3 拆分次数 | **独立两包** C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy`（按 codex 推荐）。理由：职责正交（执行域 vs 授权决策）；`permission.ts` 仅 type-import sandbox 的 `SandboxMode`/`SandboxScope`，拆后无运行期耦合 | ✅ |
 | C3 | `Artifact` 归属 | 类型入 C1；实现随 M4 并 C6 or C3 | **类型下沉 C1**（`Artifact`/`ArtifactKind`/`ArtifactInput` 等），**实现并入 C3**（与 memory 同包 `@agent-runtime/memory`，包描述注明「会话记忆 + 产物存储，均基于 Storage 契约」）。同时**下沉 `Storage`/`DocDomain`/`StreamDomain` 契约至 C1**（`core/src/store/types.ts` 为零依赖纯类型），消除 core↔C3 循环 | ✅ |
 | C4 | `tool.ts`/`ToolDefinition` 契约层是否下沉 C1 | TS 下 `import type` 可不拆；**转 Rust 前必须拆** | ✅ **已触发下沉（2026-09-07）**：拆 C4/C5 时 sandbox 需 `ToolKind`、policy 需事件与工具类型，留在 core 将形成包级循环 → 工具契约与事件契约一并下沉 C1（`types/src/tools.ts` / `events.ts`），core 保留实现并 re-export 类型（公共面不变）。`EventEmitter<E>` 亦入 C1，供 policy 结构化解耦 | ✅（已执行） |

@@ -29,14 +29,13 @@ import {
   AgentRuntime,
   FileStorage,
   MockProvider,
-  SessionManager,
   builtinTools,
   defineTool,
   type AnyTool,
   type ModelProvider,
   type RuntimeEvent,
-  type Session,
 } from "@agent-runtime/core";
+import { SessionManager, type Session } from "@agent-runtime/host";
 import {
   McpClient,
   McpRegistry,

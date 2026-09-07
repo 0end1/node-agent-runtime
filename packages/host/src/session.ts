@@ -1,15 +1,16 @@
-import { defineAgent, type Agent } from "./agent.js";
-import { AgentRuntime } from "./runtime.js";
-import type { RunResult, StepSnapshot } from "./runtime.js";
-import type { RunUsage } from "@agent-runtime/types";
-import type { ChatMessage } from "@agent-runtime/types";
-import type { Storage } from "@agent-runtime/types";
+// C8 host：只依赖 core 的引擎 API 与外置能力包（方向单向，core 不反向依赖 host）。
 import {
+  AgentRuntime,
   CheckpointStore,
   assertResumable,
   computeToolsHash,
+  defineAgent,
+  type Agent,
   type Checkpoint,
-} from "./checkpoint.js";
+  type RunResult,
+  type StepSnapshot,
+} from "@agent-runtime/core";
+import type { ChatMessage, RunUsage, Storage } from "@agent-runtime/types";
 import { SessionMemory, type Memory } from "@agent-runtime/memory";
 import {
   LocalSandbox,

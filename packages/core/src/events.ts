@@ -102,6 +102,76 @@ export interface TaskStatusEvent {
   status: string;
 }
 
+// ---- Checkpoint & resume events (M2) -------------------------------
+
+export interface CheckpointSavedEvent {
+  type: "checkpoint:saved";
+  checkpointId: string;
+  runId: string;
+  sessionId: string;
+  taskId: string;
+  /** Steps completed at snapshot time. */
+  step: number;
+}
+
+export interface CheckpointRestoredEvent {
+  type: "checkpoint:restored";
+  checkpointId: string;
+  /** The *new* run created to continue from the checkpoint. */
+  runId: string;
+  sessionId: string;
+  taskId: string;
+  /** Step the resumed run starts from. */
+  step: number;
+}
+
+// ---- Governance events (M3) ---------------------------------------
+
+export interface PermissionRequestEvent {
+  type: "permission:request";
+  decisionId: string;
+  runId: string;
+  sessionId?: string;
+  taskId?: string;
+  toolName: string;
+  /** Arguments as the model sent them (JSON-serializable). */
+  arguments: unknown;
+  reason: string;
+}
+
+export interface PermissionApprovedEvent {
+  type: "permission:approved";
+  decisionId: string;
+  runId: string;
+  sessionId?: string;
+  toolName: string;
+  /** The host asked to remember this approval for the tool. */
+  always?: boolean;
+}
+
+export interface PermissionDeniedEvent {
+  type: "permission:denied";
+  decisionId: string;
+  runId: string;
+  sessionId?: string;
+  toolName: string;
+  reason: string;
+  /** True when nobody answered before the ask timeout. */
+  timedOut?: boolean;
+}
+
+export interface SandboxWriteEvent {
+  type: "sandbox:write";
+  runId: string;
+  sessionId?: string;
+  taskId?: string;
+  toolName: string;
+  paths: string[];
+  /** Best-effort line diff ("write is visible"). */
+  diff?: string;
+  ok: boolean;
+}
+
 export type RuntimeEvent =
   | RunStartEvent
   | UserMessageEvent
@@ -116,7 +186,15 @@ export type RuntimeEvent =
   | SessionUpdatedEvent
   | SessionClosedEvent
   | TaskCreatedEvent
-  | TaskStatusEvent;
+  | TaskStatusEvent
+  // ---- Checkpoint & resume events (M2) ----
+  | CheckpointSavedEvent
+  | CheckpointRestoredEvent
+  // ---- Governance events (M3) ----
+  | PermissionRequestEvent
+  | PermissionApprovedEvent
+  | PermissionDeniedEvent
+  | SandboxWriteEvent;
 
 /**
  * A tiny, typed event bus. The runtime emits lifecycle events so that

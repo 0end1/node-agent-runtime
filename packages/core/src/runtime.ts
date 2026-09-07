@@ -28,6 +28,20 @@ export interface AgentRuntimeOptions {
   logger?: (line: string) => void;
 }
 
+/**
+ * A step-granular view of a run, handed to the host after every step (M2).
+ * The host persists it as a Checkpoint; the engine itself stays stateless.
+ */
+export interface StepSnapshot {
+  runId: string;
+  /** 1-based index of the step that just completed. */
+  step: number;
+  /** Full transcript (history + everything produced so far). */
+  messages: ChatMessage[];
+  /** Usage accumulated up to and including this step. */
+  usage: RunUsage;
+}
+
 export interface RunOptions {
   agent: Agent;
   /** The user's message for this run. */
@@ -42,6 +56,30 @@ export interface RunOptions {
   taskId?: string;
   /** Abort the loop; throws AbortError at the next await point. */
   signal?: AbortSignal;
+  /**
+   * Called after every completed step (M2). The host uses it to persist a
+   * Checkpoint; the engine keeps no snapshot state of its own.
+   */
+  onStepEnd?: (snapshot: StepSnapshot) => void | Promise<void>;
+  /** Usage already accumulated before this run (M2 resume continues the ledger). */
+  initialUsage?: RunUsage;
+  /**
+   * M3: the single governance seam of the run loop (docs §12-4). Called before
+   * every tool execution; a negative verdict is fed back to the model as a
+   * tool error so it can self-correct. The engine knows nothing about policies,
+   * sandboxes or approval UIs.
+   */
+  gate?: (
+    call: { name: string; arguments: unknown },
+    ctx: ToolExecutionContext
+  ) => Promise<{ ok: boolean; reason?: string }>;
+  /**
+   * Whether `input` becomes a new user turn in the transcript (default true).
+   * M2 resume sets this to false when continuing without a new instruction,
+   * so replaying a checkpoint yields the exact transcript an uninterrupted
+   * run would have produced.
+   */
+  appendUserMessage?: boolean;
 }
 
 export interface RunResult {
@@ -117,13 +155,19 @@ export class AgentRuntime {
 
     const history: ChatMessage[] = [...(options.history ?? [])];
     const userMessage: ChatMessage = { role: "user", content: input };
-    history.push(userMessage);
+    if (options.appendUserMessage !== false) history.push(userMessage);
 
-    const usage: RunUsage = { inputTokens: 0, outputTokens: 0, modelCalls: 0 };
+    const usage: RunUsage = {
+      inputTokens: options.initialUsage?.inputTokens ?? 0,
+      outputTokens: options.initialUsage?.outputTokens ?? 0,
+      modelCalls: options.initialUsage?.modelCalls ?? 0,
+    };
     const stepEvents: StepLedger = { toolStarts: [], toolEnds: [], responses: [] };
 
     this.emit({ type: "run:start", runId, agentName: agent.name, input });
-    this.emit({ type: "message:user", runId, message: userMessage } as UserMessageEvent);
+    if (options.appendUserMessage !== false) {
+      this.emit({ type: "message:user", runId, message: userMessage } as UserMessageEvent);
+    }
     this.log(`run:start agent=${agent.name} input="${input.slice(0, 60)}"`);
 
     const startedAt = Date.now();
@@ -173,7 +217,12 @@ export class AgentRuntime {
         history.push(assistantMsg);
 
         const toolCalls = response.toolCalls;
-        if (toolCalls.length === 0) break; // natural end: model answered
+        if (toolCalls.length === 0) {
+          // Natural end: the model answered. Snapshot once more so the final
+          // answer is replayable and a follow-up can resume from this state.
+          await this.snapshotStep(options, runId, step, history, usage);
+          break;
+        }
 
         // Execute tool calls (sequentially, feeding results back).
         const assistantWithCalls = assistantMsg as Extract<ChatMessage, { role: "assistant" }> & {
@@ -201,7 +250,7 @@ export class AgentRuntime {
             ...(options.sessionId ? { sessionId: options.sessionId } : {}),
             ...(options.taskId ? { taskId: options.taskId } : {}),
           });
-          const outcome = await this.executeTool(toolMap, parsed, ctx);
+          const outcome = await this.executeTool(toolMap, parsed, ctx, options.gate);
 
           const endEvt: ToolEndEvent = {
             type: "tool:end",
@@ -223,6 +272,8 @@ export class AgentRuntime {
           };
           history.push(toolResult);
         }
+
+        await this.snapshotStep(options, runId, step, history, usage);
       }
       // Exhausted steps without the model finishing -> leave a graceful marker.
       const finishedNaturally = history.at(-1)?.role !== "tool";
@@ -286,11 +337,44 @@ export class AgentRuntime {
     return result;
   }
 
+  /** Publish a per-step snapshot to the host (M2 checkpoint hook). */
+  private async snapshotStep(
+    options: RunOptions,
+    runId: string,
+    step: number,
+    history: ChatMessage[],
+    usage: RunUsage
+  ): Promise<void> {
+    if (!options.onStepEnd) return;
+    await options.onStepEnd({
+      runId,
+      step,
+      messages: [...history],
+      usage: { ...usage },
+    });
+  }
+
   private async executeTool(
     toolMap: Map<string, AnyTool>,
     call: ToolCall,
-    ctx: ToolExecutionContext
+    ctx: ToolExecutionContext,
+    gate?: RunOptions["gate"]
   ): Promise<{ content: string; ok: boolean }> {
+    // M3: authorization happens before anything else — a denied call never
+    // reaches the tool, and the model is told why so it can adapt.
+    if (gate) {
+      const verdict = await gate({ name: call.name, arguments: call.arguments }, ctx);
+      if (!verdict.ok) {
+        return {
+          content: JSON.stringify({
+            error: `工具调用未获授权：${verdict.reason ?? "策略拒绝"}`,
+            denied: true,
+          }),
+          ok: false,
+        };
+      }
+    }
+
     const tool = toolMap.get(call.name);
     if (!tool) {
       return {

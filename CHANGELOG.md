@@ -8,7 +8,50 @@
 
 ## [Unreleased]
 
-（v0.3.0 · M2 · 记忆与续跑 的变更将记录于此；见 `docs/architecture.md` §11 路线图。）
+**M3 · 治理**（2026-09-07，dev 分支）：`Permission` 授权决策（allow/deny/ask 审批流）+ `Sandbox` 运行层执行域落地。沿用「引擎只留接缝、宿主注入策略与执行域」的分层：引擎新增 `RunOptions.gate` 单一授权调用点，`sandbox.ts`/`permission.ts` 实现仍在 C2 内（C4/C5 拆包随 M5，与 crate-architecture §6 一致）。`npm test` types 4 + core 77 通过 0 失败。
+
+### Added（M3 · 治理）
+
+- **Permission** `packages/core/src/permission.ts`（architecture §6.1）：`ToolKind` 敏感分类（无害 / 只读网络 / 写 / 执行 / 凭据，`ToolDefinition.meta.kind` 声明，缺省按工具名归类）；`DefaultPermissionPolicy` 按 `ToolKind × SandboxMode` 决策矩阵（写/执行在 read-only 档 deny、可写与全权限档 ask；凭据全档 deny）；`PermissionManager.gate/approve/deny` 审批流，ask 挂起等宿主、**超时=按拒绝处理**；`approve({ always: true })` 沉淀会话级白名单；`combinePolicies` 多策略命中取最严（对齐 codex execpolicy）；`StaticPolicy`/`toolListPolicy` 便捷策略
+- **Sandbox** `packages/core/src/sandbox.ts`（architecture §6.2）：`Sandbox.begin(mode, scope, ctx)` 建立 Run 执行域；`LocalSandbox` 对每个工具执行：read-only 档拦截副作用类、`scope.network === "deny"` 拦网络类、写工具 path 越界拒绝（`isPathAllowed` + `pathArgsOf`）、每调用超时（默认 30s）、写类工具执行后发 **`sandbox:write`（含尽力行级 diff，`simpleDiff`）**——拦截抛 `SandboxViolationError`/`SandboxTimeoutError`，由引擎回填给模型自纠
+- **引擎接缝** `runtime.ts`：`RunOptions.gate`（每次工具执行前调用，拒绝理由回填为工具错误）；新增 `permission:request/approved/denied`（§7 已预留的 `timedOut` 字段落地）与 `sandbox:write` 事件
+- **宿主默认治理** `session.ts`：默认注入 `LocalSandbox`（`workspace: cwd`、`network: deny`、`sandboxMode: workspace-write`）与 `PermissionManager`（发布到统一总线）；每个 run 绑定一次执行域并把工具 wrap 后再交给引擎；公开 `pendingApprovals()` / `approve(decisionId, { always })` / `deny(decisionId)`
+- **测试**：新增 `permission`（13 例：决策矩阵、ask 审批 / 拒绝 / **超时即拒**、`approve({always})` 记住白名单、迟到审批被忽略、`combinePolicies` 最严胜出）与 `sandbox`（13 例：分类、越界判定、三档边界、禁网与放行、路径逃逸拒绝且未落盘、超时、写 diff、集成：read-only 拒 exec 并回填模型、**write ask → approve → 落盘 + `sandbox:write` diff**、**策略 allow 过不了 read-only 沙箱**（纵深防御））用例
+
+### Changed（M3 · 治理）
+
+- `ToolDefinition` 新增可选 `meta: { kind?: ToolKind; pathArgs?: string[] }`；内置演示工具（weather/geocode/exchange）读本地静态数据，按 harmless 处理（修正 §6.2 旧"归入只读网络"表述）
+
+### Docs（M3 · 治理）
+
+- `docs/architecture.md`：§2 模块表 `Permission`/`Sandbox` 标 ✅ M3，§6.1/§6.2 补实现注记与口径确认，§11 M3 行标 ✅（验收全自动化），§13 修订记录新增 v1.5 (M3)
+- `docs/crate-architecture.md`：§6 里程碑表 M3 行标注「功能已在 C2 内落地，C4/C5 拆包留待 M5」
+- README：核心概念表新增 `Permission` / `Sandbox` 说明
+
+---
+
+**M2 · 记忆与续跑**（2026-09-07，dev 分支）：`Memory` 门面 + 步级 `Checkpoint` + `resume()` 续跑落地。引擎只新增「每步快照回调」一个扩展点，落盘与编排仍在宿主 `session.ts`（与 `docs/crate-architecture.md` §6「先做功能、后做拆包」一致：C3 拆包留待 M5）。`npm test` 54 通过（types 4 + core 50）0 失败。
+
+### Added（M2 · 记忆与续跑）
+
+- **Memory 门面** `packages/core/src/memory.ts`（architecture §8.2）：`SessionMemory` 同时提供会话层（对话流，复用 per-session 追加式消息流，跨实例/重启可读）与长期事实层 `remember/recall`（每会话一个 KV 文档，`recall` 为零依赖词面 + CJK bigram 打分，后续可换向量后端而不动引擎）
+- **Checkpoint** `packages/core/src/checkpoint.ts`（architecture §9）：步级快照（`messages` + `usage` + `agentSnapshot{agentId, toolsHash}`）；`CheckpointStore` 提供 save/load/listByRun/listByTask/latest；`computeToolsHash` 生成与工具顺序无关的稳定指纹，`assertResumable` 在工具集漂移时抛 `CheckpointMismatchError`
+- **宿主续跑** `SessionManager.resume(checkpointId, continuation?)`：载入 checkpoint → 校验 toolsHash → 重放 transcript 继续跑同一 task；新 run 记录 `parentCheckpointId`，无 `continuation` 时不追加用户轮次，保证续跑 transcript 与一次性跑完逐条一致
+- **每步增量落盘**：run 每完成一步即把新增消息追加进消息流并写一份 checkpoint（M1 为 run 结束后一次性落盘），中断/崩溃至多丢失一步
+- **引擎扩展点** `runtime.ts`：`RunOptions.onStepEnd`（步级快照回调，宿主据此落 checkpoint）、`initialUsage`（续跑累加用量）、`appendUserMessage`（续跑不重复插入用户轮次）；新增 `StepSnapshot` 类型
+- **事件**：`checkpoint:saved`（每步）、`checkpoint:restored`（续跑起跑）并入统一总线
+- **存储域扩展**：`DocDomain` 新增 `checkpoint`（步级快照文档）与 `memory`（每会话长期事实 KV）；`deleteSession` 一并清理二者
+- **测试**：新增 `memory`（9 例：顺序 / `limit` / 跨实例 / 坏行容错 / 会话隔离 / 事实层读写覆盖）与 `checkpoint`（10 例：指纹稳定性与工具漂移、CheckpointStore 增删改查、每步 checkpoint、**中断后续跑等价新跑**（§11 M2 验收）、重启后由新 manager 续跑、continuation 追加、工具漂移拒绝续跑、删除清理）用例
+
+### Changed
+
+- `SessionManager` 的 run 编排重构为 `prepareRun` / `executeRun` / `finishTask`：事务准备（会话关闭/并发锁、置 running）与执行分离；`RunRecord` 新增 `checkpointId` / `parentCheckpointId`；`messages()` 与新增的 `memory(sessionId)` 统一由 Memory 门面提供
+
+### Docs
+
+- `docs/architecture.md`：§2 模块表 `Memory`/`Checkpoint` 现状标 ✅ M2，§8.2 / §9 补实现注记，§11 路线图 M2 行标 ✅，§13 修订记录新增 v1.4 (M2)
+- README：核心概念表新增 `Memory` / `Checkpoint` / `resume` 说明
+- `docs/crate-architecture.md`：§6 里程碑表 M2 行标注「功能已在 C2 内落地，C3 拆包留待 M5」
 
 ## [v0.2.0] - 2026-09-05
 

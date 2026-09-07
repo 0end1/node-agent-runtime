@@ -8,7 +8,15 @@
  */
 
 /** Document domains: one JSON document per id, overwritten atomically. */
-export type DocDomain = "session" | "task" | "run" | "agent";
+export type DocDomain =
+  | "session"
+  | "task"
+  | "run"
+  | "agent"
+  /** M2: run/step snapshots used by resume (docs/architecture.md §9). */
+  | "checkpoint"
+  /** M2: long-term fact memory, one KV document per session (§8.2). */
+  | "memory";
 
 /** Stream domains: append-only lines (messages, event logs…). */
 export type StreamDomain = "message";

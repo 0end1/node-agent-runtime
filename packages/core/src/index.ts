@@ -7,6 +7,7 @@ export type {
   AgentRuntimeOptions,
   RunOptions,
   RunResult,
+  StepSnapshot,
 } from "./runtime.js";
 
 export { Agent, defineAgent, DEFAULT_AGENT_INSTRUCTIONS } from "./agent.js";
@@ -29,6 +30,12 @@ export type {
   SessionClosedEvent,
   TaskCreatedEvent,
   TaskStatusEvent,
+  CheckpointSavedEvent,
+  CheckpointRestoredEvent,
+  PermissionRequestEvent,
+  PermissionApprovedEvent,
+  PermissionDeniedEvent,
+  SandboxWriteEvent,
 } from "./events.js";
 
 // ---- Sessions, tasks & persistence (M1) ----
@@ -44,6 +51,51 @@ export type {
   SessionManagerOptions,
 } from "./session.js";
 
+// ---- Memory & checkpoint (M2) ----
+export {
+  CheckpointStore,
+  CheckpointMismatchError,
+  computeToolsHash,
+  assertResumable,
+} from "./checkpoint.js";
+export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js";
+
+export { SessionMemory } from "./memory.js";
+export type { Memory, MemoryFact, MemoryRecall, SessionMemoryOptions } from "./memory.js";
+
+// ---- Governance (M3) ----
+export { PermissionManager, DefaultPermissionPolicy, StaticPolicy, combinePolicies, toolListPolicy } from "./permission.js";
+export type {
+  Verdict,
+  Decision,
+  PermissionPolicy,
+  PermissionContext,
+  PermissionCall,
+  GateResult,
+  PendingDecision,
+  PermissionManagerOptions,
+  DecisionMatrix,
+  DefaultPermissionPolicyOptions,
+} from "./permission.js";
+
+export {
+  LocalSandbox,
+  SandboxViolationError,
+  SandboxTimeoutError,
+  classifyToolName,
+  isPathAllowed,
+  simpleDiff,
+} from "./sandbox.js";
+export type {
+  Sandbox,
+  SandboxHandle,
+  SandboxMode,
+  SandboxScope,
+  SandboxRunContext,
+  SandboxWriteInfo,
+  LocalSandboxOptions,
+} from "./sandbox.js";
+
 export { MemoryStorage } from "./store/memory.js";
 export { FileStorage } from "./store/file.js";
 export type { Storage, DocDomain, StreamDomain } from "./store/types.js";
@@ -57,6 +109,8 @@ export type {
   ToolDefinition,
   AnyTool,
   ToolExecutionContext,
+  ToolKind,
+  ToolMeta,
 } from "./tool.js";
 
 export { builtinTools } from "./tools/builtin.js";

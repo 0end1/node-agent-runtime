@@ -4,6 +4,8 @@
 > 背景：M5 行内定义 = **独立分包 + Desktop 壳 + Web 控制台全面 Session 化**（`docs/architecture.md` §11，验收：桌面 demo 全流程可用）。
 > 决策：拆包暂缓（C3~C6/C8/facade 见 `docs/crate-split-todo.md`），本清单只列**与拆包解耦、现在即可前置**的工作。
 > 原则：仅消费 `@agent-runtime/core`（及已外置 `provider-openai` / `store-sqlite`）的**公共 API**；未来若拆 C8 host，examples 只需把 import 源从 core 换成 host，不白做。
+>
+> **阶段状态（2026-09-07 收尾）**：本清单前置项全部落地并验证；余下 #5 验收（安装分发实机验证、自动化 E2E、typecheck/test 全绿）移交**下一开发阶段**跟踪，本文件保留为验收依据。
 
 ## 1. 现状核实（2026-09-07）
 
@@ -19,7 +21,7 @@
 | 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
 | 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | ✅（dev 跑通 + 生产打包验证通过：`tauri build` 产出 .app/.dmg，自带 Node sidecar 实跑 :8787 → 200） |
 | 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
-| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | 🟡（生产打包已验证：.app/.dmg + sidecar 自包含；待补：安装分发实机验证 + 自动化 E2E） |
+| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ➡️ 移交下一开发阶段（2026-09-07 阶段收尾）：生产打包已验证（.app/.dmg + sidecar 自包含，app 自带 node 实跑 :8787 → 200）；待补：安装分发实机验证、自动化 E2E、仓库级 typecheck/test 全绿 |
 | 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
 
 ## 3. 明细（#1 / #2 / #3 展开）
@@ -42,11 +44,11 @@
 
 ### #3 Desktop（`examples/desktop-tauri/`，Tauri v2）
 
-- 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm run demo:web` 启动 Node server 提供 API + 静态）。
+- 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm --prefix ../../ run demo:web` 启动 Node server 提供 API + 静态，见 M5-4 Fixed）。
 - 仅依赖 `@agent-runtime/core` 公共 API（与 #1/#2 同源），未来 C8 host 不白做。
-- **生产 sidecar 已接入**：release 构建时 `lib.rs::spawn_server` 以 Tauri sidecar 拉起 `agent-server`（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`tauri.conf.json` 的 `bundle.externalBin` 待打包二进制后启用（避免阻断 dev 构建）。
+- **生产 sidecar 已接入并验证**：release 构建时 `lib.rs::spawn_server` 以 `tauri-plugin-shell` sidecar 拉起 app 自带 Node 运行时执行打包好的 server bundle（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`build-server.mjs` 在打包前生成 bundle + node 运行时副本 + 静态资源（`src-tauri/binaries/`，gitignore 忽略）；`tauri build` 产出 .app/.dmg，实跑 :8787 → 200（M5-6）。
 - **图标已生成**：`npx tauri icon` 产出 `src-tauri/icons/`（含 icns/ico/png），源码 `icon-source.png` 同目录。
-- 环境已具备：`cargo 1.98` + `node v22` + Xcode CLI + `@tauri-apps/cli`，`cargo check` 绿；`npm run tauri dev` 待桌面点开验证窗口渲染。
+- 环境已具备：`cargo 1.98` + `node v22` + Xcode CLI + `@tauri-apps/cli`；`cargo check` 绿、`npm run tauri dev` 已点开验证窗口渲染（M5-4）。
 
 ## 4. 建议执行顺序
 
@@ -58,10 +60,10 @@
 
 - **审批挂起风险已解除（CLI）**：`examples/cli.ts` 已订阅 `permission:request` 并订阅 `sandbox:write`，run 阻塞等待授权时仍可接收 `/approve` `/deny`（事件驱动，不挂起）。新增演示写工具 `demo_write_file`（`kind: "write"`）默认触发 ask，可在 CLI demo 中直接演练 M3；Web 端（#2）仍需补齐审批 UI 才能不挂起。
 - **根 `engines` 不一致**：根 `node >=18.17` vs `@agent-runtime/store-sqlite` `>=22.13`（node:sqlite），接入 sqlite 演示前需统一口径。
-- **Desktop 技术栈已定 Tauri v2**（见 #3 明细）：仅依赖 `core` 公共 API；生产侧 Node 运行时 sidecar 打包列入 #5 验收前补齐。
+- **Desktop 技术栈已定 Tauri v2**（见 #3 明细）：仅依赖 `core` 公共 API；生产侧**自带 Node 运行时** sidecar 已打包验证（M5-6）。
 - **M2 续跑语义**：`resume` 无 `continuation` 时不追加用户轮次；CLI 续跑后的输入需走 `continuation` 传参，注意消息时序与一次性跑完一致（test 即规格，`core/test/session.test.ts`）。
 
-## 6. 验收标准
+## 6. 验收标准（下一开发阶段执行）
 
 - CLI：续跑 / 审批 / artifact / MCP 注册全流程可用
 - Web：审批与 `sandbox:write` diff 可视化、artifact 面板、续跑可用
@@ -72,6 +74,4 @@
 ## 7. 相关文档
 
 - 顶层架构与路线图：`docs/architecture.md` §11
-- 包边界与 M5 收口：`docs/crate-architecture.md` §6 / §8 / §9
-- 拆包执行清单（并行参考）：`docs/crate-split-todo.md`
-- codex / dsh 参考：`docs/codex-reference.md`、`docs/deepseek-harness-reference.md`
+- 包边界与 M5 收口：`d

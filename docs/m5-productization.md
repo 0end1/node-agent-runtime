@@ -7,9 +7,9 @@
 
 ## 1. 现状核实（2026-09-07）
 
-- `examples/`：仅 `cli.ts` + `web/`（`server.ts` 等），**无 desktop**。
+- `examples/`：`cli.ts` + `web/`（`server.ts` 等）+ `desktop-tauri/`（Tauri v2 壳，M5-4 已建）。
 - 已到 M1 会话化：CLI 会话持久化（`.runtime-data/`）与 `/new` `/list` `/use`、重启自动续最近会话；Web 端浏览器 localStorage 固定会话跨刷新/跨服务重启恢复。
-- **缺口**：全仓 examples 未引用任何 M2~M4 公开 API——`resume` / `pendingApprovals` / `approve` / `McpRegistry` / `ArtifactManager` / `Sandbox` / `PermissionManager` / `SessionMemory` 均无使用点。M2~M4 的宿主能力已内建于 `SessionManager`，仅差 examples 的操作面暴露。
+- **缺口已补齐**：#1 CLI / #2 Web / #3 Desktop 已消费 M2~M4 公开 API（`resume` / `pendingApprovals` / `approve` / `McpRegistry` / `ArtifactManager` / `Sandbox` / `PermissionManager` / `SessionMemory`），examples 操作面完整；仅余 #5 E2E 验收（含自动化）未做。
 
 ## 2. 可前置清单
 
@@ -17,7 +17,7 @@
 |---|---|---|---|---|
 | 1 | examples 操作面补齐 M2~M4 | CLI 命令 + Web 视图接上新能力 | §11「产品化」 | ✅（CLI 完成；Web 见 #2） |
 | 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
-| 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | 🟡（骨架已建，dev 模式可验证） |
+| 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | ✅（壳+sidecar+图标已建，cargo check 通过；生产 externalBin 二进制打包列入 #5） |
 | 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
 | 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ☐ |
 | 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
@@ -65,7 +65,7 @@
 
 - CLI：续跑 / 审批 / artifact / MCP 注册全流程可用
 - Web：审批与 `sandbox:write` diff 可视化、artifact 面板、续跑可用
-- Desktop：桌面 demo 全流程可用（§11 M5 验收）
+- Desktop：dev 模式 `npm run tauri dev` 窗口渲染 + 控制台全流程可用；release 构建启用 `bundle.externalBin` 并打包 `binaries/agent-server` 后 `tauri build` 通过（§11 M5 验收）
 - `npm run typecheck` 与 `npm test` 全绿；每模块能力变更随包测试
 - CHANGELOG 同步（维护约定：代码与文档同一 commit）
 

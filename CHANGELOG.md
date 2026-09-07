@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+**M5-5 · 刷新产品化可前置清单状态**（2026-09-07，dev 分支）：同步 `docs/m5-productization.md` 现状与清单状态——#3 Desktop 壳由 🟡 改为 ✅（壳 + sidecar + 图标已建、`cargo check` 通过，生产 externalBin 二进制打包归入 #5）；§1 现状补 `desktop-tauri/` 并标注 M2~M4 操作面缺口已通过 #1/#2/#3 补齐；§6 Desktop 验收细化 dev（`npm run tauri dev`）/ 生产（`tauri build` + sidecar 二进制）两条路径。
+
+### Docs（M5-5）
+- `docs/m5-productization.md`：§1 现状 + #3 状态 + §6 Desktop 验收刷新
+
+---
+
 **M5-4 · Desktop 壳（Tauri v2，含 sidecar + 图标）**（2026-09-07，dev 分支）：为 M5 交付物补 Desktop 壳，技术栈定为 **Tauri v2**。窗口加载 `examples/web` 控制台——`devUrl=http://localhost:8787`，`beforeDevCommand` 启 `npm run demo:web`（Node server 提供 API + 静态）。仅依赖 `core` 公共 API，未来 C8 host 不白做。release 构建以 Tauri sidecar 拉起 `agent-server`（窗口 `url` 固定 8787），dev/生产共用同一控制台；`bundle.externalBin` 待打包二进制后启用。已生成 `src-tauri/icons/`（tauri icon）。环境 `cargo 1.98`+`node v22`+Xcode CLI+@tauri-apps/cli 齐备，`cargo check` 通过。`docs/m5-productization.md` #3 状态由待定改为 Tauri 已定。
 
 ### Added（M5-4 · Desktop 壳 Tauri）

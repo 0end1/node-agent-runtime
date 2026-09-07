@@ -8,6 +8,20 @@
 
 ## [Unreleased]
 
+**M5-6 · Desktop 生产打包闭环（Tauri build + 自包含 sidecar）**（2026-09-07，dev 分支）：补齐并验证 Desktop 生产打包。`beforeBuildCommand`（`build-server.mjs`）用 esbuild 把 `examples/web/server.ts` 打成自包含 CJS bundle（`agent-server.js`），并复制 Node 运行时（`node-<triple>`）与静态控制台（`public/`）；app **自带 Node 运行时**（`externalBin: binaries/node`）执行 bundle（`resources`），静态资源一并平铺进 app，壳通过 `AGENT_CONSOLE_PUBLIC_DIR` 把 `Resources/public` 告知 server——不依赖目标机安装 Node。`tauri build` 产出 `.app`（123M）+ `.dmg`（42M），并以 app 自带 node + bundle 实跑验证 `GET :8787 → 200`（Mock provider 正常启动）。
+
+### Added（M5-6 · 生产打包）
+- `examples/desktop-tauri/build-server.mjs`：esbuild 打包 server（`import.meta.url` 在 CJS 下用 define + banner 注入等价实现）+ 复制 Node 运行时 + 复制静态资源
+
+### Fixed（M5-6 · 生产打包验证）
+- `src-tauri/tauri.conf.json`：`beforeBuildCommand` 接 `build-server.mjs`；`externalBin` 改 `binaries/node`（原 `agent-server` 缺 target triple 后缀导致 release 编译失败）；`resources` 平铺 `agent-server.js` 与 `public`（`frontendDist` 上越路径不被复制，app 内缺 `index.html`）；`frontendDist` 指向真实静态目录
+- `src-tauri/src/lib.rs` + `Cargo.toml`：Tauri v2 sidecar 已迁至 `tauri-plugin-shell`（`tauri::process::Command` 不存在），改用 `app.shell().sidecar("node")` + args/env，新增 `tauri-plugin-shell` 依赖
+- `examples/web/server.ts`：静态控制台目录支持 `AGENT_CONSOLE_PUBLIC_DIR` 覆盖（生产由壳指定 `Resources/public`，dev/demo 默认行为不变）
+- `examples/desktop-tauri/package.json`：去掉 `"type": "module"`（无扩展名 sidecar 需按 CommonJS 解析）
+- `src-tauri/tauri.conf.json`：`beforeDevCommand` 改 `npm --prefix ../../ run demo:web`（见 M5-4 Fixed）
+
+---
+
 **M5-5 · 刷新产品化可前置清单状态**（2026-09-07，dev 分支）：同步 `docs/m5-productization.md` 现状与清单状态——#3 Desktop 壳由 🟡 改为 ✅（壳 + sidecar + 图标已建、`cargo check` 通过，生产 externalBin 二进制打包归入 #5）；§1 现状补 `desktop-tauri/` 并标注 M2~M4 操作面缺口已通过 #1/#2/#3 补齐；§6 Desktop 验收细化 dev（`npm run tauri dev`）/ 生产（`tauri build` + sidecar 二进制）两条路径。
 
 ### Docs（M5-5）

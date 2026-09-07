@@ -6,8 +6,8 @@
   "build": {
     "beforeDevCommand": "npm --prefix ../../ run demo:web",
     "devUrl": "http://localhost:8787",
-    "beforeBuildCommand": "",
-    "frontendDist": "../web/public"
+    "beforeBuildCommand": "node build-server.mjs",
+    "frontendDist": "../../../examples/web/public"
   },
   "app": {
     "windows": [
@@ -30,6 +30,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["binaries/node"],
+    "resources": {
+      "binaries/agent-server.js": "agent-server.js",
+      "binaries/public": "public"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

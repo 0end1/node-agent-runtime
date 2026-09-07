@@ -47,27 +47,37 @@ npx tauri icon path/to/icon.png   # 生成 src-tauri/icons/*
 
 未生成图标前 `tauri dev` / `tauri build` 会报错。
 
-## 生产打包（sidecar，已接入）
+## 生产打包（自带 Node sidecar，已验证）
 
-生产模式下 Rust 在 `setup` 中以 Tauri **sidecar** 启动 Node 运行时跑
-`examples/web/server.ts`（监听 `http://localhost:8787`），窗口 `url` 固定指向该地址，
-因此 dev 与生产共用同一控制台与 API 面。生产打包前需在 `tauri.conf.json` 的
-`bundle.externalBin` 加入 `["binaries/agent-server"]`（骨架当前未写死该配置，避免无二进制时
-阻断 `tauri build`）；`lib.rs` 的 `spawn_server` 仅在 release（非 debug）构建生效，
-避免与 dev 的 `beforeDevCommand` 重复拉起。
+```bash
+cd examples/desktop-tauri
+npm install
+npm run build          # = tauri build
+```
 
-前置（打包前一次性）：将 server 打包为 sidecar 二进制放入 `src-tauri/binaries/`：
-- macOS：`agent-server`（可执行，`chmod +x`）
-- Windows：`agent-server.exe`
-- Linux：`agent-server`
+`beforeBuildCommand`（`build-server.mjs`）在打包前生成三样产物到 `src-tauri/binaries/`：
+- `agent-server.js` —— `examples/web/server.ts` 经 esbuild 打成的自包含 CJS 单文件
+- `node-<triple>` —— 当前 Node 运行时副本（**app 自带，不依赖目标机安装 Node**）
+- `public/` —— 控制台静态资源
 
-推荐方式（任选）：
-1. 用 `esbuild` 将 `examples/web/server.ts` 打包为单文件 CJS/ESM，再用 `pkg` 或
-   `bun build --compile` 编为平台二进制；
-2. 或直接随包分发 `node` + `tsx`，将 `lib.rs` 的 `new_sidecar("agent-server")`
-   改为 `tauri::process::Command::new("node").args(["examples/web/server.ts"])`。
+打包后的 app 结构：
 
-> dev 演示：`npm run tauri dev` 仍由 `beforeDevCommand` 启 Node server，无需 sidecar 二进制。
+```
+Agent Runtime Console.app/Contents/
+├── MacOS/      desktop-tauri, node          # externalBin: binaries/node
+└── Resources/  agent-server.js, public/     # resources（平铺）
+```
+
+release 构建时 `lib.rs` 的 `spawn_server` 通过 `tauri-plugin-shell` 的 sidecar 启动自带
+`node` 执行 `Resources/agent-server.js`，并用 `AGENT_CONSOLE_PUBLIC_DIR` 把
+`Resources/public` 告知 server（dev/demo 不设该变量时仍用模块同目录 `public/`）。
+窗口 `url` 仍为 `http://localhost:8787`，dev 与生产共用同一控制台与 API 面。
+该函数仅在 release（非 debug）生效，避免与 dev 的 `beforeDevCommand` 重复拉起。
+
+产物：`target/release/bundle/macos/*.app`、`target/release/bundle/dmg/*.dmg`。
+已验证：用 app 自带 `node` + bundle 实跑，`GET :8787 → 200`。
+
+> `src-tauri/binaries/` 已被 `.gitignore` 忽略（含 ~110MB Node 副本，不入库）。
 
 ## 与拆包（C8 host）的关系
 

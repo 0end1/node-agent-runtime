@@ -42,7 +42,10 @@ if (wantsSqlite && !nodeSupportsSqlite()) {
   process.exit(1);
 }
 
-const HTML_PATH = join(__dirname, "public", "index.html");
+// 静态控制台目录：默认模块同目录 public/（dev / demo）；
+// Tauri 生产打包时由壳通过 AGENT_CONSOLE_PUBLIC_DIR 指定（frontendDist 被打入 app Resources）。
+const PUBLIC_DIR = process.env.AGENT_CONSOLE_PUBLIC_DIR ?? join(__dirname, "public");
+const HTML_PATH = join(PUBLIC_DIR, "index.html");
 
 // ---- provider selection ----------------------------------------------------
 

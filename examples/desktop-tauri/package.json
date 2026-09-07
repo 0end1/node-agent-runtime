@@ -2,7 +2,6 @@
   "name": "desktop-tauri",
   "private": true,
   "version": "0.1.0",
-  "type": "module",
   "description": "Agent Runtime Console — Desktop shell (Tauri v2) wrapping examples/web",
   "scripts": {
     "tauri": "tauri",

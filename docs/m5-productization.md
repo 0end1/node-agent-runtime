@@ -17,9 +17,9 @@
 |---|---|---|---|---|
 | 1 | examples 操作面补齐 M2~M4 | CLI 命令 + Web 视图接上新能力 | §11「产品化」 | ✅（CLI 完成；Web 见 #2） |
 | 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
-| 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | ✅（壳+sidecar+图标已建，cargo check 通过；生产 externalBin 二进制打包列入 #5） |
+| 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | ✅（dev 跑通 + 生产打包验证通过：`tauri build` 产出 .app/.dmg，自带 Node sidecar 实跑 :8787 → 200） |
 | 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
-| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ☐ |
+| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | 🟡（生产打包已验证：.app/.dmg + sidecar 自包含；待补：安装分发实机验证 + 自动化 E2E） |
 | 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
 
 ## 3. 明细（#1 / #2 / #3 展开）

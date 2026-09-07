@@ -138,7 +138,7 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 | 现状 M0/M1 | src 按 C2 内部目录收敛（runtime/agent/context/tools/events/store），不改变公共 API；现有 35 测试必须全绿 |
 | M2 记忆与续跑 | 已在 C2 `packages/core/src/memory.ts`、`checkpoint.ts` 内实现（含随包测试），**遵循§6 前言「先做功能、后做拆包」**：C3 `@agent-runtime/memory` 拆包留待 M5，避免 core ↔ memory 双向依赖 |
 | M3 治理 | 已在 C2 `packages/core/src/sandbox.ts`、`permission.ts` 内实现（含随包测试），**遵循§6 前言「先做功能、后做拆包」**：C4 `@agent-runtime/sandbox`、C5 `@agent-runtime/policy` 拆包留待 M5；run 循环的 gate 接入点已由 C2 的 `RunOptions.gate` 提供 |
-| M4 外部能力 | 新开 `@agent-runtime/mcp`；registry 物化结果复用 C2 工具注册路径 |
+| M4 外部能力 | 已在 C2 `packages/core/src/mcp/`（types/jsonrpc/transport/client/registry）与 `artifact.ts` 内实现（含随包测试），**遵循§6 前言「先做功能、后做拆包」**：C6 `@agent-runtime/mcp` 拆包留待 M5；registry 物化结果复用 C2 工具注册路径 |
 | M5 产品化 | 包化收口：facade index、provider-openai 外置、store-sqlite 可选包、host 承接 Session 全流程；Desktop 壳只依赖 C8/C1 |
 
 ---
@@ -192,3 +192,4 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 | --- | --- | --- |
 | v0.1 | 2026-09-05 | 按 codex-rs workspace 形态把 architecture §2 模块树重排为 crate/包边界与依赖图；给出 C1~C9+A1 映射、边界规则、形态对比与待决清单；纯设计研究，未改代码 |
 | v0.2 | 2026-09-05 | 落地 §7.1 方案 A：根包改 npm workspaces 容器，C1 `@agent-runtime/types` / C2 `@agent-runtime/core` 两包先行（`git mv` 代码、C2 顶部 re-export C1、导入改包名、测试随包）；`npm run typecheck` / `npm run build` / `npm test`（35 通过）全绿，公共 API 不变 |
+| v0.3 (M4) | 2026-09-07 | 落地 M4 外部能力：MCP client（`packages/core/src/mcp/`：`McpClient` + `StdioTransport`/`StreamableHttpTransport` + `McpRegistry` 物化）与 `artifact.ts`（`ArtifactManager`）先在 C2 内实现并随包测试；C6 `@agent-runtime/mcp` 拆包留待 M5；§6 里程碑表 M4 行同步 |

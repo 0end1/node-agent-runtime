@@ -84,12 +84,12 @@
 | 依赖 | `Context` | Run/Step 内可见的运行上下文与能力门面 | ✅ M1：`context.ts` 门面已建（`buildRunContext`），runtime 注入 session/task/run |
 | 依赖 | `Model` | 模型后端抽象（`ModelProvider`） | 已有 |
 | 依赖 | `Tool` | 具名、带 Schema 的可调用能力 | 已有 |
-| 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | 待建（M4） |
+| 依赖 | `MCP` | 远端 MCP Server → 本地 Tool 的适配器 | ✅ M4：`mcp/`（`McpClient` + `StdioTransport`/`StreamableHttpTransport` + `McpRegistry` 物化本地 ToolDefinition）已落地 |
 | 治理 | `Permission` | 工具/资源访问的授权决策（allow/deny/ask） | ✅ M3：`permission.ts` 的 `DefaultPermissionPolicy`（决策矩阵）+ `PermissionManager.gate/approve/deny`（审批流 + 超时）已落地 |
 | 治理 | `Sandbox` | 运行层执行域边界：`SandboxMode` 三档 + `SandboxScope` 声明域 + 资源限制 | ✅ M3：`sandbox.ts` 的 `LocalSandbox`（read-only 拦副作用 / 禁网开关 / 路径越界拒绝 / 每调用超时 / `sandbox:write` 含 diff）已落地 |
 | 状态 | `Event` | 生命周期事件总线 | 已有（M1 追加 session/task 事件） |
 | 状态 | `Memory` | 会话记忆（消息流）+ 长期事实记忆 | ✅ M2：`memory.ts` 的 `SessionMemory`（消息流 + 每会话 KV 事实层 `remember/recall`）已落地 |
-| 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | 待建（M4） |
+| 状态 | `Artifact` | 可展示/可引用的产物（文本、文件、图表） | ✅ M4：`artifact.ts` 的 `ArtifactManager`（元数据入 KV `artifact` 域、payload 入 Blob / url locator）已落地 |
 | 状态 | `Checkpoint` | Run/Step 级可恢复快照 | ✅ M2：`checkpoint.ts`（步级快照 + `toolsHash` 校验）与 `SessionManager.resume()` 已落地 |
 | 状态 | `Persistence` | 上述全部实体的存取接口与实现 | ✅ M1：`Storage` 接口 + `MemoryStorage`/`FileStorage` 已落地 |
 
@@ -273,6 +273,8 @@ interface McpRegistry {
 - 命名空间：远程工具以 `serverName::toolName`（或前缀 `mcp__server__tool`）注册，避免与本地工具冲突；错误回填格式与本地工具一致，模型可自纠。
 - 产物：MCP 的文本/二进制资源映射为 `Artifact`（§8）。
 
+> 实现注记（M4，2026-09-07）：`McpClient` 与 `McpRegistry` 已落地于 C2 `packages/core/src/mcp/`——`jsonrpc.ts`（JSON-RPC 2.0 消息 + `McpError`/`McpTimeoutError`/`McpConnectionError`）、`transport.ts`（`StdioTransport` spawn 子进程行式协议；`StreamableHttpTransport` fetch POST，兼容 `text/event-stream` 与纯 JSON 两种响应）、`client.ts`（握手 `initialize` + `notifications/initialized`、`tools/list` 分页、`tools/call`）、`registry.ts`（物化 `mcp__server__tool` 前缀本地 `ToolDefinition`，`normalizeSchema` 归一化远端 schema 到引擎 JsonSchema 子集、敏感类由远端工具名推断、`isError` 时 execute 抛错让模型自纠）。「注册即枚举」的时序意味着：只要先 `await registry.register(handle)` 再把 `registry.tools()` 合入 Agent 配方，远端工具与本地工具后续 100% 同路径。C6 `@agent-runtime/mcp` 拆包随 M5。
+
 ---
 
 ## 6. 治理：Permission 与 Sandbox
@@ -397,6 +399,8 @@ interface Artifact {
 
 落点：小文本入 KV，大文件走 Blob store（`Storage` 见 §9）；UI 通过 `locator` 拉取，无需关心实现。
 
+> 实现注记（M4，2026-09-07）：`ArtifactManager` 已落地于 C2 `packages/core/src/artifact.ts`——元数据行按 §9 文档域落 KV（`DocDomain` 新增 `artifact`），`text`/`file`/`chart`/`mcp-resource` 的 payload 统一入 Blob 域（`locator` = `blob:<key>`），`url` 类不落内容（`locator` = 目标 URL）；提供 `save`（同 id upsert）/`get`/`list(sessionId, runId?)`（新在前）/`readBytes`/`readText`/`remove`（幂等，级联删 blob）。宿主侧 `SessionManager` 暴露 `readonly artifacts`，`deleteSession` 一并清理该会话的 artifact 元数据与 payload。
+
 ### 8.2 Memory（记忆）
 
 ```ts
@@ -516,7 +520,7 @@ packages/                        # [未来，若拆包]
 | **M1 · 生命周期** | `Session`/`Task`/`Run` 实体化；`Storage` 接口 + memory/file 实现；`Context` 门面 | `session.ts` `store/` `context.ts` | ✅ dev 分支已完成（2026-09-04）：会话可重启恢复、`history` 不再由调用方维护；`npm test` 35 通过 |
 | **M2 · 记忆与续跑** | ✅ dev 分支已完成（2026-09-07）：`Memory`、`Checkpoint`、resume | `memory.ts` `checkpoint.ts` | 中断（abort/崩溃）后从 checkpoint 续跑，transcript 与最终输出与一次性跑完一致；`npm test` types 4 + core 50 通过 |
 | **M3 · 治理** | ✅ dev 分支已完成（2026-09-07）：`Permission` 策略 + ask 审批流；`Sandbox` 运行层执行域（`LocalSandbox`：`SandboxMode` 三档 + `SandboxScope` 声明域 + 网络默认禁网 + 超时） | `permission.ts` `sandbox.ts` | 危险工具默认 ask/deny、审批超时=拒绝（自动化）；read-only 档 exec/write 被拒并回填错误给模型自纠；write ask → 宿主 approve → 落盘且 `sandbox:write` 含 diff（自动化）；**策略 allow 也过不了 read-only 沙箱**（纵深防御，自动化）；网络默认 deny、路径越界拒绝；`npm test` types 4 + core 77 通过 |
-| **M4 · 外部能力** | MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用 |
+| **M4 · 外部能力** | ✅ dev 分支已完成（2026-09-07）：MCP client（stdio + streamable HTTP）；`Artifact` | `mcp/` `artifact.ts` | 注册 mock MCP server → 其工具可被模型调用（自动化：stdio 子进程 + HTTP 双 mock server 端到端）；`npm test` types 4 + core 99 通过 |
 | **M5 · 产品化** | 独立分包 + Desktop 壳 + Web 控制台全面 Session 化 | `packages/` `examples/desktop/` | 桌面 demo 全流程可用 |
 
 > M1~M5 均要求保持 `npm run typecheck` 与 `npm test` 全绿；每模块独立 `*.test.ts`，测试即规格。
@@ -544,3 +548,4 @@ packages/                        # [未来，若拆包]
 | v1.3 (workspace 化) | 2026-09-05 | 代码按 `docs/crate-architecture.md` §7.1 收敛为 npm workspaces：C1 `@agent-runtime/types` / C2 `@agent-runtime/core`（C2 re-export C1 保持公共 API 不变）；§10 目标结构下包形态落地注记；详见 crate-architecture.md v0.2 修订 |
 | v1.4 (M2) | 2026-09-07 | 落地 M2 记忆与续跑：`memory.ts`（`SessionMemory`：消息流 + 事实层 `remember/recall`）、`checkpoint.ts`（步级快照 + `CheckpointStore` + `computeToolsHash`/`assertResumable`）、`SessionManager.resume()`；引擎新增 `RunOptions.onStepEnd` / `initialUsage` / `appendUserMessage` 与 `StepSnapshot`，新增 `checkpoint:saved` / `checkpoint:restored` 事件，`DocDomain` 扩展 `checkpoint` / `memory`；每步增量落盘取代 run 结束时一次性落盘；§2 模块表、§8.2、§9、§11 M2 行同步 |
 | v1.5 (M3) | 2026-09-07 | 落地 M3 治理：`permission.ts`（`ToolKind` 敏感分类 + `DefaultPermissionPolicy` 决策矩阵 + `PermissionManager` ask 审批流/超时/`approve({always})`/`combinePolicies` 取最严）、`sandbox.ts`（`SandboxMode` 三档 + `SandboxScope` + `LocalSandbox`：read-only 拦副作用、禁网开关、路径越界拒绝、每调用超时、`sandbox:write` 含 diff）；`ToolDefinition` 增 `meta.kind`/`pathArgs`；引擎新增 `RunOptions.gate` 单一授权接缝，新增 `permission:request/approved/denied` 与 `sandbox:write` 事件（§7 v1.2 表已预留，命名一致）；`SessionManager` 默认注入 `LocalSandbox` + `PermissionManager` 并公开 `pendingApprovals/approve/deny`；§2 模块表、§6.1/§6.2 实现注记、§11 M3 行同步 |
+| v1.6 (M4) | 2026-09-07 | 落地 M4 外部能力：`packages/core/src/mcp/`（`McpClient` + `StdioTransport`/`StreamableHttpTransport` + `McpRegistry` 物化 `mcp__server__tool` 本地工具、`normalizeSchema`/`classifyToolName` 推断）、`artifact.ts`（`ArtifactManager` + `DocDomain` 增 `artifact`，payload 入 Blob）；`SessionManager` 增 `artifacts` 门面并级联清理；§2 模块表 `MCP`/`Artifact`、§5.3 / §8.1 实现注记、§11 M4 行同步 |

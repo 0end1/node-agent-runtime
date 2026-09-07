@@ -35,6 +35,8 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 | `SessionManager.resume()` | （M2）从 checkpoint 校验工具指纹后续跑同一 task：`resume(ckptId, continuation?)`，输出与一次性跑完等价。 |
 | `Permission` | （M3）授权决策 allow/deny/ask：`DefaultPermissionPolicy` 决策矩阵 + `PermissionManager.gate/approve/deny` 审批流，超时即拒，`approve({always})` 沉淀白名单。 |
 | `Sandbox` | （M3）运行层执行域：`SandboxMode` 三档（read-only / workspace-write / full-access）+ 声明域 + 网络开关 + 每调用超时；`sandbox:write` 事件让"写操作可见"。 |
+| `MCP` | （M4）远端 MCP Server → 本地工具适配：`McpClient`（stdio 子进程 / streamable HTTP 传输，JSON-RPC 2.0）+ `McpRegistry` 把工具物化为 `mcp__server__tool` 本地定义，之后与内置工具同路径过校验/审批/沙箱。 |
+| `Artifact` | （M4）产物管理 `ArtifactManager`：`text`/`file`/`chart` 内容存 Blob、`url` 走直链 locator；按 session/run 列表、读字节/文本、删除随会话级联清理。 |
 
 运行时主循环：
 

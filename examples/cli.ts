@@ -22,6 +22,7 @@
  */
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { join } from "node:path";
 
 import {
   Agent,
@@ -42,6 +43,7 @@ import {
   type Session,
 } from "@agent-runtime/core";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
+import { SQLiteStorage } from "@agent-runtime/store-sqlite";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
@@ -127,7 +129,19 @@ const demoWriteTool = defineTool({
 
 const argv = process.argv.slice(2);
 const wantsOpenAI = argv.includes("--provider=openai") || argv.includes("--openai");
+const wantsSqlite = argv.includes("--storage=sqlite");
 const mcpSpecs = collectMcpSpecs(argv);
+
+function nodeSupportsSqlite(): boolean {
+  const [maj, min] = process.versions.node.split(".").map(Number);
+  return maj > 22 || (maj === 22 && (min ?? 0) >= 13);
+}
+if (wantsSqlite && !nodeSupportsSqlite()) {
+  console.error(
+    "⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或去掉该参数改用默认 FileStorage。"
+  );
+  process.exit(1);
+}
 
 function pickProvider(): ModelProvider {
   if (wantsOpenAI || process.env.OPENAI_API_KEY) {
@@ -195,9 +209,12 @@ async function main() {
   });
 
   const DATA_DIR = process.env.RUNTIME_DATA ?? ".runtime-data";
+  const storage = wantsSqlite
+    ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
+    : new FileStorage(DATA_DIR);
   const manager = new SessionManager({
     runtime,
-    storage: new FileStorage(DATA_DIR),
+    storage,
     agents: [agent],
   });
   const rl = readline.createInterface({ input, output });

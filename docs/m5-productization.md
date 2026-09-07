@@ -16,11 +16,11 @@
 | # | 事项 | 交付物 | 依据 | 状态 |
 |---|---|---|---|---|
 | 1 | examples 操作面补齐 M2~M4 | CLI 命令 + Web 视图接上新能力 | §11「产品化」 | ✅（CLI 完成；Web 见 #2） |
-| 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ☐ |
+| 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
 | 3 | Desktop 壳 | `examples/desktop/`（技术栈待定） | §11 M5 交付物 | ☐ |
-| 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ☐ |
+| 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
 | 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ☐ |
-| 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ☐ |
+| 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
 
 ## 3. 明细（#1 / #2 展开）
 
@@ -34,10 +34,11 @@
 
 ### #2 Web（`examples/web/`）
 
-- 审批 UI：pending 列表 + 通过/拒绝（含 always 勾选）
-- 事件流渲染：`permission:request` / `permission:approved|denied` / `sandbox:write`（diff 展示）
-- artifact 面板：按会话列出、预览文本/元数据
-- 续跑入口：checkpoint 列表 → resume
+- ✅ 审批 UI：常驻 `/api/events` 流推送 `permission:request`，前端渲染「需要授权」卡片（批准 / 始终允许 / 拒绝），调用 `/api/approve` `/api/deny`（事件驱动，run 阻塞时不挂起）
+- ✅ 事件流渲染：`permission:request` / `permission:approved|denied` / `sandbox:write`（含 diff）经治理流展示
+- ✅ artifact 面板：按会话列出、点击预览文本/元数据（`/api/artifacts`、`/api/artifact/:id` + 侧栏）
+- ✅ 续跑入口：checkpoint 列表 → resume（`/api/checkpoints`、`/api/resume` SSE + 侧栏）
+- ✅ 会话列表 / 切换（`/api/sessions`、`/api/new` + 侧栏）
 
 ## 4. 建议执行顺序
 

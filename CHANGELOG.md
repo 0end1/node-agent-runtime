@@ -8,6 +8,19 @@
 
 ## [Unreleased]
 
+**M5-3 · 产品化示例补齐（Web 演示面 + 存储后端演示 + 文档子系统化）**（2026-09-07，dev 分支）：为 `examples/web/` 控制台暴露 M1~M4 完整操作面——新增常驻 SSE 治理事件流 `/api/events`（`permission:request|approved|denied`、`sandbox:write`），前端渲染「需要授权」卡片（批准/始终允许/拒绝）与沙箱写入 diff；新增会话/artifact/checkpoint/resume 端点并配右侧栏承载。examples 支持 `--storage=sqlite`，验证 M5-1 外置包 `store-sqlite` 可即插即用（含 Node ≥ 22.13 校验）。README 补 M3/M2 事件与「能力参考（M1~M4）」小节。`npm run typecheck` 全绿，Web 端点 curl 验证通过。
+
+### Added（M5-3 · Web 演示面 + 存储后端演示）
+- `examples/web/server.ts`：新增 `/api/events` 常驻治理 SSE + `/api/approve` `/api/deny`；新增 `/api/sessions` `/api/new` `/api/artifacts` `/api/artifact/:id` `/api/checkpoints` `/api/resume`；storage 可选 `SQLiteStorage`（`--storage=sqlite`，Node ≥ 22.13 校验）；Web agent 并入 `demo_write_file`
+- `examples/web/public/index.html`：审批卡片 + 沙箱写入渲染、侧栏（会话列表/切换、artifact 面板、续跑入口）、`EventSource` 常驻治理流与 `fetch` 驱动 resume
+- `examples/cli.ts`：支持 `--storage=sqlite`（同款 Node ≥ 22.13 校验），验证外置 `store-sqlite` 包
+
+### Docs（M5-3 · 文档子系统化）
+- `README.md`：事件表补 `permission:*` / `sandbox:write` / `checkpoint:*`；新增「能力参考（M1~M4）」小节
+- `docs/m5-productization.md`：#2 #4 #6 状态勾选完成，明细同步进度
+
+---
+
 **M5-2 · 产品化示例补齐（CLI 演示面）**（2026-09-07，dev 分支）：为 CLI demo 暴露 M3 治理面——新增演示写工具 `demo_write_file`（`kind: "write"`），让 M3 审批/沙箱在 demo 中可见。零侵入 core：工具经 `defineTool` 声明写类，由默认策略 gate 为 ask，沙箱校验路径并 emit `sandbox:write`（含 diff）；CLI 订阅 `permission:request` 与 `sandbox:write` 两条事件，run 阻塞等待授权时仍可接收 `/approve` `/deny`（事件驱动，不挂起）。`npm run typecheck` 全绿。
 
 ### Added（M5-2 · CLI 演示面）

@@ -7,9 +7,9 @@
  *   OPENAI_API_KEY=sk-xxx npm run demo:web
  *   PORT=8787 npm run demo:web
  */
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type ServerResponse } from "node:http";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -19,16 +19,28 @@ import {
   MockProvider,
   SessionManager,
   builtinTools,
+  defineTool,
   type ModelProvider,
   type RuntimeEvent,
   type Session,
 } from "@agent-runtime/core";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
+import { SQLiteStorage } from "@agent-runtime/store-sqlite";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "127.0.0.1";
 const argv = process.argv.slice(2);
+
+function nodeSupportsSqlite(): boolean {
+  const [maj, min] = process.versions.node.split(".").map(Number);
+  return maj > 22 || (maj === 22 && (min ?? 0) >= 13);
+}
+const wantsSqlite = argv.includes("--storage=sqlite");
+if (wantsSqlite && !nodeSupportsSqlite()) {
+  console.error("⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或改用默认 FileStorage。");
+  process.exit(1);
+}
 
 const HTML_PATH = join(__dirname, "public", "index.html");
 
@@ -46,18 +58,46 @@ const runtime = new AgentRuntime({
   provider,
   logger: (line) => console.log(line),
 });
+/** Demo-only write tool (M3): mirrors examples/cli.ts — declares `kind: "write"`
+ *  so the default policy gates it with an `ask`, and the sandbox keeps the write
+ *  inside cwd. Lets the web console exercise the approval + sandbox-write surface. */
+const demoWriteTool = defineTool({
+  name: "demo_write_file",
+  description:
+    "把文本写入工作区内的一个文件（演示用：会触发人工授权，且沙箱写可见）。路径相对于当前工作目录，例如 .demo-out/note.txt。",
+  meta: { kind: "write", pathArgs: ["path"] },
+  parameters: {
+    type: "object",
+    properties: {
+      path: { type: "string", description: "相对工作区的文件路径，如 .demo-out/note.txt" },
+      content: { type: "string", description: "要写入的文本内容" },
+    },
+    required: ["path", "content"],
+  },
+  async execute(args: { path: string; content: string }) {
+    const full = resolve(process.cwd(), args.path);
+    await mkdir(dirname(full), { recursive: true });
+    const text = String(args.content ?? "");
+    await writeFile(full, text, "utf8");
+    return { ok: true, path: full, bytes: Buffer.byteLength(text) };
+  },
+});
+
 const agent = new Agent({
   name: "assistant",
-  tools: builtinTools,
+  tools: [...builtinTools, demoWriteTool],
 });
 
 // Sessions are persisted to disk (M1): the browser keeps a stable session id
 // in localStorage, so refreshes — and even server restarts — resume the same
 // conversation with full context.
 const DATA_DIR = process.env.RUNTIME_DATA ?? join(process.cwd(), ".runtime-data");
+const storage = wantsSqlite
+  ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
+  : new FileStorage(DATA_DIR);
 const manager = new SessionManager({
   runtime,
-  storage: new FileStorage(DATA_DIR),
+  storage,
   agents: [agent],
 });
 
@@ -188,7 +228,160 @@ const server = createServer(async (req, res) => {
         type: "done",
         payload: {
           ok: !runError,
-          sessionId: outcome?.session.id ?? sessionId,
+          sessionId: outcome?.session.id ?? "",
+          taskId: outcome?.task.id,
+          runId: outcome?.run.id,
+          steps: outcome?.run.steps ?? 0,
+          output: outcome?.run.output ?? "",
+          usage: outcome?.run.usage,
+          error: runError,
+        },
+      });
+      res.end();
+      return;
+    }
+
+    if (url.pathname === "/api/events") {
+      res.writeHead(200, {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-store, no-cache, must-revalidate",
+        connection: "keep-alive",
+        "x-accel-buffering": "no",
+      });
+      res.write(`retry: 1000\n\n`);
+      sendSSE(res, { type: "system", payload: { message: "events-ready", provider: provider.id } });
+      // M3 governance events surfaced to the (long-lived) console UI.
+      const GOV = new Set<RuntimeEvent["type"]>([
+        "permission:request", "permission:approved", "permission:denied", "sandbox:write",
+      ]);
+      const unsub = runtime.subscribe((e: RuntimeEvent) => {
+        if (GOV.has(e.type)) sendSSE(res, { type: e.type, payload: e });
+      });
+      req.on("close", () => unsub());
+      return;
+    }
+
+    if (url.pathname === "/api/approve" && req.method === "POST") {
+      let body = "";
+      for await (const chunk of req) body += chunk.toString("utf8");
+      try {
+        const { decisionId, always } = JSON.parse(body || "{}");
+        const ok = manager.approve(String(decisionId ?? ""), { always: Boolean(always) });
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok }));
+      } catch (err) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/deny" && req.method === "POST") {
+      let body = "";
+      for await (const chunk of req) body += chunk.toString("utf8");
+      try {
+        const { decisionId, reason } = JSON.parse(body || "{}");
+        const ok = manager.deny(String(decisionId ?? ""), reason ? String(reason) : undefined);
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok }));
+      } catch (err) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+      }
+      return;
+    }
+
+    if (url.pathname === "/api/sessions" && req.method === "GET") {
+      const list = await manager.listSessions();
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(list.map((s) => ({ id: s.id, title: s.title, status: s.status, updatedAt: s.updatedAt }))));
+      return;
+    }
+    if (url.pathname === "/api/new" && req.method === "POST") {
+      const s = await manager.createSession({ agentId: agent.name, title: "web console" });
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ id: s.id }));
+      return;
+    }
+    if (url.pathname === "/api/artifacts" && req.method === "GET") {
+      const session = url.searchParams.get("session");
+      if (!session) {
+        res.writeHead(400, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "session 必填" }));
+        return;
+      }
+      const list = await manager.artifacts.list(session);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(list));
+      return;
+    }
+    const artMatch = url.pathname.match(/^\/api\/artifact\/([^/]+)$/);
+    if (artMatch && req.method === "GET") {
+      const a = await manager.artifacts.get(artMatch[1]!);
+      if (!a) {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "no such artifact" }));
+        return;
+      }
+      if (a.kind === "url") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ kind: "url", name: a.name, locator: a.locator, mime: a.mime }));
+        return;
+      }
+      const text = await manager.artifacts.readText(a.id);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ kind: a.kind, name: a.name, mime: a.mime, text: text ?? "" }));
+      return;
+    }
+    if (url.pathname === "/api/checkpoints" && req.method === "GET") {
+      const task = url.searchParams.get("task");
+      const list = task ? await manager.listCheckpoints(task) : [];
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(list.map((c) => ({ id: c.id, step: c.step }))));
+      return;
+    }
+    if (url.pathname === "/api/resume" && req.method === "POST") {
+      let body = "";
+      for await (const chunk of req) body += chunk.toString("utf8");
+      let parsed: { checkpointId?: string; continuation?: string };
+      try { parsed = JSON.parse(body || "{}"); } catch { parsed = {}; }
+      res.writeHead(200, {
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-store, no-cache, must-revalidate",
+        connection: "keep-alive",
+        "x-accel-buffering": "no",
+      });
+      res.write(`retry: 1000\n\n`);
+      sendSSE(res, { type: "system", payload: { message: "connected", provider: provider.id } });
+      await sleep(provider.id === "mock" ? 350 : 120);
+      const buf: Array<{ type: string; payload: unknown }> = [];
+      const unsub = runtime.subscribe((e: RuntimeEvent) => {
+        if (UI_EVENTS.has(e.type)) buf.push({ type: e.type, payload: e });
+      });
+      let runError: string | null = null;
+      let outcome: Awaited<ReturnType<SessionManager["resume"]>> | undefined;
+      try {
+        outcome = await manager.resume(String(parsed.checkpointId ?? ""), parsed.continuation ? String(parsed.continuation) : undefined);
+      } catch (err) {
+        runError = err instanceof Error ? err.message : String(err);
+      } finally {
+        unsub();
+      }
+      for (const entry of buf) {
+        if (res.closed || res.destroyed) return;
+        if (entry.type === "step:start") sendSSE(res, { type: "clear", payload: {} });
+        sendSSE(res, entry);
+        await sleep(pacing(entry.type as RuntimeEvent["type"]));
+      }
+      if (runError) {
+        sendSSE(res, { type: "run:error", payload: { type: "run:error", runId: "n/a", step: null, error: runError } });
+        await sleep(300);
+      }
+      sendSSE(res, {
+        type: "done",
+        payload: {
+          ok: !runError,
+          sessionId: outcome?.session.id ?? "",
           taskId: outcome?.task.id,
           runId: outcome?.run.id,
           steps: outcome?.run.steps ?? 0,

@@ -158,6 +158,21 @@ examples/
 | `run:error` | error | 发生错误（含 Abort） |
 | `session:created/updated/closed` | sessionId 等 | 会话生命周期（M1，`SessionManager` 发出） |
 | `task:created` / `task:status` | taskId, sessionId, status | 任务创建与状态迁移（M1） |
+| `permission:request` | decisionId, toolName, reason, arguments | 工具需宿主确认（M3：写/凭据/exec 类在默认策略下 ask） |
+| `permission:approved` / `permission:denied` | decisionId, toolName, always? | 宿主批准/拒绝（含 `always` 沉淀白名单） |
+| `sandbox:write` | toolName, paths, diff | 写类工具执行后的变更（含尽力行级 diff，M3） |
+| `checkpoint:saved` / `checkpoint:restored` | checkpointId, taskId, step | 步级快照写入/续跑加载（M2） |
+
+## 能力参考（M1~M4）
+
+每个能力都是 `SessionManager` 之上的独立子系统，可单独接入宿主应用：
+
+- **M1 生命周期**：`SessionManager.create/list/get/close/delete` + `chat()`；消息流与 checkpoint 自动落盘（`Storage`），重启后同一 storage 恢复上下文。详见 `docs/architecture.md` §8.2 / §9。
+- **M2 记忆与续跑**：`SessionMemory`（会话流 + 事实层 `remember`/`recall`）、`Checkpoint` 步级快照、`SessionManager.resume(ckptId, continuation?)` 续跑同一 task。详见 §8.2 / §9。
+- **M3 治理**：`DefaultPermissionPolicy`（`ToolKind × SandboxMode` 决策矩阵）+ `PermissionManager.gate/approve/deny`（`approve({ always })` 沉淀白名单、超时即拒）；`Sandbox`（`LocalSandbox`：三档模式 + 声明域 + 网络开关 + 每调用超时 + `sandbox:write` 写可见）。宿主订阅 `permission:request` 弹审批、监听 `sandbox:write` 看变更。详见 §6.1 / §6.2。
+- **M4 外部能力**：`McpClient`（stdio / streamable HTTP）+ `McpRegistry`（远端工具物化为 `mcp__server__tool`，与本地工具同路径过校验/审批/沙箱）；`ArtifactManager`（按 session/run 存文本/文件/图表/url，随会话级联清理）。详见 §5.3 / §8.1。
+
+`examples/` 已把这些能力暴露为操作面：`examples/cli.ts`（续跑 / 审批 / artifact / MCP 注册 + 演示写工具触发 M3）与 `examples/web/`（审批卡片、artifact 面板、续跑入口、会话切换，全部经 SSE 事件流）。
 
 ## 内置工具
 

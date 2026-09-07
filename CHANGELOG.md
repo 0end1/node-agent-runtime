@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+**M6-1 · 生产级改造执行清单入库**（2026-09-07，apps 分支）：demo 阶段（M1~M5）全部完成验证后，新增 `docs/m6-productionization.md`——demo → 生产级改造阶段执行清单。实测差距基线（无 CI/lint/LICENSE、4 包全 `private`、engines 不一致、拆包未收口、Web server 无鉴权、分发未签名）映射为 6 批 P1~P6：P1 决策冻结（C1~C4）+ 拆包收口（B1~B4）+ API 冻结（发布前置）；P2 CI/质量门（typecheck/lint/coverage ≥80%/跨形态 E2E/audit，收敛为 `npm run ci` 一键）；P3 可观测·安全·配置（结构化日志与错误码、事件脱敏、审批审计与白名单持久化、成本/速率上限、server 鉴权、MCP 防 SSRF、默认安全策略、config/features 吸收 D2）；P4 SDK 发布工程（LICENSE、去 private、engines 统一、changesets、`--provenance` 发布）；P5 分发与部署矩阵（macOS 公证、三平台产物、auto-updater、store-sqlite 生产基线、容器化样例）；P6 治理·文档（CONTRIBUTING/SECURITY、README 生产用法、路线图 v1.8 回填、双源收敛）。吸收重排 remaining-tasks A~C 并拉近 D2；执行约束 P1 先行且必须早于 P4。
+
+### Docs（M6-1）
+- `docs/m6-productionization.md`：新增 M6 生产级改造执行清单（来源：仓库实测差距 / remaining-tasks / crate-split-todo / architecture §11）
+
+---
+
 **M5-8 · 仓库更名引用同步**（2026-09-07，apps 分支）：GitHub 仓库 `0end1/nodeRuntimes` 更名 `0end1/nodeRuntime`（经 GitHub API 完成，旧地址自动 301）；同步根 `package.json` 三处仓库引用（`repository.url` / `homepage` / `bugs.url`）至新地址，本地 `origin` remote 同步更新。README / docs / CHANGELOG 顶部均为作者个人主页 `github.com/0end1`，不受影响。
 
 ### Changed（M5-8 · 仓库更名引用同步）

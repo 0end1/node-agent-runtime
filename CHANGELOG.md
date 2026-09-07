@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+**M6-8 · 公共 API 冻结快照（P1.6，Gate 1 关闭）**（2026-09-07，split 分支）：新增 `docs/api-surface.md`——用 TypeScript 解析各包 `dist/index.d.ts` 提取对外导出面，冻结 9 个 workspace 包的公共 API 基线（types 7 子模块聚合 / memory 13 / sandbox 14 / policy 15 / core 61 + 4 项 facade 转发 / host 10 / mcp 28 / provider-openai 2 / store-sqlite 2），记录依赖方向 `types ← {memory,sandbox,policy} ← core ← {host,mcp,provider-openai,store-sqlite}` 与「mcp、host 不被 core 反向 re-export」约束；并定义变更规则（新增=兼容；删除/重命名/收窄=破坏性，需 break-change 评审）与发布前快照复核要求（拟纳入 P2 的 CI 作业）。至此 **M6 P1（决策冻结 + 包边界收口）Gate 1 关闭**：P1.1~P1.6 全部完成。
+
+### Added（M6-8 · API 冻结）
+- `docs/api-surface.md`：9 个包的对外导出清单（冻结基线）+ 变更规则与评审流程
+
+### Docs（M6-8）
+- `docs/m6-productionization.md`：P1.6 完成、Gate 1 退出标准满足
+- `docs/development-checklist.md`：P1 全部完成，M6 进入 P2~P6
+
+---
+
 **M6-7 · 拆包批次 B2（C8 host）**（2026-09-07，split 分支）：**修订 C1 决策**——原判定「不拆 host」的前提（memory/permission/artifact/sandbox 在 core 内与 session 互引）已随 B3/B4 消失，实测 core 内**无任何模块依赖 `session.ts`**，故恢复 C8：`session.ts`(721 行) + `session.test.ts` 外置为 `@agent-runtime/host`（`packages/host/`），依赖方向 **host → {core, memory, sandbox, policy, types}**，单向无环；`core/src/index.ts` 移除 Session/Task 导出（host → core，core 不可反向 re-export，与 mcp 同理）。**破坏性变更**：`import { SessionManager } from "@agent-runtime/core"` 失效，宿主需改从 `@agent-runtime/host` 导入——当前 0.x 且全部包 `private`（无外部消费者），为成本最低窗口。引用点已更新：`examples/cli.ts`、`examples/web/server.ts`、core/memory/mcp/sandbox 四处测试。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / **host 8** / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；`examples/` 与四处测试的导入已全部切换到新包（运行时冒烟随 M6 P2 的自动化 E2E 覆盖）。
 
 ### Added（M6-7 · 拆包 B2）

@@ -33,11 +33,11 @@
 | P1.3 | 拆包批次 B2：C8 `@agent-runtime/host` | 迁移 `core/src/session.ts`(721 行) + `session.test.ts` | 单向依赖 host → core，无环 | ✅（原「移出」经重评恢复并完成：host 8 pass，`SessionManager` 导入源变更为破坏性变更并已切换全部引用点） |
 | P1.4 | 拆包批次 B3：C3 memory / C4 sandbox / C5 policy | 迁移对应 src+test | 同上 | ✅（memory 17 / sandbox 13 / policy 13 pass） |
 | P1.5 | 拆包批次 B4：core facade 收窄 | `core/src/index.ts` 改逐包 re-export | 全仓测试绿、examples 导入经 facade 兼容 | ✅（re-export memory/sandbox/policy；mcp 与 host 因方向所限不反向 re-export） |
-| P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ☐ **P1 唯一剩余项** |
+| P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ✅（`docs/api-surface.md`：9 包导出面 + 变更规则 + 发布前复核要求） |
 
 **Gate 1 退出标准**：`remaining-tasks.md` A~C 全部 ☑；全仓 `typecheck` + `npm test` 绿；API 快照入库；`examples/` 三种形态在拆分后全流程可用。
 
-> **进度（2026-09-07，split 分支）**：包边界收口 P1.1~P1.5 已完成——9 个 workspace 包（types / memory / sandbox / policy / core / host / mcp / provider-openai / store-sqlite，含 C1 重评后新增的 C8 host），依赖单向无环；全仓 `typecheck` 绿、`npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。**Gate 1 待 P1.6（公共 API 冻结快照）入库后正式关闭**。
+> **进度（2026-09-07，split 分支）——Gate 1 已关闭**：P1.1~P1.6 全部完成。9 个 workspace 包（types / memory / sandbox / policy / core / host / mcp / provider-openai / store-sqlite，含 C1 重评后新增的 C8 host），依赖单向无环；全仓 `typecheck` 绿、`npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；公共 API 冻结快照已入库 `docs/api-surface.md`。后续进入 **P2 工程护栏**。
 
 ## 2. P2 · 工程护栏与质量门（Gate 2）
 

@@ -8,6 +8,18 @@
 
 ## [Unreleased]
 
+**M6-6 · 拆包批次 B4（core facade 收窄）**（2026-09-07，split 分支）：`core/src/index.ts` 由各模块直出改为 **facade 聚合出口**——统一 `export *` 转发 C3 `@agent-runtime/memory`、C4 `@agent-runtime/sandbox`、C5 `@agent-runtime/policy`（**C6 mcp 不在此列**：其依赖方向为 mcp → core，反向 re-export 会形成循环，仍需 `import { McpRegistry } from "@agent-runtime/mcp"`）。宿主既可继续从 `@agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。`checkpoint.ts` 经评估仍留 core：`computeToolsHash` / `assertResumable` 依赖 core 的 `Agent` 类。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Changed（M6-6 · facade 收窄）
+- `packages/core/src/index.ts`：新增 facade re-export 块（`export *` 转发 memory / sandbox / policy），移除原 memory/artifact/governance 指引注释
+
+### Docs（M6-6）
+- `docs/remaining-tasks.md`：B4 完成；checkpoint 留 core 原因更新为「依赖 `Agent` 类」
+- `docs/crate-split-todo.md`：facade 行勾选完成
+- `docs/crate-architecture.md`：修订记录 v0.9
+
+---
+
 **M6-5 · 拆包批次 B3（C4 sandbox + C5 policy）**（2026-09-07，split 分支）：`sandbox.ts` 外置为 `@agent-runtime/sandbox`、`permission.ts` 外置为 `@agent-runtime/policy`（C2 决策：独立两包），两个测试随迁。本批**触发 C4 决策的「出现循环即下沉」条件**：把工具契约（`ToolDefinition`/`AnyTool`/`ToolKind`/`ToolMeta`/`ToolExecutionContext`）与事件契约（`RuntimeEvent` 及全部事件接口）下沉 C1（新增 `packages/types/src/tools.ts` / `events.ts`）；core 对应文件改为「re-export 类型 + 保留实现」（`defineTool` / `EventBus` 仍在 core，core 内部与公共导入面不变）；`permission.ts` 对 `EventBus<RuntimeEvent>` 的依赖改为 C1 新增的 `EventEmitter<E>` 结构接口，避免 policy 反向依赖 core；`mcp` 的 `classifyToolName` 改由 `@agent-runtime/sandbox` 提供。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-5 · 拆包 B3）

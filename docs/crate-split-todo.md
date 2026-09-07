@@ -31,7 +31,7 @@
 | C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（checkpoint 待契约下沉后再迁） |
 | C4 | `@agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（工具契约已下沉 C1） | C2 决策：独立两包 | 3 | ✅ |
 | C5 | `@agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ✅ |
-| — | facade 收窄 | `core/src/index.ts` 由直出改逐包 re-export | 全量测试 | 全部包 | C6 已拆；C3~C5 拆完；届时重评 §8-2 | 4 | ☐ |
+| — | facade 收窄 | `core/src/index.ts` 由直出改逐包 re-export | 全量测试 | 全部包 | ✅ 已完成（2026-09-07）：`export *` 转发 memory/sandbox/policy；mcp 不反向 re-export（避免循环） | 4 | ✅ |
 
 ## 4. 推荐执行顺序
 

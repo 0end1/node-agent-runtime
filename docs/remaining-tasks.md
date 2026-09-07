@@ -13,10 +13,10 @@
 | A 验收收口 | A2 | 自动化 E2E（桌面 demo 全流程脚本化） | m5 #5 / architecture §11 M5 验收 | ☐ |
 | A 验收收口 | A3 | 质量门总闸：`npm run typecheck` + `npm test` 全绿 | m5 §6 | ☐ |
 | A 验收收口 | A4 | `architecture.md` §11 M5 行补 ✅（含修订记录 v1.7） | architecture §11 | ☐ |
-| B 拆包批次 | B1 | 批次 1：C6 `@agent-runtime/mcp` | crate-split-todo §3/§4 | 🟡 进行中（split 分支） |
+| B 拆包批次 | B1 | 批次 1：C6 `@agent-runtime/mcp` | crate-split-todo §3/§4 | ✅ |
 | B 拆包批次 | B2 | 批次 2：C8 `@agent-runtime/host`（先决 C4） | crate-split-todo §3/§4 | ⏸ 移出（C1 决策：不拆 host） |
-| B 拆包批次 | B3 | 批次 3：C3 memory；C4 sandbox + C5 policy（视 C2 分/合） | crate-split-todo §3/§4 | ☐ |
-| B 拆包批次 | B4 | 批次 4：core facade 收窄（逐包 re-export） | crate-split-todo §3/§4 | ☐ |
+| B 拆包批次 | B3 | 批次 3：C3 memory；C4 sandbox + C5 policy（视 C2 分/合） | crate-split-todo §3/§4 | ✅ |
+| B 拆包批次 | B4 | 批次 4：core facade 收窄（逐包 re-export） | crate-split-todo §3/§4 | ✅ |
 | C 开放决策 | C1 | Session/Task 是否出 core（C8 host 做不做） | crate-architecture §8-5 | ✅ 已定 |
 | C 开放决策 | C2 | sandbox/policy 独立两包 or 合成 `governance` | crate-architecture §8-3 | ✅ 已定 |
 | C 开放决策 | C3 | `Artifact` 归属（草案：类型入 C1、实现并入 C3） | crate-architecture §8-4 | ✅ 已定 |
@@ -49,7 +49,7 @@
 | 2 | ~~C8 `@agent-runtime/host`~~ | — | — | — | **⏸ 移出 M6**：C1 决策 Session/Task 留 core（见 §3 C1） |
 | 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `artifact.ts`（**`checkpoint.ts` 暂留 core**，见下注） | `memory.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 与 Artifact 契约已下沉 C1） | ✅ 已完成（2026-09-07）。**checkpoint 留 core 原因**：`computeToolsHash`/`assertResumable` 依赖 core 的 `Agent` 类（工具契约虽已下沉 C1，但 `Agent` 实现仍在 core），外置会形成 core↔C3 包级循环；待 `Agent` 契约下沉或 B4 facade 收窄时再迁 |
 | 3 | C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy` | `sandbox.ts` + `permission.ts` | `sandbox.test.ts` `permission.test.ts` | types（工具/事件契约已下沉 C1）+  policy type-import sandbox 模式/域 | ✅ 已完成（2026-09-07）：按 C2 决策拆为独立两包，sandbox 13 / policy 13 测试通过 |
-| 4 | facade 收窄 | `core/src/index.ts` 直出改逐包 re-export | 全量测试 | 全部包 | C6/C3~C5 拆完；届时重评 C4（tool 契约是否下沉 C1） |
+| 4 | facade 收窄 | `core/src/index.ts` 直出改逐包 re-export | 全量测试 | 全部包 | ✅ 已完成（2026-09-07）：`export *` 转发 memory/sandbox/policy（mcp 除外，避免循环）；C4 已重评并触发下沉 |
 
 **每包通用验收标准**（crate-split-todo §6）：新包 `package.json`/`tsconfig.json` 齐备且可独立 `tsc --noEmit` → 对应测试迁移通过（core 测试改 import 源）→ core 收窄导出后全仓 `npm test` + typecheck 绿 → `examples/cli`、`examples/web` 导入切换（或经 facade 兼容）→ 根 workspaces / tsconfig paths / `package-lock.json` 接线 → 文档同步（CHANGELOG、crate-architecture 状态行、crate-split-todo 勾选）。
 

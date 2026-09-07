@@ -60,25 +60,22 @@ export {
 } from "./checkpoint.js";
 export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js";
 
-// SessionMemory / Memory 实现已外置为 C3 `@agent-runtime/memory`（M6 批次 B3）：
-//   import { SessionMemory } from "@agent-runtime/memory";
-
-// ---- Governance (M3) ----
-// 实现已外置为 C4 `@agent-runtime/sandbox` 与 C5 `@agent-runtime/policy`
-//（M6 批次 B3，C2 决策：独立两包）：
-//   import { LocalSandbox, classifyToolName, isPathAllowed } from "@agent-runtime/sandbox";
-//   import { PermissionManager, DefaultPermissionPolicy } from "@agent-runtime/policy";
+// ---- Facade re-exports (M6 批次 B4) ----
+// core 收窄为聚合出口：以下能力已外置为独立包，此处统一 re-export；宿主既可
+// 从 `@agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。
+//   · C3 @agent-runtime/memory  —— SessionMemory / ArtifactManager
+//   · C4 @agent-runtime/sandbox —— LocalSandbox / classifyToolName / isPathAllowed
+//   · C5 @agent-runtime/policy  —— PermissionManager / DefaultPermissionPolicy
+// 注：C6 mcp 不在此 re-export —— 其依赖方向为 mcp → core，core 反向引用会形成
+// 循环，请直接 `import { McpRegistry } from "@agent-runtime/mcp"`。
+export * from "@agent-runtime/memory";
+export * from "@agent-runtime/sandbox";
+export * from "@agent-runtime/policy";
 
 export { MemoryStorage } from "./store/memory.js";
 export { FileStorage } from "./store/file.js";
 // Storage / DocDomain / StreamDomain 契约已下沉 C1（M6 拆包前置），
 // 经顶部 `export * from "@agent-runtime/types"` 转发，公共导入面不变。
-
-// ---- Artifact (M4) ----
-// 实现已外置为 C3 `@agent-runtime/memory`：
-//   import { ArtifactManager, ArtifactError, MIME_BY_KIND } from "@agent-runtime/memory";
-// 契约类型（Artifact / ArtifactKind / ArtifactInput）已下沉 C1，经顶部
-// `export * from "@agent-runtime/types"` 转发，公共导入面不变。
 
 export { buildRunContext } from "./context.js";
 export type { RunContext, RunContextSeed } from "./context.js";

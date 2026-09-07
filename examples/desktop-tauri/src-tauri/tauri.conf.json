@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "com.noderuntimes.console",
   "build": {
-    "beforeDevCommand": "npm run demo:web",
+    "beforeDevCommand": "npm --prefix ../../ run demo:web",
     "devUrl": "http://localhost:8787",
     "beforeBuildCommand": "",
     "frontendDist": "../web/public"

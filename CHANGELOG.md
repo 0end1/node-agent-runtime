@@ -23,6 +23,9 @@
 - `examples/desktop-tauri/src-tauri/src/lib.rs`：release 构建以 sidecar 启 agent-server，窗口加载控制台地址
 - `examples/desktop-tauri/src-tauri/icons/`（tauri icon 多尺寸）+ `icon-source.png`：桌面图标资源
 
+### Fixed（M5-4 · 验证）
+- `examples/desktop-tauri/src-tauri/tauri.conf.json`：`beforeDevCommand` 由 `npm run demo:web` 改为 `npm --prefix ../../ run demo:web`（`demo:web` 脚本在根 package.json，Tauri 在 `examples/desktop-tauri/` 查找会 `Missing script: "demo:web"`）；`tauri dev` 现可正常拉起 `:8787` 控制台并创建窗口（2026-09-07 验证通过：`cargo` 编译 Tauri 运行时 → `Running target/debug/desktop-tauri` → `GET :8787` 200）。
+
 ### Docs（M5-4）
 - `docs/m5-productization.md`：#3 状态改 Tauri 已定（骨架已建 + sidecar 接入），§5 技术栈待定点改为已定 Tauri，新增 #3 明细
 

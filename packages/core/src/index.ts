@@ -100,6 +100,15 @@ export { MemoryStorage } from "./store/memory.js";
 export { FileStorage } from "./store/file.js";
 export type { Storage, DocDomain, StreamDomain } from "./store/types.js";
 
+// ---- Artifact (M4) ----
+export { ArtifactManager, ArtifactError, MIME_BY_KIND } from "./artifact.js";
+export type {
+  Artifact,
+  ArtifactKind,
+  ArtifactInput,
+  ArtifactManagerOptions,
+} from "./artifact.js";
+
 export { buildRunContext } from "./context.js";
 export type { RunContext, RunContextSeed } from "./context.js";
 
@@ -118,6 +127,40 @@ export type { CurrencyCode } from "./tools/builtin.js";
 export { CURRENCY_ALIASES } from "./tools/builtin.js";
 
 export { evaluate } from "./tools/calculator.js";
+
+// ---- MCP adapter (M4, docs §5.3) ----
+export { McpClient } from "./mcp/client.js";
+export {
+  StdioTransport,
+  StreamableHttpTransport,
+  parseSse,
+} from "./mcp/transport.js";
+export type {
+  McpTransport,
+  StdioTransportOptions,
+  StreamableHttpTransportOptions,
+} from "./mcp/transport.js";
+export {
+  McpRegistry,
+  MCP_TOOL_PREFIX,
+  mcpToolName,
+  parseMcpToolName,
+  normalizeSchema,
+  pathArgKeysOf,
+} from "./mcp/registry.js";
+export type { RegisteredServer } from "./mcp/registry.js";
+export { McpError, McpTimeoutError, McpConnectionError } from "./mcp/jsonrpc.js";
+export { MCP_PROTOCOL_VERSION } from "./mcp/types.js";
+export type {
+  McpServerHandle,
+  McpToolMeta,
+  McpCallToolResult,
+  McpServerInfo,
+  McpServerCapabilities,
+  McpInitializeResult,
+  McpToolRef,
+  McpClientOptions,
+} from "./mcp/types.js";
 
 // ---- Model providers ----
 export type {

@@ -20,6 +20,7 @@ import {
   type SandboxScope,
 } from "./sandbox.js";
 import { PermissionManager } from "./permission.js";
+import { ArtifactManager, type Artifact } from "./artifact.js";
 import { newId } from "@agent-runtime/types";
 
 /**
@@ -105,6 +106,8 @@ export interface SessionManagerOptions {
   sandbox?: Sandbox;
   /** M3: permission manager. Defaults to one publishing to the runtime bus. */
   permission?: PermissionManager;
+  /** M4: artifact store. Defaults to one over `storage`. */
+  artifacts?: ArtifactManager;
   /** M3: run-level execution mode (default `workspace-write`, docs §6.0.1). */
   sandboxMode?: SandboxMode;
   /** M3: declared write/network domain (defaults to cwd, no network). */
@@ -128,6 +131,8 @@ export class SessionManager {
   readonly checkpoints: CheckpointStore;
   /** M3: governance — authorization decisions for tool calls. */
   readonly permission: PermissionManager;
+  /** M4: artifact CRUD (metadata + payload over Storage). */
+  readonly artifacts: ArtifactManager;
   private readonly sandbox: Sandbox;
   private readonly sandboxMode: SandboxMode;
   private readonly scope: SandboxScope;
@@ -156,6 +161,8 @@ export class SessionManager {
           }),
       });
     this.permission = options.permission ?? new PermissionManager({ events: this.runtime.events });
+    this.artifacts =
+      options.artifacts ?? new ArtifactManager({ storage: this.storage, now: this.now });
     this.sandboxMode = options.sandboxMode ?? "workspace-write";
     this.scope = options.scope ?? {
       workspace: process.cwd(),
@@ -227,7 +234,7 @@ export class SessionManager {
     return updated;
   }
 
-  /** Delete the session and everything attached to it (tasks, runs, messages, checkpoints, facts). */
+  /** Delete the session and everything attached to it (tasks, runs, messages, checkpoints, facts, artifacts). */
   async deleteSession(id: string): Promise<void> {
     const tasks = await this.storage.listDocs<Task>("task", { sessionId: id });
     const runs = await this.storage.listDocs<RunRecord>("run", { sessionId: id });
@@ -237,6 +244,9 @@ export class SessionManager {
     for (const checkpoint of checkpoints) {
       await this.storage.deleteDoc("checkpoint", checkpoint.id);
     }
+    // M4: artifact metadata rows + their blob payloads.
+    const artifacts = await this.storage.listDocs<Artifact>("artifact", { sessionId: id });
+    for (const artifact of artifacts) await this.artifacts.remove(artifact.id);
     await this.storage.deleteDoc("session", id);
     await this.storage.deleteDoc("memory", id);
     await this.storage.deleteStream("message", id);

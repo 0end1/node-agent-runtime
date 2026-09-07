@@ -16,7 +16,9 @@ export type DocDomain =
   /** M2: run/step snapshots used by resume (docs/architecture.md §9). */
   | "checkpoint"
   /** M2: long-term fact memory, one KV document per session (§8.2). */
-  | "memory";
+  | "memory"
+  /** M4: artifact metadata rows (§8.1); payloads live in the blob domain. */
+  | "artifact";
 
 /** Stream domains: append-only lines (messages, event logs…). */
 export type StreamDomain = "message";

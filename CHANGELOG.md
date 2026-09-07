@@ -8,6 +8,29 @@
 
 ## [Unreleased]
 
+**M4 · 外部能力**（2026-09-07，dev 分支）：MCP client（stdio + streamable HTTP）+ `Artifact` 落地。沿用「引擎只留接缝、协议翻译在适配层」：MCP 的唯一接缝是 `ToolDefinition`——`McpRegistry` 把远端 server 物化为 `mcp__server__tool` 前缀的本地工具后，校验 / gate / sandbox / 错误回填与本地工具完全同路径；`mcp/` 与 `artifact.ts` 实现仍在 C2 内（C6 拆包随 M5，与 crate-architecture §6 一致）。`npm test` types 4 + core 99 通过 0 失败。
+
+### Added（M4 · 外部能力）
+
+- **MCP 适配层** `packages/core/src/mcp/`（architecture §5.3）：`jsonrpc.ts`（JSON-RPC 2.0 消息构造/解析 + `McpError`/`McpTimeoutError`/`McpConnectionError`）；`transport.ts`（`StdioTransport` spawn 子进程走行式协议、`StreamableHttpTransport` 用 fetch POST 并兼容 `text/event-stream` 与纯 JSON 两种响应解码）；`client.ts`（`McpClient` 实现 `McpServerHandle`：`initialize` 握手 + `notifications/initialized`、`tools/list`（含 cursor 分页）、`tools/call`、`close`，按请求超时拒绝）
+- **McpRegistry 物化** `mcp/registry.ts`：注册即 connect + 枚举，把每个远端工具物化为本地 `ToolDefinition`（名字 `mcp__server__tool` 前缀防碰撞）；`normalizeSchema` 把 MCP inputSchema 归一化到引擎本地 JsonSchema 子集（剥掉 `$schema`/`title` 等）；敏感类由远端工具名 `classifyToolName` 推断、`pathArgs` 由 schema 中路径参数键识别；`execute` 透传 `tools/call` 并在远端 `isError` 时抛错让模型自纠；`unregister`/`resolve(ref)`/`closeAll`
+- **测试基建**：独立实现的双 mock MCP server（stdio 子进程 fixture `test/fixtures/mock-mcp-server.mjs` + 进程内 HTTP server，均不与被测 client 共享协议代码），真实子进程与 HTTP 两条链路端到端
+- **Artifact** `packages/core/src/artifact.ts`（architecture §8.1）：`Artifact`（kind `text`/`file`/`chart`/`mcp-resource`/`url`，mime 按 kind 归一化，`locator` = `blob:<key>` 或 url）；`ArtifactManager.save/get/list(sessionId, runId?)/readBytes/readText/remove` 全部基于 Storage；`DocDomain` 新增 `artifact`（元数据行入 KV，payload 入 Blob 域）
+- **宿主集成**：`SessionManager` 新增 `artifacts` 门面（默认 over storage），`deleteSession` 级联清理会话的 artifact 元数据与 blob
+- **测试**：新增 `mcp`（15 例：SSE/纯 JSON 双路径解码、远端错误透传、请求超时、协议版本协商拒绝、未连接拒绝、schema 归一化与路径参数键识别、前缀物化与 `resolve`、幂等注册、execute 透传、unregister 清理、真实子进程握手/枚举/调用、**runtime 端到端：模型调用物化 MCP 工具（§11 验收）**、SessionManager 默认治理放行无害 MCP 工具）与 `artifact`（8 例：文本/二进制往返、url 无 payload、mime 覆盖与 upsert、按 run 过滤、remove 幂等、输入校验、deleteSession 级联清理）用例
+
+### Changed（M4 · 外部能力）
+
+- `Storage.DocDomain` 新增 `artifact`；`SessionManager` 增加 `readonly artifacts`
+
+### Docs（M4 · 外部能力）
+
+- `docs/architecture.md`：§2 模块表 `MCP`/`Artifact` 标 ✅ M4，§5.3 / §8.1 补实现注记，§11 M4 行标 ✅，§13 修订记录新增 v1.6 (M4)
+- `docs/crate-architecture.md`：§6 里程碑表 M4 行标注「功能已在 C2 内落地，C6 拆包留待 M5」
+- README：核心概念表新增 `MCP` / `Artifact` 说明
+
+---
+
 **M3 · 治理**（2026-09-07，dev 分支）：`Permission` 授权决策（allow/deny/ask 审批流）+ `Sandbox` 运行层执行域落地。沿用「引擎只留接缝、宿主注入策略与执行域」的分层：引擎新增 `RunOptions.gate` 单一授权调用点，`sandbox.ts`/`permission.ts` 实现仍在 C2 内（C4/C5 拆包随 M5，与 crate-architecture §6 一致）。`npm test` types 4 + core 77 通过 0 失败。
 
 ### Added（M3 · 治理）

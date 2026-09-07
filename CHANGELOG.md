@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+**M5-4 · Desktop 壳（Tauri v2 骨架）**（2026-09-07，dev 分支）：为 M5 交付物补 Desktop 壳，技术栈定为 **Tauri v2**。新增 `examples/desktop-tauri/`（标准 `src-tauri/`：Cargo.toml / build.rs / src/main.rs / tauri.conf.json），窗口加载 `examples/web` 控制台——`devUrl=http://localhost:8787`，`beforeDevCommand` 启 `npm run demo:web`（Node server 提供 API + 静态）。仅依赖 `core` 公共 API，未来 C8 host 不白做；生产侧 Node 运行时 sidecar 打包列入 #5 验收前补齐。`docs/m5-productization.md` #3 状态由待定改为 Tauri 已定。
+
+### Added（M5-4 · Desktop 壳 Tauri）
+- `examples/desktop-tauri/package.json`：Tauri CLI 脚本（dev/build/tauri）
+- `examples/desktop-tauri/src-tauri/Cargo.toml` `build.rs` `src/main.rs` `tauri.conf.json`：Tauri v2 应用骨架（窗口标题/尺寸、csp 放开 demo）
+
+### Docs（M5-4）
+- `docs/m5-productization.md`：#3 状态改 Tauri 已定（骨架已建），§5 技术栈待定点改为已定 Tauri，新增 #3 明细
+
+---
+
 **M5-3 · 产品化示例补齐（Web 演示面 + 存储后端演示 + 文档子系统化）**（2026-09-07，dev 分支）：为 `examples/web/` 控制台暴露 M1~M4 完整操作面——新增常驻 SSE 治理事件流 `/api/events`（`permission:request|approved|denied`、`sandbox:write`），前端渲染「需要授权」卡片（批准/始终允许/拒绝）与沙箱写入 diff；新增会话/artifact/checkpoint/resume 端点并配右侧栏承载。examples 支持 `--storage=sqlite`，验证 M5-1 外置包 `store-sqlite` 可即插即用（含 Node ≥ 22.13 校验）。README 补 M3/M2 事件与「能力参考（M1~M4）」小节。`npm run typecheck` 全绿，Web 端点 curl 验证通过。
 
 ### Added（M5-3 · Web 演示面 + 存储后端演示）

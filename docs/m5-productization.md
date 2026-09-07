@@ -17,12 +17,12 @@
 |---|---|---|---|---|
 | 1 | examples 操作面补齐 M2~M4 | CLI 命令 + Web 视图接上新能力 | §11「产品化」 | ✅（CLI 完成；Web 见 #2） |
 | 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
-| 3 | Desktop 壳 | `examples/desktop/`（技术栈待定） | §11 M5 交付物 | ☐ |
+| 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | 🟡（骨架已建，dev 模式可验证） |
 | 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
 | 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ☐ |
 | 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
 
-## 3. 明细（#1 / #2 展开）
+## 3. 明细（#1 / #2 / #3 展开）
 
 ### #1 CLI（`examples/cli.ts`）
 
@@ -40,6 +40,13 @@
 - ✅ 续跑入口：checkpoint 列表 → resume（`/api/checkpoints`、`/api/resume` SSE + 侧栏）
 - ✅ 会话列表 / 切换（`/api/sessions`、`/api/new` + 侧栏）
 
+### #3 Desktop（`examples/desktop-tauri/`，Tauri v2）
+
+- 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm run demo:web` 启动 Node server 提供 API + 静态）。
+- 仅依赖 `@agent-runtime/core` 公共 API（与 #1/#2 同源），未来 C8 host 不白做。
+- 生产打包需 Node 运行时随应用启动（cargo sidecar 打包 `tsx`/编译产物），列入 #5 验收前补齐；dev 演示已可全流程。
+- 图标：首次需 `npx tauri icon <png>` 生成 `src-tauri/icons/`（Tauri 上下文依赖）。
+
 ## 4. 建议执行顺序
 
 **#1 → #4 → #2 → #3 → #5**（#6 文档全程并行）。
@@ -50,7 +57,7 @@
 
 - **审批挂起风险已解除（CLI）**：`examples/cli.ts` 已订阅 `permission:request` 并订阅 `sandbox:write`，run 阻塞等待授权时仍可接收 `/approve` `/deny`（事件驱动，不挂起）。新增演示写工具 `demo_write_file`（`kind: "write"`）默认触发 ask，可在 CLI demo 中直接演练 M3；Web 端（#2）仍需补齐审批 UI 才能不挂起。
 - **根 `engines` 不一致**：根 `node >=18.17` vs `@agent-runtime/store-sqlite` `>=22.13`（node:sqlite），接入 sqlite 演示前需统一口径。
-- **Desktop 技术栈未定**（Electron / Tauri / node 壳），开工前补一次设计决策；只依赖 `core`（未来 C8 host）公共 API。
+- **Desktop 技术栈已定 Tauri v2**（见 #3 明细）：仅依赖 `core` 公共 API；生产侧 Node 运行时 sidecar 打包列入 #5 验收前补齐。
 - **M2 续跑语义**：`resume` 无 `continuation` 时不追加用户轮次；CLI 续跑后的输入需走 `continuation` 传参，注意消息时序与一次性跑完一致（test 即规格，`core/test/session.test.ts`）。
 
 ## 6. 验收标准

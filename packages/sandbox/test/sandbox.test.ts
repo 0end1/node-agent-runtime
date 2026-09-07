@@ -7,25 +7,26 @@ import { join } from "node:path";
 import {
   Agent,
   AgentRuntime,
-  LocalSandbox,
   MemoryStorage,
-  PermissionManager,
-  SandboxTimeoutError,
-  SandboxViolationError,
   SessionManager,
-  StaticPolicy,
-  classifyToolName,
   defineTool,
-  isPathAllowed,
-  simpleDiff,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
-  type SandboxWriteInfo,
   type SessionManagerOptions,
   type ToolExecutionContext,
 } from "@agent-runtime/core";
+import {
+  LocalSandbox,
+  SandboxTimeoutError,
+  SandboxViolationError,
+  classifyToolName,
+  isPathAllowed,
+  simpleDiff,
+  type SandboxWriteInfo,
+} from "@agent-runtime/sandbox";
+import { PermissionManager, StaticPolicy } from "@agent-runtime/policy";
 
 // --------------------------------------------------------------- test double
 

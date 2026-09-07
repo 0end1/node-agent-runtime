@@ -10,7 +10,8 @@
  */
 
 // C6 依赖 core 的工具契约（C4 决策：契约暂不下沉 C1），方向单向 mcp → core。
-import { classifyToolName, defineTool, type AnyTool, type ToolDefinition } from "@agent-runtime/core";
+import { defineTool, type AnyTool, type ToolDefinition } from "@agent-runtime/core";
+import { classifyToolName } from "@agent-runtime/sandbox";
 import type { JsonSchema } from "@agent-runtime/types";
 import type { McpServerHandle, McpToolMeta, McpToolRef } from "./types.js";
 

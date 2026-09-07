@@ -8,6 +8,22 @@
 
 ## [Unreleased]
 
+**M6-5 · 拆包批次 B3（C4 sandbox + C5 policy）**（2026-09-07，split 分支）：`sandbox.ts` 外置为 `@agent-runtime/sandbox`、`permission.ts` 外置为 `@agent-runtime/policy`（C2 决策：独立两包），两个测试随迁。本批**触发 C4 决策的「出现循环即下沉」条件**：把工具契约（`ToolDefinition`/`AnyTool`/`ToolKind`/`ToolMeta`/`ToolExecutionContext`）与事件契约（`RuntimeEvent` 及全部事件接口）下沉 C1（新增 `packages/types/src/tools.ts` / `events.ts`）；core 对应文件改为「re-export 类型 + 保留实现」（`defineTool` / `EventBus` 仍在 core，core 内部与公共导入面不变）；`permission.ts` 对 `EventBus<RuntimeEvent>` 的依赖改为 C1 新增的 `EventEmitter<E>` 结构接口，避免 policy 反向依赖 core；`mcp` 的 `classifyToolName` 改由 `@agent-runtime/sandbox` 提供。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-5 · 拆包 B3）
+- `packages/sandbox/`：C4 `@agent-runtime/sandbox`（`LocalSandbox` + `classifyToolName`/`toolKind`/`isPathAllowed`/`simpleDiff` 与 Sandbox 契约类型）
+- `packages/policy/`：C5 `@agent-runtime/policy`（`PermissionManager` + `DefaultPermissionPolicy`/`StaticPolicy`/`combinePolicies`/`toolListPolicy`）
+- `packages/types/src/tools.ts` / `events.ts`：工具契约与事件契约下沉 C1（含新增 `EventEmitter<E>` 最小发射接口）
+
+### Changed（M6-5 · 拆包 B3 接线）
+- `packages/core/src/tool.ts` / `events.ts`：类型改为从 C1 re-export，实现保留
+- `packages/core/src/session.ts`：`LocalSandbox` / `PermissionManager` 改从新包导入
+- `packages/core/src/index.ts`：移除治理实现导出，保留指引注释
+- `packages/mcp/`：`classifyToolName` 改依赖 `@agent-runtime/sandbox`
+- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入两个新包（序 types→memory→sandbox→policy→core→mcp→provider-openai→store-sqlite）
+
+---
+
 **M6-4 · 拆包批次 B3（C3 memory + artifact）**（2026-09-07，split 分支）：`memory.ts` + `artifact.ts` 外置为 `@agent-runtime/memory`（`packages/memory/`，仅依赖 types），`memory.test.ts` / `artifact.test.ts` 随迁；按 C3 决策把 `Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型下沉 C1（新增 `packages/types/src/artifacts.ts`）；`session.ts` 改从新包导入，core `index.ts` 移除 memory/artifact 实现导出（类型经顶部 `export *` 转发，公共导入面不变）。**`checkpoint.ts` 暂留 core**：`computeToolsHash` / `assertResumable` 依赖 `Agent` 与工具契约（C4 决策未下沉），外置会形成 core ↔ C3 包级循环，待契约下沉或 B4 facade 收窄时再迁。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / core 67+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-4 · 拆包 B3）

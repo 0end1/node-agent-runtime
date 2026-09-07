@@ -64,37 +64,10 @@ export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js"
 //   import { SessionMemory } from "@agent-runtime/memory";
 
 // ---- Governance (M3) ----
-export { PermissionManager, DefaultPermissionPolicy, StaticPolicy, combinePolicies, toolListPolicy } from "./permission.js";
-export type {
-  Verdict,
-  Decision,
-  PermissionPolicy,
-  PermissionContext,
-  PermissionCall,
-  GateResult,
-  PendingDecision,
-  PermissionManagerOptions,
-  DecisionMatrix,
-  DefaultPermissionPolicyOptions,
-} from "./permission.js";
-
-export {
-  LocalSandbox,
-  SandboxViolationError,
-  SandboxTimeoutError,
-  classifyToolName,
-  isPathAllowed,
-  simpleDiff,
-} from "./sandbox.js";
-export type {
-  Sandbox,
-  SandboxHandle,
-  SandboxMode,
-  SandboxScope,
-  SandboxRunContext,
-  SandboxWriteInfo,
-  LocalSandboxOptions,
-} from "./sandbox.js";
+// 实现已外置为 C4 `@agent-runtime/sandbox` 与 C5 `@agent-runtime/policy`
+//（M6 批次 B3，C2 决策：独立两包）：
+//   import { LocalSandbox, classifyToolName, isPathAllowed } from "@agent-runtime/sandbox";
+//   import { PermissionManager, DefaultPermissionPolicy } from "@agent-runtime/policy";
 
 export { MemoryStorage } from "./store/memory.js";
 export { FileStorage } from "./store/file.js";

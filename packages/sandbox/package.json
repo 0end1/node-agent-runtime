@@ -1,7 +1,7 @@
 {
-  "name": "@agent-runtime/mcp",
+  "name": "@agent-runtime/sandbox",
   "version": "0.2.0",
-  "description": "C6 MCP adapter package of the Agent runtime: JSON-RPC 2.0 client, stdio / streamable-HTTP transports and McpRegistry that materializes remote MCP tools as local ToolDefinitions. Depends on @agent-runtime/core for the tool contract (C4 decision: contract stays in core); the core never imports this package.",
+  "description": "C4 sandbox package of the Agent runtime: run-level execution boundary — SandboxMode tiers, SandboxScope and the in-process LocalSandbox (path/network/time enforcement, sandbox:write visibility). Depends only on @agent-runtime/types.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -17,8 +17,6 @@
     "node": ">=18.17"
   },
   "dependencies": {
-    "@agent-runtime/core": "0.2.0",
-    "@agent-runtime/sandbox": "0.2.0",
     "@agent-runtime/types": "0.2.0"
   },
   "scripts": {

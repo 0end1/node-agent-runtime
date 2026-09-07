@@ -113,7 +113,11 @@ npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
 
 ```
 packages/
-├── types/                   # C1 共享叶子包 @agent-runtime/types（零依赖）
+├── types/                   # C1 共享叶子包 @agent-runtime/types（零依赖：消息/工具/事件/Storage/Artifact 契约 + 校验器与纯函数）
+├── memory/                  # C3 @agent-runtime/memory（SessionMemory + ArtifactManager，M6 外置）
+├── sandbox/                 # C4 @agent-runtime/sandbox（LocalSandbox 执行域，M6 外置）
+├── policy/                  # C5 @agent-runtime/policy（PermissionManager 授权决策，M6 外置）
+├── mcp/                     # C6 @agent-runtime/mcp（MCP 适配：client/transport/registry，M6 外置）
 │   ├── src/
 │   │   ├── types.ts         # 消息 / 工具调用 / RunUsage 等核心契约类型
 │   │   ├── schema.ts        # JSON Schema 子集校验器（validate / JsonSchema）

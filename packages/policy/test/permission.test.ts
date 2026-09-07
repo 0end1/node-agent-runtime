@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { EventBus, type RuntimeEvent } from "@agent-runtime/core";
 import {
   DefaultPermissionPolicy,
-  EventBus,
   PermissionManager,
   StaticPolicy,
   combinePolicies,
   toolListPolicy,
   type PermissionContext,
-  type RuntimeEvent,
-} from "@agent-runtime/core";
+} from "@agent-runtime/policy";
 
 // --------------------------------------------------------------- test double
 

@@ -1,5 +1,5 @@
 import { resolve, sep } from "node:path";
-import type { AnyTool, ToolKind } from "./tool.js";
+import type { AnyTool, ToolKind } from "@agent-runtime/types";
 
 /**
  * Sandbox — run-level execution boundary (M3, docs/architecture.md §6.2 v1.2).

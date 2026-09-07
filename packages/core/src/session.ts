@@ -18,8 +18,8 @@ import {
   type Sandbox,
   type SandboxMode,
   type SandboxScope,
-} from "./sandbox.js";
-import { PermissionManager } from "./permission.js";
+} from "@agent-runtime/sandbox";
+import { PermissionManager } from "@agent-runtime/policy";
 import { ArtifactManager, type Artifact } from "@agent-runtime/memory";
 import { newId } from "@agent-runtime/types";
 

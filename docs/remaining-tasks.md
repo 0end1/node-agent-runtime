@@ -47,8 +47,8 @@
 |---|---|---|---|---|---|
 | 1 | C6 `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + `test/fixtures/mock-mcp-server.mjs` | C1（types）+ core 工具契约（`defineTool` / `ToolKind` / `classifyToolName`，C4 决策不下沉） | core 无反向 import；core index 移除 mcp 导出 |
 | 2 | ~~C8 `@agent-runtime/host`~~ | — | — | — | **⏸ 移出 M6**：C1 决策 Session/Task 留 core（见 §3 C1） |
-| 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `artifact.ts`（**`checkpoint.ts` 暂留 core**，见下注） | `memory.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 与 Artifact 契约已下沉 C1） | ✅ 已完成（2026-09-07）。**checkpoint 留 core 原因**：`computeToolsHash`/`assertResumable` 依赖 `Agent` 与工具契约（C4 未下沉），外置会形成 core↔C3 包级循环；待契约下沉或 B4 facade 收窄时再迁 |
-| 3 | C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy` | `sandbox.ts` + `permission.ts` | `sandbox.test.ts` `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | C2 决策：独立两包 |
+| 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `artifact.ts`（**`checkpoint.ts` 暂留 core**，见下注） | `memory.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 与 Artifact 契约已下沉 C1） | ✅ 已完成（2026-09-07）。**checkpoint 留 core 原因**：`computeToolsHash`/`assertResumable` 依赖 core 的 `Agent` 类（工具契约虽已下沉 C1，但 `Agent` 实现仍在 core），外置会形成 core↔C3 包级循环；待 `Agent` 契约下沉或 B4 facade 收窄时再迁 |
+| 3 | C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy` | `sandbox.ts` + `permission.ts` | `sandbox.test.ts` `permission.test.ts` | types（工具/事件契约已下沉 C1）+  policy type-import sandbox 模式/域 | ✅ 已完成（2026-09-07）：按 C2 决策拆为独立两包，sandbox 13 / policy 13 测试通过 |
 | 4 | facade 收窄 | `core/src/index.ts` 直出改逐包 re-export | 全量测试 | 全部包 | C6/C3~C5 拆完；届时重评 C4（tool 契约是否下沉 C1） |
 
 **每包通用验收标准**（crate-split-todo §6）：新包 `package.json`/`tsconfig.json` 齐备且可独立 `tsc --noEmit` → 对应测试迁移通过（core 测试改 import 源）→ core 收窄导出后全仓 `npm test` + typecheck 绿 → `examples/cli`、`examples/web` 导入切换（或经 facade 兼容）→ 根 workspaces / tsconfig paths / `package-lock.json` 接线 → 文档同步（CHANGELOG、crate-architecture 状态行、crate-split-todo 勾选）。
@@ -62,7 +62,7 @@
 | C1 | **Session/Task 是否出 core**（C8 host） | 决定 C8 做不做，及 C3~C5 能否拆干净（session.ts 是唯一宿主） | **不拆 C8 host**：`SessionManager` 留 core。理由：session 依赖 runtime/agent/memory/permission/artifact/checkpoint，拆出需 examples 全量改 import，收益不抵 M6 发布前风险；「产品概念不进引擎」由 facade 收窄（B4）与新宿主能力外置逐步满足。**重评触发**：引擎侧需复用 Task 状态机 / 出现多宿主形态 | ✅ |
 | C2 | sandbox 与 policy 独立两包 or 合成 `@agent-runtime/governance` | 决定批次 3 拆分次数 | **独立两包** C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy`（按 codex 推荐）。理由：职责正交（执行域 vs 授权决策）；`permission.ts` 仅 type-import sandbox 的 `SandboxMode`/`SandboxScope`，拆后无运行期耦合 | ✅ |
 | C3 | `Artifact` 归属 | 类型入 C1；实现随 M4 并 C6 or C3 | **类型下沉 C1**（`Artifact`/`ArtifactKind`/`ArtifactInput` 等），**实现并入 C3**（与 memory 同包 `@agent-runtime/memory`，包描述注明「会话记忆 + 产物存储，均基于 Storage 契约」）。同时**下沉 `Storage`/`DocDomain`/`StreamDomain` 契约至 C1**（`core/src/store/types.ts` 为零依赖纯类型），消除 core↔C3 循环 | ✅ |
-| C4 | `tool.ts`/`ToolDefinition` 契约层是否下沉 C1 | TS 下 `import type` 可不拆；**转 Rust 前必须拆** | **M6 暂不下沉**：外置包（mcp/memory/sandbox/policy）依赖 core 的工具契约获取 `defineTool`/`ToolDefinition`/`ToolKind`，与既有 C7/C9 模式一致。**下沉触发**：C3~C5 拆包出现 core↔子包循环，或启动 D1（Rust 移植）前必须下沉 | ✅ |
+| C4 | `tool.ts`/`ToolDefinition` 契约层是否下沉 C1 | TS 下 `import type` 可不拆；**转 Rust 前必须拆** | ✅ **已触发下沉（2026-09-07）**：拆 C4/C5 时 sandbox 需 `ToolKind`、policy 需事件与工具类型，留在 core 将形成包级循环 → 工具契约与事件契约一并下沉 C1（`types/src/tools.ts` / `events.ts`），core 保留实现并 re-export 类型（公共面不变）。`EventEmitter<E>` 亦入 C1，供 policy 结构化解耦 | ✅（已执行） |
 
 ---
 

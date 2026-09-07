@@ -1,6 +1,5 @@
-import type { EventBus, RuntimeEvent } from "./events.js";
-import type { SandboxMode, SandboxScope } from "./sandbox.js";
-import type { ToolKind } from "./tool.js";
+import type { SandboxMode, SandboxScope } from "@agent-runtime/sandbox";
+import type { EventEmitter, RuntimeEvent, ToolKind } from "@agent-runtime/types";
 import { newId } from "@agent-runtime/types";
 
 /**
@@ -62,7 +61,7 @@ export interface PendingDecision {
 
 export interface PermissionManagerOptions {
   /** Event bus the approval flow publishes to (host UIs subscribe here). */
-  events?: EventBus<RuntimeEvent>;
+  events?: EventEmitter<RuntimeEvent>;
   policy?: PermissionPolicy;
   /** How long an `ask` waits for the host before it counts as denied. */
   askTimeoutMs?: number;
@@ -79,7 +78,7 @@ const DEFAULT_ASK_TIMEOUT_MS = 60_000;
 
 export class PermissionManager {
   private policy: PermissionPolicy;
-  private readonly events?: EventBus<RuntimeEvent>;
+  private readonly events?: EventEmitter<RuntimeEvent>;
   private readonly askTimeoutMs: number;
   private readonly now: () => number;
   private readonly waiters = new Map<string, Waiter>();

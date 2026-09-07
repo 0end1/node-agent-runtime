@@ -1,7 +1,7 @@
 {
-  "name": "@agent-runtime/mcp",
+  "name": "@agent-runtime/policy",
   "version": "0.2.0",
-  "description": "C6 MCP adapter package of the Agent runtime: JSON-RPC 2.0 client, stdio / streamable-HTTP transports and McpRegistry that materializes remote MCP tools as local ToolDefinitions. Depends on @agent-runtime/core for the tool contract (C4 decision: contract stays in core); the core never imports this package.",
+  "description": "C5 policy package of the Agent runtime: authorization decisions (allow/deny/ask) — DefaultPermissionPolicy matrix, PermissionManager approval flow with timeout and always-allowlist, composable policies. Depends on @agent-runtime/types and (type-only) @agent-runtime/sandbox.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -17,7 +17,6 @@
     "node": ">=18.17"
   },
   "dependencies": {
-    "@agent-runtime/core": "0.2.0",
     "@agent-runtime/sandbox": "0.2.0",
     "@agent-runtime/types": "0.2.0"
   },

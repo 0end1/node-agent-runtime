@@ -29,7 +29,7 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 | `AgentRuntime` | 事件循环核心：`run()` 内循环调用模型，直到无工具调用或达到 `maxSteps`。 |
 | `EventBus` | 每个生命周期节点（run / step / model / tool / 错误 / session / task）都会发事件，便于 CLI、Web、SDK 消费推理过程。 |
 | `SessionManager` | （M1）Session → Task → Run 生命周期管理：创建/关闭/删除会话、自动调度任务、消息流自动落盘，调用方不再手管 `history`。 |
-| `Storage` | （M1）统一持久化门面：`MemoryStorage`（零依赖）与 `FileStorage`（按目录落盘），文件/SQLite 等其它后端可注入替换。 |
+| `Storage` | （M1）统一持久化门面：core 内置 `MemoryStorage`（零依赖）与 `FileStorage`（按目录落盘）；`SQLiteStorage`（可选，`@agent-runtime/store-sqlite`，C9）等其它后端可注入替换。 |
 | `Memory` | （M2）记忆门面 `SessionMemory`：会话层=对话流（跨进程重启可读），事实层=`remember`/`recall` 长期事实 KV。 |
 | `Checkpoint` | （M2）步级快照：每完成一步写入 messages + usage + 工具指纹（`toolsHash`），引擎只发快照、宿主负责落盘。 |
 | `SessionManager.resume()` | （M2）从 checkpoint 校验工具指纹后续跑同一 task：`resume(ckptId, continuation?)`，输出与一次性跑完等价。 |
@@ -119,20 +119,22 @@ packages/
 │   │   ├── schema.ts        # JSON Schema 子集校验器（validate / JsonSchema）
 │   │   └── util.ts          # 零 IO 纯函数（newId / stringifyResult 等）
 │   └── test/                # node:test（schema 校验）
-└── core/                    # C2 引擎实现包 @agent-runtime/core（仅依赖 C1）
-    ├── src/
-    │   ├── index.ts         # 公共 API（同时 re-export @agent-runtime/types 的全部导出）
-    │   ├── runtime.ts       # 多步推理事件循环（AgentRuntime）
-    │   ├── agent.ts         # Agent 定义
-    │   ├── context.ts       # Context 门面（M1：run 注入 session/task/run 上下文）
-    │   ├── session.ts       # SessionManager / Task / RunRecord（M1）
-    │   ├── events.ts        # 事件总线（含 session/task 事件，M1）
-    │   ├── tool.ts          # 工具抽象
-    │   ├── provider.ts      # ModelProvider 接口 + 错误类型
-    │   ├── tools/           # calculator（安全求值）· builtin（内置工具集）
-    │   ├── providers/       # openai-compatible（fetch）· mock（免密钥规则模型）
-    │   └── store/           # Storage 接口 + Memory/File 实现（M1）
-    └── test/                # node:test（runtime/session/store/calculator）
+├── core/                    # C2 引擎实现包 @agent-runtime/core（仅依赖 C1）
+│   ├── src/
+│   │   ├── index.ts         # 公共 API（同时 re-export @agent-runtime/types 的全部导出）
+│   │   ├── runtime.ts       # 多步推理事件循环（AgentRuntime）
+│   │   ├── agent.ts         # Agent 定义
+│   │   ├── context.ts       # Context 门面（M1：run 注入 session/task/run 上下文）
+│   │   ├── session.ts       # SessionManager / Task / RunRecord（M1）
+│   │   ├── events.ts        # 事件总线（含 session/task 事件，M1）
+│   │   ├── tool.ts          # 工具抽象
+│   │   ├── provider.ts      # ModelProvider 接口 + 错误类型
+│   │   ├── tools/           # calculator（安全求值）· builtin（内置工具集）
+│   │   ├── providers/       # mock（免密钥规则模型；openai-compatible 已外置，C7）
+│   │   └── store/           # Storage 接口 + Memory/File 实现（M1）
+│   └── test/                # node:test（runtime/session/store/calculator）
+├── provider-openai/         # C7 可插拔模型后端 @agent-runtime/provider-openai（OpenAI 兼容 fetch）
+└── store-sqlite/            # C9 可选存储后端 @agent-runtime/store-sqlite（SQLiteStorage，node:sqlite）
 examples/
 ├── cli.ts                   # 终端交互演示（会话持久化到 .runtime-data/，M1）
 └── web/

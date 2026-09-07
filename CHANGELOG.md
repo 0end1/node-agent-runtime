@@ -8,6 +8,25 @@
 
 ## [Unreleased]
 
+**M5-1 · 拆包收口 C7/C9**（2026-09-07，dev 分支）：`provider-openai` 与 `store-sqlite` 两个「接缝包」从 core 外置为独立 workspace 包。core 继续只留接缝（`ModelProvider` trait 与 `MockProvider`、`Storage` trait），不 import 具体后端——HTTP/IO（fetch）与 SQLite（`node:sqlite`，engine ≥22.13）不再拖累 core 的零依赖定位。examples 已切到新包导入。`npm run typecheck` + `npm test` 全绿。
+
+### Added（M5-1 · 外置包）
+
+- **C7 `@agent-runtime/provider-openai`**（`packages/provider-openai/`）：`OpenAIClientProvider`/`OpenAIClientOptions` 从 core 迁出（`packages/core/src/providers/openai-compatible.ts` 删除），core `providers/` 仅留 `MockProvider`；`examples/cli.ts`、`examples/web/server.ts` 改用新包导入
+- **C9 `@agent-runtime/store-sqlite`**（`packages/store-sqlite/`）：`SQLiteStorage`（`node:sqlite` `DatabaseSync`，docs/blobs/streams 三表）按 `Storage` trait 实现，作为可选存储后端（`engines: node >=22.13.0`）
+
+### Changed（M5-1 · 拆包）
+
+- 根 `package.json` 的 build/test 纳入两新包；根 `tsconfig.json` paths 新增两包映射；`package-lock.json` 同步
+- `packages/core/src/index.ts`：移除 `OpenAIClientProvider`/`OpenAIClientOptions` 导出，改注释说明外置（C7）
+
+### Docs（M5-1 · 拆包）
+
+- `docs/crate-architecture.md`：§6 里程碑表 M5 行标注「C7/C9 已落地、C8 host 与 facade 收窄待决」，§9 修订记录新增 v0.4
+- README：`ModelProvider` / `Storage` 说明补充外置包来源；项目结构树新增 `provider-openai` / `store-sqlite` 两包
+
+---
+
 **M4 · 外部能力**（2026-09-07，dev 分支）：MCP client（stdio + streamable HTTP）+ `Artifact` 落地。沿用「引擎只留接缝、协议翻译在适配层」：MCP 的唯一接缝是 `ToolDefinition`——`McpRegistry` 把远端 server 物化为 `mcp__server__tool` 前缀的本地工具后，校验 / gate / sandbox / 错误回填与本地工具完全同路径；`mcp/` 与 `artifact.ts` 实现仍在 C2 内（C6 拆包随 M5，与 crate-architecture §6 一致）。`npm test` types 4 + core 99 通过 0 失败。
 
 ### Added（M4 · 外部能力）

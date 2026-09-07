@@ -190,6 +190,7 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 
 | 版本 | 日期 | 说明 |
 | --- | --- | --- |
+| v0.4 (M5-1) | 2026-09-07 | M5 拆包收口第一批：C7 `@agent-runtime/provider-openai`（openai-compatible 迁出，core `providers/` 仅留 mock）与 C9 `@agent-runtime/store-sqlite`（`SQLiteStorage`，node:sqlite，docs/blobs/streams 三表）外置为独立包；根 build/test、tsconfig paths、lock、examples 接线；typecheck + 全量测试绿。C8 host 拆包试行后回滚（Session 暂留 C2，重评见 §8-5）；facade 收窄随 C6 / C3~C5 / C8 后续推进 |
 | v0.1 | 2026-09-05 | 按 codex-rs workspace 形态把 architecture §2 模块树重排为 crate/包边界与依赖图；给出 C1~C9+A1 映射、边界规则、形态对比与待决清单；纯设计研究，未改代码 |
 | v0.2 | 2026-09-05 | 落地 §7.1 方案 A：根包改 npm workspaces 容器，C1 `@agent-runtime/types` / C2 `@agent-runtime/core` 两包先行（`git mv` 代码、C2 顶部 re-export C1、导入改包名、测试随包）；`npm run typecheck` / `npm run build` / `npm test`（35 通过）全绿，公共 API 不变 |
 | v0.3 (M4) | 2026-09-07 | 落地 M4 外部能力：MCP client（`packages/core/src/mcp/`：`McpClient` + `StdioTransport`/`StreamableHttpTransport` + `McpRegistry` 物化）与 `artifact.ts`（`ArtifactManager`）先在 C2 内实现并随包测试；C6 `@agent-runtime/mcp` 拆包留待 M5；§6 里程碑表 M4 行同步 |

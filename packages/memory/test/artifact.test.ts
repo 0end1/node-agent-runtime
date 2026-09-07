@@ -4,14 +4,13 @@ import { describe, it } from "node:test";
 import {
   Agent,
   AgentRuntime,
-  ArtifactError,
-  ArtifactManager,
   MemoryStorage,
   SessionManager,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
 } from "@agent-runtime/core";
+import { ArtifactError, ArtifactManager } from "@agent-runtime/memory";
 
 class NeverProvider implements ModelProvider {
   readonly id = "never";

@@ -3,14 +3,14 @@ import { AgentRuntime } from "./runtime.js";
 import type { RunResult, StepSnapshot } from "./runtime.js";
 import type { RunUsage } from "@agent-runtime/types";
 import type { ChatMessage } from "@agent-runtime/types";
-import type { Storage } from "./store/types.js";
+import type { Storage } from "@agent-runtime/types";
 import {
   CheckpointStore,
   assertResumable,
   computeToolsHash,
   type Checkpoint,
 } from "./checkpoint.js";
-import { SessionMemory, type Memory } from "./memory.js";
+import { SessionMemory, type Memory } from "@agent-runtime/memory";
 import {
   LocalSandbox,
   classifyToolName,
@@ -20,7 +20,7 @@ import {
   type SandboxScope,
 } from "./sandbox.js";
 import { PermissionManager } from "./permission.js";
-import { ArtifactManager, type Artifact } from "./artifact.js";
+import { ArtifactManager, type Artifact } from "@agent-runtime/memory";
 import { newId } from "@agent-runtime/types";
 
 /**

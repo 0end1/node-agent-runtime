@@ -1,5 +1,5 @@
 import type { Agent } from "./agent.js";
-import type { Storage } from "./store/types.js";
+import type { Storage } from "@agent-runtime/types";
 import type { ChatMessage, RunUsage } from "@agent-runtime/types";
 import { newId } from "@agent-runtime/types";
 

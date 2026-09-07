@@ -8,6 +8,35 @@
 
 ## [Unreleased]
 
+**M6-4 · 拆包批次 B3（C3 memory + artifact）**（2026-09-07，split 分支）：`memory.ts` + `artifact.ts` 外置为 `@agent-runtime/memory`（`packages/memory/`，仅依赖 types），`memory.test.ts` / `artifact.test.ts` 随迁；按 C3 决策把 `Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型下沉 C1（新增 `packages/types/src/artifacts.ts`）；`session.ts` 改从新包导入，core `index.ts` 移除 memory/artifact 实现导出（类型经顶部 `export *` 转发，公共导入面不变）。**`checkpoint.ts` 暂留 core**：`computeToolsHash` / `assertResumable` 依赖 `Agent` 与工具契约（C4 决策未下沉），外置会形成 core ↔ C3 包级循环，待契约下沉或 B4 facade 收窄时再迁。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / core 67+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-4 · 拆包 B3）
+- `packages/memory/`：新增 C3 `@agent-runtime/memory` 包（package.json / tsconfig.json / `src/index.ts`），承载 `SessionMemory` 与 `ArtifactManager`；依赖仅 @agent-runtime/types
+- `packages/types/src/artifacts.ts`：`Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型（C3 决策下沉）
+
+### Changed（M6-4 · 拆包 B3 接线）
+- `packages/core/src/session.ts`：`SessionMemory` / `Memory` / `ArtifactManager` / `Artifact` 改从 `@agent-runtime/memory` 导入
+- `packages/core/src/index.ts`：移除 memory / artifact 实现导出，保留指引注释（类型面不变）
+- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 `@agent-runtime/memory`（build 序 types→memory→core→mcp→provider-openai→store-sqlite）
+
+### Docs（M6-4）
+- `docs/remaining-tasks.md`：B3 完成 + checkpoint 留 core 说明
+- `docs/crate-architecture.md`：修订记录 v0.7
+
+---
+
+**M6-3 · Storage 契约下沉 C1（拆包 B3 前置）**（2026-09-07，split 分支）：把 `Storage` / `DocDomain` / `StreamDomain` 契约从 `core/src/store/types.ts` 下沉至 `@agent-runtime/types`（新增 `packages/types/src/storage.ts` 并由 index 导出），删除 core 内契约文件；core 内 6 处引用（`session` / `memory` / `checkpoint` / `artifact` / `store/memory` / `store/file`）改为从 types 导入，`core/src/index.ts` 经 `export * from "@agent-runtime/types"` 转发，**公共导入面不变**。目的：让 C3（memory/artifact）等外置包只依赖 types，消除 core ↔ 子包循环（C1/C3 决策的落地手段）。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-3 · 契约下沉）
+- `packages/types/src/storage.ts`：`Storage` / `DocDomain` / `StreamDomain` 契约（原 `core/src/store/types.ts`，零依赖纯类型），`types/index.ts` 已导出
+
+### Changed（M6-3 · 契约下沉接线）
+- `packages/core/src/{session,memory,checkpoint,artifact}.ts` 与 `store/{memory,file}.ts`：Storage 契约改从 `@agent-runtime/types` 导入
+- `packages/core/src/index.ts`：移除本地 Storage 导出（改由 `export * from "@agent-runtime/types"` 转发）
+- `packages/core/src/store/types.ts`：删除（契约已下沉 C1）
+
+---
+
 **M6-2 · 决策落定 + 拆包批次 B1（C6 mcp）**（2026-09-07，split 分支）：落定 `remaining-tasks` C1~C4 四项开放决策——**C1** 不拆 C8 host（Session/Task 留 core，改以「Storage 契约下沉 C1」消除 core↔子包循环，B2 移出 M6）；**C2** sandbox/policy 独立两包（C4/C5，不合成 governance）；**C3** `Artifact` 类型下沉 C1、实现并入 C3（memory 包）；**C4** 工具契约 M6 暂不下沉（外置包依赖 core 的 `defineTool`/`ToolDefinition`）。据此执行批次 B1：`core/src/mcp/`（client/jsonrpc/registry/transport/types）与 `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁为 `packages/mcp/`（`@agent-runtime/mcp`），`registry.ts` 改从 core 取 `defineTool`/`classifyToolName`，core `index.ts` 移除 mcp 导出（避免 core↔mcp 循环），根 tsconfig paths / build / test 与 `examples/cli.ts` 接线。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-2 · 拆包 B1）

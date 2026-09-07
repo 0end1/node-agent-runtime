@@ -12,28 +12,9 @@
  * session/run by the host UI without touching payload bytes.
  */
 
+// Artifact 契约类型已下沉 C1（M6 C3 决策），实现留在 C3 `@agent-runtime/memory`。
 import { newId } from "@agent-runtime/types";
-import type { Storage } from "./store/types.js";
-
-export type ArtifactKind = "text" | "file" | "chart" | "mcp-resource" | "url";
-
-export interface Artifact {
-  readonly id: string;
-  kind: ArtifactKind;
-  /** Display name shown in the host UI. */
-  name: string;
-  /** Media type normalized from the kind unless explicitly overridden. */
-  mime: string;
-  /**
-   * Opaque payload locator the store resolves:
-   * `blob:<key>` for stored payloads, a plain URL for `url` artifacts.
-   */
-  locator: string;
-  meta: Record<string, unknown>;
-  sessionId: string;
-  runId?: string;
-  createdAt: number;
-}
+import type { Artifact, ArtifactInput, ArtifactKind, Storage } from "@agent-runtime/types";
 
 const BLOB_PREFIX = "blob:";
 
@@ -47,22 +28,6 @@ export const MIME_BY_KIND: Record<ArtifactKind, string> = {
 
 export function blobKeyOf(locator: string): string | undefined {
   return locator.startsWith(BLOB_PREFIX) ? locator.slice(BLOB_PREFIX.length) : undefined;
-}
-
-export interface ArtifactInput {
-  sessionId: string;
-  runId?: string;
-  kind: ArtifactKind;
-  name: string;
-  /** Override the kind-derived media type. */
-  mime?: string;
-  /** Payload for `text`/`file`/`chart`/`mcp-resource`. */
-  content?: string | Uint8Array;
-  /** Target URL for `url` artifacts. */
-  url?: string;
-  meta?: Record<string, unknown>;
-  /** Explicit id (host references like resource URIs). Defaults to a fresh one. */
-  id?: string;
 }
 
 export interface ArtifactManagerOptions {

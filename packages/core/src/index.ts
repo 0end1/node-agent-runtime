@@ -60,8 +60,8 @@ export {
 } from "./checkpoint.js";
 export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js";
 
-export { SessionMemory } from "./memory.js";
-export type { Memory, MemoryFact, MemoryRecall, SessionMemoryOptions } from "./memory.js";
+// SessionMemory / Memory 实现已外置为 C3 `@agent-runtime/memory`（M6 批次 B3）：
+//   import { SessionMemory } from "@agent-runtime/memory";
 
 // ---- Governance (M3) ----
 export { PermissionManager, DefaultPermissionPolicy, StaticPolicy, combinePolicies, toolListPolicy } from "./permission.js";
@@ -98,16 +98,14 @@ export type {
 
 export { MemoryStorage } from "./store/memory.js";
 export { FileStorage } from "./store/file.js";
-export type { Storage, DocDomain, StreamDomain } from "./store/types.js";
+// Storage / DocDomain / StreamDomain 契约已下沉 C1（M6 拆包前置），
+// 经顶部 `export * from "@agent-runtime/types"` 转发，公共导入面不变。
 
 // ---- Artifact (M4) ----
-export { ArtifactManager, ArtifactError, MIME_BY_KIND } from "./artifact.js";
-export type {
-  Artifact,
-  ArtifactKind,
-  ArtifactInput,
-  ArtifactManagerOptions,
-} from "./artifact.js";
+// 实现已外置为 C3 `@agent-runtime/memory`：
+//   import { ArtifactManager, ArtifactError, MIME_BY_KIND } from "@agent-runtime/memory";
+// 契约类型（Artifact / ArtifactKind / ArtifactInput）已下沉 C1，经顶部
+// `export * from "@agent-runtime/types"` 转发，公共导入面不变。
 
 export { buildRunContext } from "./context.js";
 export type { RunContext, RunContextSeed } from "./context.js";

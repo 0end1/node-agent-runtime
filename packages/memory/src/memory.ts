@@ -1,5 +1,5 @@
 import type { ChatMessage } from "@agent-runtime/types";
-import type { Storage } from "./store/types.js";
+import type { Storage } from "@agent-runtime/types";
 
 /**
  * Memory (docs/architecture.md §8.2).

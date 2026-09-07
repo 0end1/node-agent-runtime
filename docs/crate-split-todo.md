@@ -19,6 +19,7 @@
 - [x] C7 `@agent-runtime/provider-openai` —— M5-1
 - [x] C9 `@agent-runtime/store-sqlite` —— M5-1
 - [x] **C6 `@agent-runtime/mcp`** —— M6 批次 1（2026-09-07）：`core/src/mcp/` 5 文件 + `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁至 `packages/mcp/`；`registry.ts` 改从 `@agent-runtime/core` 取 `defineTool`/`ToolKind`/`classifyToolName`（C4 决策契约不下沉）；core index 移除 mcp 导出（避免 core↔mcp 循环）；根 tsconfig paths / build / test 接线；`examples/cli.ts` 改从新包导入。验收：typecheck 绿、全仓测试 0 fail（core 84 pass+1 skip、mcp 15 pass）
+- [x] **C3 `@agent-runtime/memory`** —— M6 批次 3（2026-09-07）：`memory.ts` + `artifact.ts` 与 `memory/artifact.test.ts` 迁至 `packages/memory/`；`Artifact`/`ArtifactKind`/`ArtifactInput` 契约下沉 C1；`session.ts` 改从新包导入，core 收窄实现导出；**`checkpoint.ts` 暂留 core**（依赖 `Agent` 与工具契约，外置会形成包级循环，待契约下沉或 facade 收窄再迁）。验收：typecheck 绿、全仓测试 0 fail（memory 17 pass、core 67 pass+1 skip）
 
 ## 3. 待拆清单
 
@@ -26,7 +27,7 @@
 |---|---|---|---|---|---|---|---|
 | C6 | `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + fixture | C1 + core 工具契约 | core 无反向 import；收窄 index 的 mcp 导出 | 1 | ✅ |
 | ~~C8~~ | ~~`@agent-runtime/host`~~ | — | — | — | — | 2 | ⏸ 移出（C1 决策：不拆 host；重评触发见 remaining-tasks §3 C1） |
-| C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`checkpoint.ts`、`artifact.ts` | `memory.test.ts`、`checkpoint.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain 契约下沉 C1 后） | 先下沉 Storage 契约，消除 core↔C3 循环 | 3 | ☐ |
+| C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（checkpoint 待契约下沉后再迁） |
 | C4 | `@agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（`sandbox:write`） | C2 决策已定：独立两包 | 3 | ☐ |
 | C5 | `@agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ☐ |
 | — | facade 收窄 | `core/src/index.ts` 由直出改逐包 re-export | 全量测试 | 全部包 | C6 已拆；C3~C5 拆完；届时重评 §8-2 | 4 | ☐ |

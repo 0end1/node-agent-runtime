@@ -1,0 +1,27 @@
+{
+  "name": "@agent-runtime/memory",
+  "version": "0.2.0",
+  "description": "C3 memory & artifact package of the Agent runtime: SessionMemory (session transcript + long-term fact layer) and ArtifactManager (payloads in the Storage blob domain). Depends only on @agent-runtime/types.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@agent-runtime/types": "0.2.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

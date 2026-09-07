@@ -1,10 +1,12 @@
 /**
- * Storage abstraction (see docs/architecture.md §9).
+ * Storage contract (see docs/architecture.md §9).
+ *
+ * M6 拆包前置：契约由 C2 `core/src/store/types.ts` **下沉至 C1**，让 C3
+ *（memory/artifact）等外置包只依赖 types，从而消除 core ↔ 子包的循环依赖
+ *（决策见 `docs/remaining-tasks.md` §3 C1/C3）。
  *
  * The engine never touches disk/SQLite directly. Everything that needs to
- * survive a process restart goes through this single interface. The core
- * ships an in-memory implementation; a Node file implementation is provided
- * for single-machine desktop use.
+ * survive a process restart goes through this single interface.
  */
 
 /** Document domains: one JSON document per id, overwritten atomically. */

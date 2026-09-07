@@ -47,7 +47,7 @@
 |---|---|---|---|---|---|
 | 1 | C6 `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + `test/fixtures/mock-mcp-server.mjs` | C1（types）+ core 工具契约（`defineTool` / `ToolKind` / `classifyToolName`，C4 决策不下沉） | core 无反向 import；core index 移除 mcp 导出 |
 | 2 | ~~C8 `@agent-runtime/host`~~ | — | — | — | **⏸ 移出 M6**：C1 决策 Session/Task 留 core（见 §3 C1） |
-| 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `checkpoint.ts` `artifact.ts` | `memory.test.ts` `checkpoint.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 契约已下沉 C1） | 先下沉 Storage 契约到 C1，避免 core↔C3 循环 |
+| 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `artifact.ts`（**`checkpoint.ts` 暂留 core**，见下注） | `memory.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 与 Artifact 契约已下沉 C1） | ✅ 已完成（2026-09-07）。**checkpoint 留 core 原因**：`computeToolsHash`/`assertResumable` 依赖 `Agent` 与工具契约（C4 未下沉），外置会形成 core↔C3 包级循环；待契约下沉或 B4 facade 收窄时再迁 |
 | 3 | C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy` | `sandbox.ts` + `permission.ts` | `sandbox.test.ts` `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | C2 决策：独立两包 |
 | 4 | facade 收窄 | `core/src/index.ts` 直出改逐包 re-export | 全量测试 | 全部包 | C6/C3~C5 拆完；届时重评 C4（tool 契约是否下沉 C1） |
 

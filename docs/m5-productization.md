@@ -44,8 +44,9 @@
 
 - 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm run demo:web` 启动 Node server 提供 API + 静态）。
 - 仅依赖 `@agent-runtime/core` 公共 API（与 #1/#2 同源），未来 C8 host 不白做。
-- 生产打包需 Node 运行时随应用启动（cargo sidecar 打包 `tsx`/编译产物），列入 #5 验收前补齐；dev 演示已可全流程。
-- 图标：首次需 `npx tauri icon <png>` 生成 `src-tauri/icons/`（Tauri 上下文依赖）。
+- **生产 sidecar 已接入**：release 构建时 `lib.rs::spawn_server` 以 Tauri sidecar 拉起 `agent-server`（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`tauri.conf.json` 的 `bundle.externalBin` 待打包二进制后启用（避免阻断 dev 构建）。
+- **图标已生成**：`npx tauri icon` 产出 `src-tauri/icons/`（含 icns/ico/png），源码 `icon-source.png` 同目录。
+- 环境已具备：`cargo 1.98` + `node v22` + Xcode CLI + `@tauri-apps/cli`，`cargo check` 绿；`npm run tauri dev` 待桌面点开验证窗口渲染。
 
 ## 4. 建议执行顺序
 

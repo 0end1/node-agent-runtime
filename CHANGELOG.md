@@ -8,14 +8,16 @@
 
 ## [Unreleased]
 
-**M5-4 · Desktop 壳（Tauri v2 骨架）**（2026-09-07，dev 分支）：为 M5 交付物补 Desktop 壳，技术栈定为 **Tauri v2**。新增 `examples/desktop-tauri/`（标准 `src-tauri/`：Cargo.toml / build.rs / src/main.rs / tauri.conf.json），窗口加载 `examples/web` 控制台——`devUrl=http://localhost:8787`，`beforeDevCommand` 启 `npm run demo:web`（Node server 提供 API + 静态）。仅依赖 `core` 公共 API，未来 C8 host 不白做；生产侧 Node 运行时 sidecar 打包列入 #5 验收前补齐。`docs/m5-productization.md` #3 状态由待定改为 Tauri 已定。
+**M5-4 · Desktop 壳（Tauri v2，含 sidecar + 图标）**（2026-09-07，dev 分支）：为 M5 交付物补 Desktop 壳，技术栈定为 **Tauri v2**。窗口加载 `examples/web` 控制台——`devUrl=http://localhost:8787`，`beforeDevCommand` 启 `npm run demo:web`（Node server 提供 API + 静态）。仅依赖 `core` 公共 API，未来 C8 host 不白做。release 构建以 Tauri sidecar 拉起 `agent-server`（窗口 `url` 固定 8787），dev/生产共用同一控制台；`bundle.externalBin` 待打包二进制后启用。已生成 `src-tauri/icons/`（tauri icon）。环境 `cargo 1.98`+`node v22`+Xcode CLI+@tauri-apps/cli 齐备，`cargo check` 通过。`docs/m5-productization.md` #3 状态由待定改为 Tauri 已定。
 
 ### Added（M5-4 · Desktop 壳 Tauri）
 - `examples/desktop-tauri/package.json`：Tauri CLI 脚本（dev/build/tauri）
-- `examples/desktop-tauri/src-tauri/Cargo.toml` `build.rs` `src/main.rs` `tauri.conf.json`：Tauri v2 应用骨架（窗口标题/尺寸、csp 放开 demo）
+- `examples/desktop-tauri/src-tauri/Cargo.toml` `build.rs` `src/main.rs` `tauri.conf.json`：Tauri v2 应用骨架（窗口 label/url/尺寸、csp 放开 demo）
+- `examples/desktop-tauri/src-tauri/src/lib.rs`：release 构建以 sidecar 启 agent-server，窗口加载控制台地址
+- `examples/desktop-tauri/src-tauri/icons/`（tauri icon 多尺寸）+ `icon-source.png`：桌面图标资源
 
 ### Docs（M5-4）
-- `docs/m5-productization.md`：#3 状态改 Tauri 已定（骨架已建），§5 技术栈待定点改为已定 Tauri，新增 #3 明细
+- `docs/m5-productization.md`：#3 状态改 Tauri 已定（骨架已建 + sidecar 接入），§5 技术栈待定点改为已定 Tauri，新增 #3 明细
 
 ---
 

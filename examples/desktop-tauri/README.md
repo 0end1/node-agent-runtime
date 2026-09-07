@@ -47,13 +47,27 @@ npx tauri icon path/to/icon.png   # 生成 src-tauri/icons/*
 
 未生成图标前 `tauri dev` / `tauri build` 会报错。
 
-## 生产打包（#5 验收前补齐）
+## 生产打包（sidecar，已接入）
 
-当前 dev 模式演示已可走完桌面全流程。生产打包需 Node 运行时随应用启动：
-用 cargo sidecar 打包 `tsx examples/web/server.ts`（或预编译产物），在
-`tauri.conf.json` 配置 `bundle.externalBin`，Rust 侧以
-`tauri::process::Command` 拉起 server，再让窗口加载 `http://localhost:8787`。
-此项列入 M5 #5 验收前完成。
+生产模式下 Rust 在 `setup` 中以 Tauri **sidecar** 启动 Node 运行时跑
+`examples/web/server.ts`（监听 `http://localhost:8787`），窗口 `url` 固定指向该地址，
+因此 dev 与生产共用同一控制台与 API 面。生产打包前需在 `tauri.conf.json` 的
+`bundle.externalBin` 加入 `["binaries/agent-server"]`（骨架当前未写死该配置，避免无二进制时
+阻断 `tauri build`）；`lib.rs` 的 `spawn_server` 仅在 release（非 debug）构建生效，
+避免与 dev 的 `beforeDevCommand` 重复拉起。
+
+前置（打包前一次性）：将 server 打包为 sidecar 二进制放入 `src-tauri/binaries/`：
+- macOS：`agent-server`（可执行，`chmod +x`）
+- Windows：`agent-server.exe`
+- Linux：`agent-server`
+
+推荐方式（任选）：
+1. 用 `esbuild` 将 `examples/web/server.ts` 打包为单文件 CJS/ESM，再用 `pkg` 或
+   `bun build --compile` 编为平台二进制；
+2. 或直接随包分发 `node` + `tsx`，将 `lib.rs` 的 `new_sidecar("agent-server")`
+   改为 `tauri::process::Command::new("node").args(["examples/web/server.ts"])`。
+
+> dev 演示：`npm run tauri dev` 仍由 `beforeDevCommand` 启 Node server，无需 sidecar 二进制。
 
 ## 与拆包（C8 host）的关系
 

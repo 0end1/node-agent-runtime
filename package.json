@@ -14,11 +14,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/0end1/nodeRuntimes.git"
+    "url": "https://github.com/0end1/nodeRuntime.git"
   },
-  "homepage": "https://github.com/0end1/nodeRuntimes",
+  "homepage": "https://github.com/0end1/nodeRuntime",
   "bugs": {
-    "url": "https://github.com/0end1/nodeRuntimes/issues"
+    "url": "https://github.com/0end1/nodeRuntime/issues"
   },
   "engines": {
     "node": ">=18.17"

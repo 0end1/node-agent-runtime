@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+**M5-8 · 仓库更名引用同步**（2026-09-07，apps 分支）：GitHub 仓库 `0end1/nodeRuntimes` 更名 `0end1/nodeRuntime`（经 GitHub API 完成，旧地址自动 301）；同步根 `package.json` 三处仓库引用（`repository.url` / `homepage` / `bugs.url`）至新地址，本地 `origin` remote 同步更新。README / docs / CHANGELOG 顶部均为作者个人主页 `github.com/0end1`，不受影响。
+
+### Changed（M5-8 · 仓库更名引用同步）
+- `package.json`：`repository` / `homepage` / `bugs` 指向新仓库地址 `https://github.com/0end1/nodeRuntime`
+
+---
+
 **M5-7 · 遗留任务清单入库**（2026-09-07，dev 分支）：新增 `docs/remaining-tasks.md`——M5 产品化阶段收尾后的遗留任务总池索引（14 项分组总览表）：A 验收收口 4 项（安装分发实机验证 / 自动化 E2E / `typecheck`+`npm test` 质量门 / `architecture.md` §11 M5 行回填，源自 m5-productization #5 移交）、B 拆包批次 4 项（C6 mcp / C8 host / C3~C5 / facade 收窄，执行级细节以 crate-split-todo 为准）、C 开放决策 4 项（§8-5 host 归属 / §8-3 sandbox·policy 分合 / §8-4 Artifact 归属 / §8-2 契约下沉）、D 远期 3 项（Rust 移植 / config·features / 参考机制采纳）。建议执行顺序：决策先行 → 验收 → 拆包。
 
 ### Docs（M5-7）

@@ -193,7 +193,7 @@ examples/
 ```bash
 npm run typecheck   # tsc --noEmit（packages + examples，经 paths 别名走源码）
 npm run build       # 逐包产出 dist/（npm test 会自动先执行它）
-npm test            # node:test（types + core + mcp + provider-openai + store-sqlite 逐包，覆盖事件循环/工具安全/Storage/Session/MCP/schema）
+npm test            # node:test（types + memory + sandbox + policy + core + host + mcp + provider-openai + store-sqlite 逐包，覆盖事件循环/工具安全/Storage/Session/治理/MCP/schema）
 ```
 
 ## 目录结构 & 设计取舍

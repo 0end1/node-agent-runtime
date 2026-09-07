@@ -17,7 +17,7 @@
 | M3 · 治理 | Permission 审批 + Sandbox 执行域 | ✅ | ask 审批流、三档沙箱、`sandbox:write` diff |
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6 |
-| **M6 · 生产级改造** | demo → 可用于生产 | ☐ 进行中 | P1~P6 六批（见 §3.1） |
+| **M6 · 生产级改造** | demo → 可用于生产 | 🟡 进行中 | **P1 包边界收口已完成**（P1.1~P1.5：C6 mcp / C8 host / C3 memory / C4 sandbox / C5 policy / facade 收窄；P1.6 API 快照待办）；P2~P6 待办（见 §3.1） |
 | M7+ | 待规划 | ⏸ | 候选池（见 §3.3），M6 收口后定优先级 |
 
 ---
@@ -58,7 +58,7 @@
 
 | 批次 | 主题 | 关键项 | 状态 |
 |---|---|---|---|
-| **P1** | 决策冻结 + 包边界收口（**发布前置**） | 落定 C1~C4 决策 → 拆包 B1 mcp / B2 host / B3 memory·sandbox·policy / B4 facade 收窄 → 公共 API 冻结快照 | ☐ |
+| **P1** | 决策冻结 + 包边界收口（**发布前置**） | 落定 C1~C4 决策 → 拆包 B1 mcp / B2 host / B3 memory·sandbox·policy / B4 facade 收窄 → 公共 API 冻结快照 | 🟡 P1.1~P1.5 ✅；**P1.6 API 快照 ☐** |
 | **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率 ≥80%、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3） | ☐ |
 | **P3** | 可观测 · 安全 · 配置 | 结构化日志+错误码、事件/日志脱敏、审批审计与白名单持久化、成本/速率上限、Web/本地 server 鉴权与防跨站、MCP 防 SSRF、默认安全策略包、config/features（吸收 D2） | ☐ |
 | **P4** | SDK 发布工程 | LICENSE、去 `private` + `publishConfig`、engines/Node 基线统一、changesets 版本编排 + `npm publish --provenance`、依赖策略（`workspace:`）、包体积基线 | ☐ |

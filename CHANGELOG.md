@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+**M5-7 · 遗留任务清单入库**（2026-09-07，dev 分支）：新增 `docs/remaining-tasks.md`——M5 产品化阶段收尾后的遗留任务总池索引（14 项分组总览表）：A 验收收口 4 项（安装分发实机验证 / 自动化 E2E / `typecheck`+`npm test` 质量门 / `architecture.md` §11 M5 行回填，源自 m5-productization #5 移交）、B 拆包批次 4 项（C6 mcp / C8 host / C3~C5 / facade 收窄，执行级细节以 crate-split-todo 为准）、C 开放决策 4 项（§8-5 host 归属 / §8-3 sandbox·policy 分合 / §8-4 Artifact 归属 / §8-2 契约下沉）、D 远期 3 项（Rust 移植 / config·features / 参考机制采纳）。建议执行顺序：决策先行 → 验收 → 拆包。
+
+### Docs（M5-7）
+- `docs/remaining-tasks.md`：新增 M5 收尾遗留任务总清单（来源：m5-productization #5 / crate-split-todo / crate-architecture §8 / architecture §11）
+
+---
+
 **M5-6 · Desktop 生产打包闭环（Tauri build + 自包含 sidecar）**（2026-09-07，dev 分支）：补齐并验证 Desktop 生产打包。`beforeBuildCommand`（`build-server.mjs`）用 esbuild 把 `examples/web/server.ts` 打成自包含 CJS bundle（`agent-server.js`），并复制 Node 运行时（`node-<triple>`）与静态控制台（`public/`）；app **自带 Node 运行时**（`externalBin: binaries/node`）执行 bundle（`resources`），静态资源一并平铺进 app，壳通过 `AGENT_CONSOLE_PUBLIC_DIR` 把 `Resources/public` 告知 server——不依赖目标机安装 Node。`tauri build` 产出 `.app`（123M）+ `.dmg`（42M），并以 app 自带 node + bundle 实跑验证 `GET :8787 → 200`（Mock provider 正常启动）。
 
 ### Added（M5-6 · 生产打包）

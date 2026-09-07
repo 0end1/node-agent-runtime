@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+**M5-2 · 产品化示例补齐（CLI 演示面）**（2026-09-07，dev 分支）：为 CLI demo 暴露 M3 治理面——新增演示写工具 `demo_write_file`（`kind: "write"`），让 M3 审批/沙箱在 demo 中可见。零侵入 core：工具经 `defineTool` 声明写类，由默认策略 gate 为 ask，沙箱校验路径并 emit `sandbox:write`（含 diff）；CLI 订阅 `permission:request` 与 `sandbox:write` 两条事件，run 阻塞等待授权时仍可接收 `/approve` `/deny`（事件驱动，不挂起）。`npm run typecheck` 全绿。
+
+### Added（M5-2 · CLI 演示面）
+- `examples/cli.ts`：新增 `demo_write_file`（`meta: { kind: "write", pathArgs: ["path"] }`）并入 agent 工具集，相对工作区写入文件；订阅 `sandbox:write` 展示工具名/路径/最佳努力 diff；启动提示加入「把结论写入 demo.txt（会触发授权）」
+
+### Docs（M5-2 · CLI 演示面）
+- `docs/m5-productization.md`：#1 状态勾选为「✅（CLI 完成）」，#1 明细补演示写工具，#5 注意点更新为「审批挂起风险已解除（CLI）」
+- `docs/crate-split-todo.md`：新增 M5 拆包执行清单（C3~C6/C8/facade 跟踪，与 `docs/crate-architecture.md` §6 并行参考）
+
+---
+
 **M5-1 · 拆包收口 C7/C9**（2026-09-07，dev 分支）：`provider-openai` 与 `store-sqlite` 两个「接缝包」从 core 外置为独立 workspace 包。core 继续只留接缝（`ModelProvider` trait 与 `MockProvider`、`Storage` trait），不 import 具体后端——HTTP/IO（fetch）与 SQLite（`node:sqlite`，engine ≥22.13）不再拖累 core 的零依赖定位。examples 已切到新包导入。`npm run typecheck` + `npm test` 全绿。
 
 ### Added（M5-1 · 外置包）

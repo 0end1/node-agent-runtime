@@ -1,0 +1,28 @@
+{
+  "name": "@agent-runtime/mcp",
+  "version": "0.2.0",
+  "description": "C6 MCP adapter package of the Agent runtime: JSON-RPC 2.0 client, stdio / streamable-HTTP transports and McpRegistry that materializes remote MCP tools as local ToolDefinitions. Depends on @agent-runtime/core for the tool contract (C4 decision: contract stays in core); the core never imports this package.",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "dependencies": {
+    "@agent-runtime/core": "0.2.0",
+    "@agent-runtime/types": "0.2.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

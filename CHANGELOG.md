@@ -8,6 +8,25 @@
 
 ## [Unreleased]
 
+**M6-2 · 决策落定 + 拆包批次 B1（C6 mcp）**（2026-09-07，split 分支）：落定 `remaining-tasks` C1~C4 四项开放决策——**C1** 不拆 C8 host（Session/Task 留 core，改以「Storage 契约下沉 C1」消除 core↔子包循环，B2 移出 M6）；**C2** sandbox/policy 独立两包（C4/C5，不合成 governance）；**C3** `Artifact` 类型下沉 C1、实现并入 C3（memory 包）；**C4** 工具契约 M6 暂不下沉（外置包依赖 core 的 `defineTool`/`ToolDefinition`）。据此执行批次 B1：`core/src/mcp/`（client/jsonrpc/registry/transport/types）与 `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁为 `packages/mcp/`（`@agent-runtime/mcp`），`registry.ts` 改从 core 取 `defineTool`/`classifyToolName`，core `index.ts` 移除 mcp 导出（避免 core↔mcp 循环），根 tsconfig paths / build / test 与 `examples/cli.ts` 接线。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-2 · 拆包 B1）
+- `packages/mcp/`：新增 C6 `@agent-runtime/mcp` 包（package.json / tsconfig.json / `src/index.ts`），承载 MCP client、JSON-RPC、stdio+streamable HTTP 传输与 `McpRegistry` 物化；依赖 core 工具契约，方向单向
+
+### Changed（M6-2 · 拆包 B1 接线）
+- `packages/core/src/index.ts`：移除 MCP adapter 导出段（改由 `@agent-runtime/mcp` 提供），避免 core↔mcp 循环
+- `examples/cli.ts`：`McpClient`/`McpRegistry`/`StdioTransport`/`StreamableHttpTransport`/`McpServerHandle` 改从 `@agent-runtime/mcp` 导入
+- 根 `package.json` / `tsconfig.json`：`build`/`test` 脚本与 paths 接入 `@agent-runtime/mcp`（build 序 types→core→mcp→provider-openai→store-sqlite）
+
+### Docs（M6-2 · 决策与状态回填）
+- `docs/remaining-tasks.md`：C1~C4 决策结论与触发条件；B1 进行中→已完、B2 移出
+- `docs/crate-split-todo.md`：C6 勾选完成、C8 移出、§5 决策点全部勾选、通用验收逐项确认
+- `docs/crate-architecture.md`：§6 里程碑 M4 行更新 + 修订记录 v0.5
+- `docs/m6-productionization.md`：P1.1 完成、P1.3（C8 host）移出
+- `README.md`：验证章节同步新增 mcp 包
+
+---
+
 **M6-1 · 生产级改造执行清单入库**（2026-09-07，apps 分支）：demo 阶段（M1~M5）全部完成验证后，新增 `docs/m6-productionization.md`——demo → 生产级改造阶段执行清单。实测差距基线（无 CI/lint/LICENSE、4 包全 `private`、engines 不一致、拆包未收口、Web server 无鉴权、分发未签名）映射为 6 批 P1~P6：P1 决策冻结（C1~C4）+ 拆包收口（B1~B4）+ API 冻结（发布前置）；P2 CI/质量门（typecheck/lint/coverage ≥80%/跨形态 E2E/audit，收敛为 `npm run ci` 一键）；P3 可观测·安全·配置（结构化日志与错误码、事件脱敏、审批审计与白名单持久化、成本/速率上限、server 鉴权、MCP 防 SSRF、默认安全策略、config/features 吸收 D2）；P4 SDK 发布工程（LICENSE、去 private、engines 统一、changesets、`--provenance` 发布）；P5 分发与部署矩阵（macOS 公证、三平台产物、auto-updater、store-sqlite 生产基线、容器化样例）；P6 治理·文档（CONTRIBUTING/SECURITY、README 生产用法、路线图 v1.8 回填、双源收敛）。吸收重排 remaining-tasks A~C 并拉近 D2；执行约束 P1 先行且必须早于 P4。
 
 ### Docs（M6-1）

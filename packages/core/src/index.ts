@@ -128,39 +128,10 @@ export { CURRENCY_ALIASES } from "./tools/builtin.js";
 
 export { evaluate } from "./tools/calculator.js";
 
-// ---- MCP adapter (M4, docs §5.3) ----
-export { McpClient } from "./mcp/client.js";
-export {
-  StdioTransport,
-  StreamableHttpTransport,
-  parseSse,
-} from "./mcp/transport.js";
-export type {
-  McpTransport,
-  StdioTransportOptions,
-  StreamableHttpTransportOptions,
-} from "./mcp/transport.js";
-export {
-  McpRegistry,
-  MCP_TOOL_PREFIX,
-  mcpToolName,
-  parseMcpToolName,
-  normalizeSchema,
-  pathArgKeysOf,
-} from "./mcp/registry.js";
-export type { RegisteredServer } from "./mcp/registry.js";
-export { McpError, McpTimeoutError, McpConnectionError } from "./mcp/jsonrpc.js";
-export { MCP_PROTOCOL_VERSION } from "./mcp/types.js";
-export type {
-  McpServerHandle,
-  McpToolMeta,
-  McpCallToolResult,
-  McpServerInfo,
-  McpServerCapabilities,
-  McpInitializeResult,
-  McpToolRef,
-  McpClientOptions,
-} from "./mcp/types.js";
+// ---- MCP adapter ----
+// M6 拆包批次 B1：`mcp/` 已外置为 C6 `@agent-runtime/mcp`（方向 mcp → core，
+// core 不再反向依赖以避免循环）。请从新包导入：
+//   import { McpRegistry, McpClient, StdioTransport } from "@agent-runtime/mcp";
 
 // ---- Model providers ----
 export type {

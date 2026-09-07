@@ -6,6 +6,7 @@
     "paths": {
       "@agent-runtime/types": ["packages/types/src/index.ts"],
       "@agent-runtime/core": ["packages/core/src/index.ts"],
+      "@agent-runtime/mcp": ["packages/mcp/src/index.ts"],
       "@agent-runtime/provider-openai": ["packages/provider-openai/src/index.ts"],
       "@agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"]
     }

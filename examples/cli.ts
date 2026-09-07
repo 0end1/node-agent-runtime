@@ -28,20 +28,22 @@ import {
   Agent,
   AgentRuntime,
   FileStorage,
-  McpClient,
-  McpRegistry,
   MockProvider,
   SessionManager,
-  StdioTransport,
-  StreamableHttpTransport,
   builtinTools,
   defineTool,
   type AnyTool,
-  type McpServerHandle,
   type ModelProvider,
   type RuntimeEvent,
   type Session,
 } from "@agent-runtime/core";
+import {
+  McpClient,
+  McpRegistry,
+  StdioTransport,
+  StreamableHttpTransport,
+  type McpServerHandle,
+} from "@agent-runtime/mcp";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 import { SQLiteStorage } from "@agent-runtime/store-sqlite";
 import { mkdir, writeFile } from "node:fs/promises";

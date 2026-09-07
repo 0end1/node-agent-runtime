@@ -28,9 +28,9 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P1.1 | 落定 remaining-tasks C1~C4 四项开放决策 | 决策记录回填 `remaining-tasks.md` §3 + `crate-architecture.md` §8 | 四项各有结论与影响行 | ☐ |
+| P1.1 | 落定 remaining-tasks C1~C4 四项开放决策 | 决策记录回填 `remaining-tasks.md` §3 + `crate-architecture.md` §8 | 四项各有结论与影响行 | ✅（2026-09-07，split 分支：C1 不拆 host / C2 独立两包 / C3 类型下沉 C1 + 实现并 C3 / C4 暂不下沉） |
 | P1.2 | 拆包批次 B1：C6 `@agent-runtime/mcp` | 迁移 `core/src/mcp/` + `core/test/mcp.test.ts` | 新包独立 typecheck/测试绿 | ☐ |
-| P1.3 | 拆包批次 B2：C8 `@agent-runtime/host`（先决 C1） | 迁移 `core/src/session.ts`（先搬迁后拆依赖） | 见 crate-split-todo §6 通用验收 | ☐ |
+| ~~P1.3~~ | ~~拆包批次 B2：C8 `@agent-runtime/host`~~ | — | — | ⏸ 移出：C1 决策 Session/Task 留 core，不拆 host（重评触发见 remaining-tasks §3 C1） |
 | P1.4 | 拆包批次 B3：C3 memory / C4 sandbox / C5 policy（视 C2 决策） | 迁移对应 src+test | 同上 | ☐ |
 | P1.5 | 拆包批次 B4：core facade 收窄 | `core/src/index.ts` 改逐包 re-export，评估 tool 契约是否下沉 C1（C4） | 全仓测试绿、examples 导入经 facade 兼容 | ☐ |
 | P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ☐ |

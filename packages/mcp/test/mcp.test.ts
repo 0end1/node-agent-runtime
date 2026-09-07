@@ -7,24 +7,26 @@ import { AddressInfo } from "node:net";
 import {
   Agent,
   AgentRuntime,
+  MemoryStorage,
+  SessionManager,
+  type ModelProvider,
+  type ModelRequest,
+  type ModelResponse,
+  type RuntimeEvent,
+} from "@agent-runtime/core";
+import {
   McpClient,
   McpConnectionError,
   McpError,
   McpRegistry,
   McpTimeoutError,
-  MemoryStorage,
-  SessionManager,
   StdioTransport,
   StreamableHttpTransport,
   mcpToolName,
   normalizeSchema,
   parseMcpToolName,
   pathArgKeysOf,
-  type ModelProvider,
-  type ModelRequest,
-  type ModelResponse,
-  type RuntimeEvent,
-} from "@agent-runtime/core";
+} from "@agent-runtime/mcp";
 
 // ------------------------------------------------------- test doubles
 

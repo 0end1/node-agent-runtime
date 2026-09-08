@@ -23,12 +23,12 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 
 | 概念 | 说明 |
 | --- | --- |
-| `ModelProvider` | 模型后端抽象。自带 `OpenAIClientProvider`（fetch 实现）与 `MockProvider`（规则模型，免密钥）。实现该接口即可接入任意 LLM。 |
+| `ModelProvider` | 模型后端抽象。官方实现：`@agent-runtime/provider-openai` 的 `OpenAIClientProvider`（fetch）与 `@agent-runtime/mock` 的 `MockProvider`（免密钥规则模型）。实现该接口即可接入任意 LLM。 |
 | `ToolDefinition` | 工具 = 名称 + 描述 + JSON Schema 参数 + `execute()`。参数在本地做类型校验，结果序列化回填给模型。 |
 | `Agent` | 系统提示词 + 工具列表 + 步数/温度等运行参数。一个运行时可运行多个 Agent。 |
 | `AgentRuntime` | 事件循环核心：`run()` 内循环调用模型，直到无工具调用或达到 `maxSteps`。 |
 | `EventBus` | 每个生命周期节点（run / step / model / tool / 错误 / session / task）都会发事件，便于 CLI、Web、SDK 消费推理过程。 |
-| `SessionManager` | （M1）Session → Task → Run 生命周期管理：创建/关闭/删除会话、自动调度任务、消息流自动落盘，调用方不再手管 `history`。 |
+| `SessionManager` | （M1，`@agent-runtime/host`）Session → Task → Run 生命周期管理：创建/关闭/删除会话、自动调度任务、消息流自动落盘，调用方不再手管 `history`。 |
 | `Storage` | （M1）统一持久化门面：core 内置 `MemoryStorage`（零依赖）与 `FileStorage`（按目录落盘）；`SQLiteStorage`（可选，`@agent-runtime/store-sqlite`，C9）等其它后端可注入替换。 |
 | `Memory` | （M2）记忆门面 `SessionMemory`：会话层=对话流（跨进程重启可读），事实层=`remember`/`recall` 长期事实 KV。 |
 | `Checkpoint` | （M2）步级快照：每完成一步写入 messages + usage + 工具指纹（`toolsHash`），引擎只发快照、宿主负责落盘。 |
@@ -57,9 +57,11 @@ while steps < maxSteps:
 
 ```ts
 import {
-  Agent, AgentRuntime, MockProvider,
-  builtinTools, defineTool, type AnyTool,
-} from "./src/index.js";
+  Agent, AgentRuntime, defineTool, type AnyTool,
+} from "@agent-runtime/core";                  // 引擎 + types/memory 等聚合出口
+import { MockProvider } from "@agent-runtime/mock";        // 免密钥规则模型（演示/测试）
+import { builtinTools } from "@agent-runtime/tools-basic"; // 内置工具集（可选）
+// 真实模型：import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 
 // 1. 模型（免密钥）或 new OpenAIClientProvider({ model: "gpt-4o-mini" })
 const runtime = new AgentRuntime({ provider: new MockProvider() });
@@ -90,10 +92,9 @@ console.log(result.output);   // 最终自然语言答案
 ### 会话管理（M1：`SessionManager`）
 
 ```ts
-import {
-  Agent, AgentRuntime, FileStorage,
-  MockProvider, builtinTools,
-} from "@agent-runtime/core";
+import { Agent, AgentRuntime, FileStorage } from "@agent-runtime/core";
+import { MockProvider } from "@agent-runtime/mock";
+import { builtinTools } from "@agent-runtime/tools-basic";
 import { SessionManager } from "@agent-runtime/host";
 
 const manager = new SessionManager({
@@ -113,45 +114,30 @@ const out2 = await manager.chat(s.id, "那 4 + 5 呢？");
 npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
 
 ```
-packages/
-├── types/                   # C1 共享叶子包 @agent-runtime/types（零依赖：消息/工具/事件/Storage/Artifact 契约 + 校验器与纯函数）
-├── memory/                  # C3 @agent-runtime/memory（SessionMemory 会话记忆 + Checkpoint 步级快照，M6 外置）
-├── artifact/                # @agent-runtime/artifact（产物管理 ArtifactManager，M6 自查后从 memory 拆出）
-├── sandbox/                 # C4 @agent-runtime/sandbox（LocalSandbox 执行域，M6 外置）
-├── policy/                  # C5 @agent-runtime/policy（PermissionManager 授权决策，M6 外置）
-├── mcp/                     # C6 @agent-runtime/mcp（MCP 适配：client/transport/registry，M6 外置）
-│   ├── src/
-│   │   ├── types.ts         # 消息 / 工具调用 / RunUsage 等核心契约类型
-│   │   ├── schema.ts        # JSON Schema 子集校验器（validate / JsonSchema）
-│   │   └── util.ts          # 零 IO 纯函数（newId / stringifyResult 等）
-│   └── test/                # node:test（schema 校验）
-├── core/                    # C2 引擎实现包 @agent-runtime/core（仅依赖 C1）
-│   ├── src/
-│   │   ├── index.ts         # 公共 API（同时 re-export @agent-runtime/types 的全部导出）
-│   │   ├── runtime.ts       # 多步推理事件循环（AgentRuntime）
-│   │   ├── agent.ts         # Agent 定义
-│   │   ├── context.ts       # Context 门面（M1：run 注入 session/task/run 上下文）
-│   │   ├── session.ts       # SessionManager / Task / RunRecord（M1）
-│   │   ├── events.ts        # 事件总线（含 session/task 事件，M1）
-│   │   ├── tool.ts          # 工具抽象
-│   │   ├── provider.ts      # ModelProvider 接口 + 错误类型
-│   │   ├── tools/           # calculator（安全求值）· builtin（内置工具集）
-│   │   ├── providers/       # mock（免密钥规则模型；openai-compatible 已外置，C7）
-│   │   └── store/           # Storage 接口 + Memory/File 实现（M1）
-│   └── test/                # node:test（runtime/session/store/calculator）
-├── tools-basic/             # 内置基础工具集（calculator / builtinTools，演示友好，非引擎必需，M6 外置）
-├── mock/                    # MockProvider 免密钥规则模型（演示/测试桩，M6 外置）
-├── host/                    # C8 @agent-runtime/host（SessionManager 会话/任务生命周期，M6 外置）
-├── provider-openai/         # C7 可插拔模型后端 @agent-runtime/provider-openai（OpenAI 兼容 fetch）
-└── store-sqlite/            # C9 可选存储后端 @agent-runtime/store-sqlite（SQLiteStorage，node:sqlite）
+packages/                   # 12 个 npm workspace 包（均 private）；目录名即 scoped 包名，如 core → @agent-runtime/core
+├── types/                  # C1 共享叶子包 @agent-runtime/types（零依赖）：消息/工具/事件/Storage/Artifact 契约 + schema 校验器 + 零 IO 纯函数
+│                           #   src/: artifacts · events · schema · storage · tools · types · util
+├── memory/                 # C3 @agent-runtime/memory（依赖 types）：SessionMemory 会话记忆 + Checkpoint 步级快照（M6 外置；checkpoint M6-10 归位）
+├── artifact/               #    @agent-runtime/artifact（依赖 types）：ArtifactManager 产物管理（M6-9 自查后自 memory 拆为独立包）
+├── sandbox/                # C4 @agent-runtime/sandbox（依赖 types）：LocalSandbox 三档执行域（M6 外置）
+├── policy/                 # C5 @agent-runtime/policy（依赖 types）：PermissionManager/DefaultPermissionPolicy 授权决策（M6 外置）
+├── core/                   # C2 引擎 @agent-runtime/core（1005 行，依赖 C1 + 上述 facade 包）：run loop/agent/context/事件总线/tool 与 provider 契约
+│   └── src/                #   agent · context · events · index · provider · runtime · tool
+│                           #   store/（MemoryStorage · FileStorage，零依赖实现）
+├── tools-basic/            # 内置工具集 @agent-runtime/tools-basic（builtinTools：calculator 等 5 个，M6 外置，非引擎必需）
+├── mock/                   # MockProvider 免密钥规则模型 @agent-runtime/mock（演示/测试桩，M6 外置）
+├── host/                   # C8 @agent-runtime/host（SessionManager 会话/任务生命周期，M6 外置，host 层）
+├── mcp/                    # C6 @agent-runtime/mcp（MCP 适配：client/jsonrpc/registry/transport/types，M6 外置）
+├── provider-openai/        # C7 @agent-runtime/provider-openai（OpenAI 兼容 fetch 模型后端）
+└── store-sqlite/           # C9 @agent-runtime/store-sqlite（SQLiteStorage 可选存储后端，node:sqlite）
 examples/
-├── cli.ts                   # 终端交互演示（会话持久化到 .runtime-data/，M1）
+├── cli.ts                  # 终端交互演示（会话持久化到 .runtime-data/，M1）
 └── web/
-    ├── server.ts            # SSE 服务器（会话持久化，跨重启恢复，M1）
-    └── public/index.html    # 流式控制台前端
+    ├── server.ts           # SSE 服务器（会话持久化，跨重启恢复，M1）
+    └── public/index.html   # 流式控制台前端
 ```
 
-> 兼容：`@agent-runtime/core` re-export `@agent-runtime/types`，故从两包任意一处都可拿到消息类型 / `validate` / `newId` 等，公共导入面与拆包前一致。
+> 兼容：`@agent-runtime/core` 聚合 re-export `types` / `memory` / `artifact` / `sandbox` / `policy`，从 core 单点可拿到与拆包前一致的公共导入面；推荐新代码按需直连子包。公共导出面以 `docs/api-surface.md` 冻结快照 + `npm run check:api` 为唯一事实源。
 
 ## 运行中的事件
 

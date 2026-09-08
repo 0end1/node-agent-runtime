@@ -3,7 +3,7 @@
 > 记录时间：2026-09-07（M5 产品化阶段收尾）
 > 定位：**总池索引**，汇总现阶段全部遗留/未决任务，供下一开发阶段取用。
 > 事实源：执行级细节仍以各自清单文档为准——`docs/m5-productization.md`（#5 验收移交）、`docs/crate-split-todo.md`（拆包批次与验收标准）、`docs/crate-architecture.md` §8（待决清单）、`docs/architecture.md` §11（路线图 M5 行待标 ✅）。任务完成时：**勾选源清单 + 回填本文状态行，双处同步**。
-> **决策状态（2026-09-07，split 分支）**：C1~C4 四项开放决策已全部落定（见 §3「决策结论」列），据此 B1（C6 mcp）动工；C1 结论为不拆 C8 host，故 **B2 移出 M6 计划**（⏸ 待重评）。
+> **决策与执行状态（截至 M6-12，2026-09-08）**：C1~C4 四项开放决策已全部落定（见 §3「决策结论」列）；C1 经重评由「不拆」**修订为「拆 host」**，B1~B4 拆包批次全部完成（M6-7）。M6-9~11 自查整改进一步将 C3 的 Artifact 实现拆为独立包 `@agent-runtime/artifact`、把 B3 暂留 core 的 checkpoint 归位 memory、外置 mock/tools-basic，形成 **12 包终局**。本池去向：A1→P5 / A2→P2 / A3→P2 / A4→P6；B1~B4→P1（✅）；D2→P3.8；D1/D3 维持远期。
 
 ## 0. 总览
 
@@ -26,7 +26,7 @@
 | D 远期 | D3 | 参考文档机制采纳（codex / deepseek harness） | codex/deepseek 参考文档 | ☐（远期） |
 
 > 建议顺序：**C 决策先行 → A1~A4 验收收口 → B 拆包**；C1 决定 B2/B3 是否可拆干净，应在拆包动工前落定。
-> 当前执行：C1~C4 已定 → **B1（mcp）进行中** → 其余 A 项按 M6 计划分批（A2/A3→P2，A1→P5，A4→P6）。
+> 当前状态：C1~C4 已定、B1~B4 已全部完成（M6-7），M6-9~11 自查整改闭环（12 包终局，见 `crate-split-todo.md` 归档注记）；余下 A 项按 M6 计划分批执行中（A2/A3→P2，A1→P5，A4→P6）。
 
 ---
 
@@ -46,7 +46,7 @@
 | 批次 | 包 | 迁移源 | 迁移测试 | 依赖 | 前置 |
 |---|---|---|---|---|---|
 | 1 | C6 `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + `test/fixtures/mock-mcp-server.mjs` | C1（types）+ core 工具契约（`defineTool` / `ToolKind` / `classifyToolName`，C4 决策不下沉） | core 无反向 import；core index 移除 mcp 导出 |
-| 2 | ~~C8 `@agent-runtime/host`~~ | — | — | — | **⏸ 移出 M6**：C1 决策 Session/Task 留 core（见 §3 C1） |
+| 2 | C8 `@agent-runtime/host` | `core/src/session.ts`(721 行) | `core/test/session.test.ts` | host → {core, memory, sandbox, policy, types} | ✅ **2026-09-07 完成**：C1 决策重评为「拆」后执行（原计划一度移出 M6，见 §3 C1 修订记录）；破坏性变更，core 不再导出 `SessionManager` |
 | 3 | C3 `@agent-runtime/memory`（含 Artifact 实现，见 C3 决策） | `memory.ts` `artifact.ts`（**`checkpoint.ts` 暂留 core**，见下注） | `memory.test.ts` `artifact.test.ts` | types（Storage/DocDomain/StreamDomain 与 Artifact 契约已下沉 C1） | ✅ 已完成（2026-09-07）。**checkpoint 留 core 原因**：`computeToolsHash`/`assertResumable` 依赖 core 的 `Agent` 类（工具契约虽已下沉 C1，但 `Agent` 实现仍在 core），外置会形成 core↔C3 包级循环；待 `Agent` 契约下沉或 B4 facade 收窄时再迁 |
 | 3 | C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy` | `sandbox.ts` + `permission.ts` | `sandbox.test.ts` `permission.test.ts` | types（工具/事件契约已下沉 C1）+  policy type-import sandbox 模式/域 | ✅ 已完成（2026-09-07）：按 C2 决策拆为独立两包，sandbox 13 / policy 13 测试通过 |
 | 4 | facade 收窄 | `core/src/index.ts` 直出改逐包 re-export | 全量测试 | 全部包 | ✅ 已完成（2026-09-07）：`export *` 转发 memory/sandbox/policy（mcp 除外，避免循环）；C4 已重评并触发下沉 |
@@ -63,6 +63,8 @@
 | C2 | sandbox 与 policy 独立两包 or 合成 `@agent-runtime/governance` | 决定批次 3 拆分次数 | **独立两包** C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy`（按 codex 推荐）。理由：职责正交（执行域 vs 授权决策）；`permission.ts` 仅 type-import sandbox 的 `SandboxMode`/`SandboxScope`，拆后无运行期耦合 | ✅ |
 | C3 | `Artifact` 归属 | 类型入 C1；实现随 M4 并 C6 or C3 | **类型下沉 C1**（`Artifact`/`ArtifactKind`/`ArtifactInput` 等），**实现并入 C3**（与 memory 同包 `@agent-runtime/memory`，包描述注明「会话记忆 + 产物存储，均基于 Storage 契约」）。同时**下沉 `Storage`/`DocDomain`/`StreamDomain` 契约至 C1**（`core/src/store/types.ts` 为零依赖纯类型），消除 core↔C3 循环 | ✅ |
 | C4 | `tool.ts`/`ToolDefinition` 契约层是否下沉 C1 | TS 下 `import type` 可不拆；**转 Rust 前必须拆** | ✅ **已触发下沉（2026-09-07）**：拆 C4/C5 时 sandbox 需 `ToolKind`、policy 需事件与工具类型，留在 core 将形成包级循环 → 工具契约与事件契约一并下沉 C1（`types/src/tools.ts` / `events.ts`），core 保留实现并 re-export 类型（公共面不变）。`EventEmitter<E>` 亦入 C1，供 policy 结构化解耦 | ✅（已执行） |
+>
+> **决策修订注记（M6-12 追注）**：C3 的「实现并入 C3（memory 包）」于 M6-9 自查后修订为**独立拆包 `@agent-runtime/artifact`**（一包一职责，`packages/artifact/`）；B3 中暂留 core 的 `checkpoint.ts` 亦于 M6-10 借 ToolSurface 契约归位 memory；C3 结论中「包描述注明『会话记忆 + 产物存储』」一并随之失效（memory 现只承担 SessionMemory + Checkpoint）。C1/C2/C4 维持 §3 结论。相关修订与验证见 `p1-review.md` §3.1、`crate-split-todo.md` 归档注记、`CHANGELOG.md` M6-9/10 条目。
 
 ---
 

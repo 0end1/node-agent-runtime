@@ -3,7 +3,7 @@
 > 本文是 `docs/architecture.md` 的**研究附篇**：把 §2 的 Runtime 模块树按 codex-rs 的 workspace 组织方式重排为一张「模块边界 / 依赖图」，供后续决定是否及如何拆包 / 移植。
 > 约定：v0.1 只产出边界设计，不改代码、不承诺落地；**v0.2 起按 §7.1 方案 A（npm workspaces）落地 C1/C2，公共 API 不变**。
 > 相关机制出处见 `docs/codex-reference.md`。
-> 日期：2026-09-05 · 状态：C1/C2 已落地（v0.2-with-workspaces，`npm test` 35 通过）
+> 日期：2026-09-05 · 状态：**C1~C9 边界落地完成 —— 12 包终局（2026-09-08，M6-12）**；§3~§8 为研究/决策史，当前进度见 §0 与 §9 修订记录
 
 ---
 
@@ -15,6 +15,7 @@
 - 无论最终选哪种形态，现在即可执行且两形态通用的收敛动作见 §7.3。
 - **v0.2 落地进度**：已按 §7.1 方案 A 完成 C1（types 底座）与 C2（core 引擎）两包的 npm workspaces 收敛，公共 API 不变；§8 待决项中 #1（形态）、#6（createDemoAgent）已定，其余待里程碑推进。
 - **后续进度**：M2（memory/checkpoint，2026-09-07）与 M3（sandbox/permission，2026-09-07）功能均先落 C2 包内（`packages/core/src/`），C3~C5 拆包留待 M5 收口。
+- **当前进度（2026-09-08，M6-12）**：M6 P1 拆包（B1~B4，§9 v0.4~v0.10）已全部完成；M6-9~11 自查整改把 `Artifact` 拆为独立包 `@agent-runtime/artifact`（原 §8-4 / §3「归属待定」就此落定）、`MockProvider`/内置工具外置为 `mock`/`tools-basic`、`checkpoint` 归位 memory、`classifyToolName` 下沉 C1，形成 **12 包终局**（types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, host, mcp, provider-openai, store-sqlite}）；core 收窄至 1005 行，`npm run check:api` 0 差异。详见 §9 v0.11 与 `crate-split-todo.md` 归档注记。
 
 ---
 
@@ -77,7 +78,7 @@ L1 叶        types.ts · schema.ts · util.ts（零内部依赖）
 
 **聚合出口**：现有 `src/index.ts` 在 crate 化后收窄为 **facade**（逐包 re-export）；`createDemoAgent` 属演示工厂，移入 examples 或留在 facade 顶部（决策项，见 §8）。
 
-**归属待定**：`Artifact`（architecture §8）—— 类型入 C1，实现（小文本入 KV、大文件走 Blob）随 M4 并入 C6 或 C3，见 §8。
+**归属（已定，M6-9）**：`Artifact`（architecture §8）—— 类型入 C1（v0.7 落地）；实现未并入 C6/C3，而是于 M6-9 自查后**独立拆包 `@agent-runtime/artifact`**（一包一职责，`packages/artifact/`），见 §9 v0.11。
 
 **远期注记**：仿 codex `config/`+`features/` 的配置/特性开关模块目前不存在于本项目，不入近期拓扑（§8）。
 
@@ -177,10 +178,10 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 > 状态标注：`[已定]` = 已落地 / 已明确；其余为开放项。
 
 1. **形态二选一**：npm workspaces（推荐先做）还是 Rust workspace（长期向 codex 看齐）。`[已定]` 阶段 1 已按 **npm workspaces** 落地 C1/C2（v0.2）；Rust 移植保留为未来选项，届时本文即移植蓝本。
-2. `tool.ts` 是否拆「契约描述层 → C1」与「执行门面 → C2」：TS 下靠 `import type` 可不拆；一旦转 Rust 必须拆。
+2. `tool.ts` 是否拆「契约描述层 → C1」与「执行门面 → C2」：TS 下靠 `import type` 可不拆；一旦转 Rust 必须拆。`[已定]` M6 已触发下沉：工具/事件契约入 C1（v0.8），`classifyToolName` 于 M6-9/11 下沉 C1。
 3. permission 与 sandbox **是否独立两包**：本草案按 codex 推荐独立（C4/C5）。
-4. Artifact（architecture §8）归 memory 包还是随 mcp 独立：草案倾向并入 C3 memory（同为 Storage 读写），M4 时定。
-5. Session/Task/RunRecord 放 host（C8）：接受其依赖 runtime 公开 API 的事实；若想引擎侧也能用 Task，需再评估是否拆出 task 状态机。v0.2 暂留 C2，随 M5 收口再评估。
+4. Artifact（architecture §8）归 memory 包还是随 mcp 独立：草案倾向并入 C3 memory（同为 Storage 读写），M4 时定。`[已定]` M6-9 起**独立成包** `@agent-runtime/artifact`（v0.7 曾并入 memory，v0.11 修订）。
+5. Session/Task/RunRecord 放 host（C8）：接受其依赖 runtime 公开 API 的事实；若想引擎侧也能用 Task，需再评估是否拆出 task 状态机。v0.2 暂留 C2，随 M5 收口再评估。`[已定]` M6 v0.10 已拆：C8 `@agent-runtime/host` 落地，core 不再导出 Session/Task（破坏性变更）。
 6. `src/index.ts` 收窄为 facade 后，`createDemoAgent` 去向（保留顶部 vs 移 examples）。`[已定]` v0.2 死代码清理中移除 `createDemoAgent`（examples 均自行 `new Agent`）。
 7. 远期是否引入 codex `config/features` 式的配置与特性开关模块（当前无，暂不入图）。
 
@@ -197,6 +198,7 @@ C1  types 底座：schema / types / util / 事件类型 / tool·message 契约
 | v0.8 (M6-B3) | 2026-09-07 | 拆包批次 3 收尾：`sandbox.ts` → C4 `@agent-runtime/sandbox`、`permission.ts` → C5 `@agent-runtime/policy`（§8-3 决策：独立两包），测试随迁。为消除包级循环，**触发 §8-2 下沉条件**：工具契约（`ToolDefinition`/`AnyTool`/`ToolKind`/`ToolMeta`/`ToolExecutionContext`）与事件契约（`RuntimeEvent` 等）下沉 C1（`types/src/tools.ts`、`events.ts`），core 对应文件改「re-export 类型 + 保留实现」；新增 `EventEmitter<E>` 供 policy 结构化解耦（不再反向依赖 core 的 `EventBus`）；`mcp` 的 `classifyToolName` 改依赖 sandbox 包。验收：typecheck 绿 + 全仓 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip） |
 | v0.9 (M6-B4) | 2026-09-07 | 拆包收官：批次 4 facade 收窄——`core/src/index.ts` 由直出改为聚合出口，统一 `export *` 转发 C3 memory / C4 sandbox / C5 policy（C6 mcp 因方向为 mcp → core 不反向 re-export，避免循环）；宿主可从 core 单点导入（兼容面不变）或直连子包。`checkpoint.ts` 仍留 core（依赖 `Agent` 类）。至此 M6 P1 拆包批次 B1~B4 全部完成，包图：types ← {memory, sandbox, policy} ← core ← mcp / provider-openai / store-sqlite |
 | v0.10 (M6-B2) | 2026-09-07 | **修订 §8-5 决策**：C8 host 由「不拆」改为「拆」。`session.ts`(721 行) + 测试外置为 `@agent-runtime/host`（`packages/host/`），依赖方向 host → {core, memory, sandbox, policy, types} 单向无环（实测 core 内无模块依赖 session）；core `index.ts` 移除 Session/Task 导出（host → core 不可反向 re-export，与 mcp 同理），故为**破坏性变更**——当前 0.x 且全包 `private`（无外部消费者）为成本最低窗口。引用点已切换：`examples/cli.ts`、`examples/web/server.ts` 与 core/memory/mcp/sandbox 四处测试。验收：typecheck 绿 + 全仓 0 fail（core 33+1skip / host 8 / 其余不变）。至此 C1~C9 中 C3~C8 全部落地，最终包图：types ← {memory, sandbox, policy} ← core ← {host, mcp, provider-openai, store-sqlite} |
+| v0.11 (M6-9~12) | 2026-09-08 | **自查整改闭环为 12 包终局**：① §8-4 修订——`Artifact` 实现自 C3 memory 拆出，独立成包 `@agent-runtime/artifact`（`packages/artifact/`，v0.7 并入 memory 的决策就此修订）；② mock/tools-basic 外置——`MockProvider` 与内置工具集分别迁至 `@agent-runtime/mock` / `@agent-runtime/tools-basic`（core 不再导出，README/示例导入源同步）；③ checkpoint 归位——`checkpoint.ts` 借 ToolSurface 契约迁入 C3 memory（不再留 core，解除 v0.7/v0.9 的暂留问题）；④ `classifyToolName` 下沉 C1。`core` 收窄至 1005 行。最终包图：types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, host, mcp, provider-openai, store-sqlite}；`npm run check:api`（M6-11 起）0 差异 |
 | v0.1 | 2026-09-05 | 按 codex-rs workspace 形态把 architecture §2 模块树重排为 crate/包边界与依赖图；给出 C1~C9+A1 映射、边界规则、形态对比与待决清单；纯设计研究，未改代码 |
 | v0.2 | 2026-09-05 | 落地 §7.1 方案 A：根包改 npm workspaces 容器，C1 `@agent-runtime/types` / C2 `@agent-runtime/core` 两包先行（`git mv` 代码、C2 顶部 re-export C1、导入改包名、测试随包）；`npm run typecheck` / `npm run build` / `npm test`（35 通过）全绿，公共 API 不变 |
 | v0.3 (M4) | 2026-09-07 | 落地 M4 外部能力：MCP client（`packages/core/src/mcp/`：`McpClient` + `StdioTransport`/`StreamableHttpTransport` + `McpRegistry` 物化）与 `artifact.ts`（`ArtifactManager`）先在 C2 内实现并随包测试；C6 `@agent-runtime/mcp` 拆包留待 M5；§6 里程碑表 M4 行同步 |

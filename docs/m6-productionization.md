@@ -28,16 +28,18 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P1.1 | 落定 remaining-tasks C1~C4 四项开放决策 | 决策记录回填 `remaining-tasks.md` §3 + `crate-architecture.md` §8 | 四项各有结论与影响行 | ✅（2026-09-07：C1 经重评**修订为拆 host** / C2 独立两包 / C3 类型下沉 C1 + 实现并 C3 / C4 **已触发下沉**：工具 + 事件契约入 C1） |
+| P1.1 | 落定 remaining-tasks C1~C4 四项开放决策 | 决策记录回填 `remaining-tasks.md` §3 + `crate-architecture.md` §8 | 四项各有结论与影响行 | ✅（2026-09-07：C1 经重评**修订为拆 host** / C2 独立两包 / C3 类型下沉 C1 + 实现并 C3 / C4 **已触发下沉**：工具 + 事件契约入 C1；2026-09-08 追注：C3 的 Artifact 实现于 M6-9 自查后**独立成包**，见 `p1-review.md` §3.1） |
 | P1.2 | 拆包批次 B1：C6 `@agent-runtime/mcp` | 迁移 `core/src/mcp/` + `core/test/mcp.test.ts` | 新包独立 typecheck/测试绿 | ✅（mcp 15 pass） |
 | P1.3 | 拆包批次 B2：C8 `@agent-runtime/host` | 迁移 `core/src/session.ts`(721 行) + `session.test.ts` | 单向依赖 host → core，无环 | ✅（原「移出」经重评恢复并完成：host 8 pass，`SessionManager` 导入源变更为破坏性变更并已切换全部引用点） |
 | P1.4 | 拆包批次 B3：C3 memory / C4 sandbox / C5 policy | 迁移对应 src+test | 同上 | ✅（memory 17 / sandbox 13 / policy 13 pass） |
 | P1.5 | 拆包批次 B4：core facade 收窄 | `core/src/index.ts` 改逐包 re-export | 全仓测试绿、examples 导入经 facade 兼容 | ✅（re-export memory/sandbox/policy；mcp 与 host 因方向所限不反向 re-export） |
-| P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ✅（`docs/api-surface.md`：9 包导出面 + 变更规则 + 发布前复核要求） |
+| P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ✅（`docs/api-surface.md`：12 包导出面 + 变更规则 + 发布前复核要求；M6-11 起由 `npm run check:api` 脚本比对基线，见 P2.7） |
 
 **Gate 1 退出标准**：`remaining-tasks.md` A~C 全部 ☑；全仓 `typecheck` + `npm test` 绿；API 快照入库；`examples/` 三种形态在拆分后全流程可用。
 
 > **进度（2026-09-07，split 分支）——Gate 1 已关闭**：P1.1~P1.6 全部完成。9 个 workspace 包（types / memory / sandbox / policy / core / host / mcp / provider-openai / store-sqlite，含 C1 重评后新增的 C8 host），依赖单向无环；全仓 `typecheck` 绿、`npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；公共 API 冻结快照已入库 `docs/api-surface.md`。后续进入 **P2 工程护栏**。
+>
+> **追注（2026-09-08，M6-12）——12 包终局**：M6-9~11 自查整改在 P1 拆包基础上又完成两件外置与两处归位——`Artifact` 自 memory 拆为独立包 `@agent-runtime/artifact`（M6-9）、`MockProvider` 与内置工具分别外置为 `@agent-runtime/mock` / `@agent-runtime/tools-basic`（M6-9）、checkpoint 归位 memory（M6-10）、`classifyToolName` 下沉 C1（M6-9/11）；`core` 收窄至 1005 行。Gate 1 口径现按 **12 包** 计（新增 artifact/tools-basic/mock），依赖仍单向无环，`npm run check:api` 0 差异。P2.7 快照复核脚本已随之落地（M6-11）。
 
 ## 2. P2 · 工程护栏与质量门（Gate 2）
 

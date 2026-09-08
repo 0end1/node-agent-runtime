@@ -8,6 +8,24 @@
 
 ## [Unreleased]
 
+**M6-13 · 文档同步收口（P0/P1 修正）**（2026-09-08）：基于 `docs/docmap-audit.md`（M6-12 文档盘点）执行其 §6 的 P0/P1 修正清单，把拆包后仍残留的单包时代/中间态描述对齐到 **12 包终局**：
+
+- `README.md`：项目结构树改为 12 包依赖分层布局（含 `core/src/store/` 与真实源码文件，去掉拆包前旧树）；核心代码示例与会话示例导入源由 `./src/index.js` 改按包导入（`@agent-runtime/core` / `mock` / `tools-basic` / `provider-openai` / `host`）；概念表补包名；内置工具节注明源自 `@agent-runtime/tools-basic`；兼容注改为「core = facade 聚合出口，导出面以 api-surface + check:api 为准」
+- `docs/crate-split-todo.md`：新增「归档注记」（12 包终局：artifact 独立拆包、checkpoint 归位 memory、§5 决策 C1/C4 修订）；§1 标注为历史快照；C3 状态格与 §6 文档同步项收尾勾选
+- `docs/m6-productionization.md`：P1.6 改 12 包导出面、P1.1 追注 Artifact 独立成包、进度段加「12 包终局」追注
+- `docs/development-checklist.md`：§0 M6 行与 P1/P2 行对齐 12 包终局，P2.7 ✅ 标注
+- `docs/remaining-tasks.md`：头部决策状态、建议顺序/当前状态改为「已收口」；B2（C8 host）行改为已完成（C1 重评为「拆」）；§3 补决策修订注记
+- `docs/crate-architecture.md`：头部状态刷新为 12 包终局；新增 **v0.11** 修订行（M6-9~12 自查整改闭环）；§3 Artifact 归属落定为独立包；§8 待决 2/4/5 补 `[已定]` 标注
+- `examples/desktop-tauri/README.md`：「与拆包（C8 host）的关系」由未来态改写为现状（host 已拆且示例已接线）
+- `docs/architecture.md`：§5.3 / §6.1 / §6.2 / §8.1 / §8.2 / §9 的 M2~M4 实现注记补「M6 已迁出至 `@agent-runtime/*`」追注（mcp / policy / sandbox / artifact / memory+checkpoint / host），避免按旧路径 `packages/core/src/*` 检索被误导
+- `docs/m5-productization.md`：原则与 Desktop 明细中「未来若拆 C8 host」的未来态表述改为现状（host 已拆、示例已切子包导入）
+
+**新增**：`docs/docmap-audit.md`（16 篇文档地图与一致性/缺失审计，含目录树、逐文档档案与交叉引用关系）。
+
+**验收**：纯文档变更，无代码与公共 API 变化；`npm run typecheck` / `npm run check:api` 不受影响。
+
+---
+
 **M6-12 · 包元数据名实对齐**（2026-09-08，split 分支）：修正拆包（M6-9 / M6-10）后残留的过时描述——`@agent-runtime/memory` 的产物职责已归 `@agent-runtime/artifact`、`@agent-runtime/core` 已不含 session 与 provider 实现，两个包的 `description` 与 core facade 注释块同步至真实构成（memory = SessionMemory + Checkpoint/ToolSurface 契约；artifact 独立一行；core = 引擎 + 聚合出口）。
 **验收**：纯描述/注释变更，无代码与公共 API 变化；`npm run typecheck` 绿，`npm run check:api` 0 差异。
 

@@ -81,6 +81,8 @@ release 构建时 `lib.rs` 的 `spawn_server` 通过 `tauri-plugin-shell` 的 si
 
 ## 与拆包（C8 host）的关系
 
-Desktop 壳不引用任何内部模块，仅通过 `examples/web` 的 HTTP 面消费 `core`
-公共能力。未来若拆 C8 host，examples 整体把 import 源从 core 换成 host 即可，
-本壳无需改动。
+Desktop 壳不引用任何内部模块，仅通过 `examples/web` 的 HTTP 面消费 Agent Runtime
+公共能力。C8 host 已于 M6 拆为 `@agent-runtime/host`，CLI/Web 示例均改从对应子包
+导入（`@agent-runtime/core` / `@agent-runtime/host` / `@agent-runtime/mock` /
+`@agent-runtime/tools-basic` 等，见 README「项目结构」）；本壳不参与包内实现，
+后续包结构再调整也无需改动本壳。

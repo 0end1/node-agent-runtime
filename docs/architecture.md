@@ -273,7 +273,7 @@ interface McpRegistry {
 - 命名空间：远程工具以 `serverName::toolName`（或前缀 `mcp__server__tool`）注册，避免与本地工具冲突；错误回填格式与本地工具一致，模型可自纠。
 - 产物：MCP 的文本/二进制资源映射为 `Artifact`（§8）。
 
-> 实现注记（M4，2026-09-07）：`McpClient` 与 `McpRegistry` 已落地于 C2 `packages/core/src/mcp/`——`jsonrpc.ts`（JSON-RPC 2.0 消息 + `McpError`/`McpTimeoutError`/`McpConnectionError`）、`transport.ts`（`StdioTransport` spawn 子进程行式协议；`StreamableHttpTransport` fetch POST，兼容 `text/event-stream` 与纯 JSON 两种响应）、`client.ts`（握手 `initialize` + `notifications/initialized`、`tools/list` 分页、`tools/call`）、`registry.ts`（物化 `mcp__server__tool` 前缀本地 `ToolDefinition`，`normalizeSchema` 归一化远端 schema 到引擎 JsonSchema 子集、敏感类由远端工具名推断、`isError` 时 execute 抛错让模型自纠）。「注册即枚举」的时序意味着：只要先 `await registry.register(handle)` 再把 `registry.tools()` 合入 Agent 配方，远端工具与本地工具后续 100% 同路径。C6 `@agent-runtime/mcp` 拆包随 M5。
+> 实现注记（M4，2026-09-07）：`McpClient` 与 `McpRegistry` 已落地于 C2 `packages/core/src/mcp/`——`jsonrpc.ts`（JSON-RPC 2.0 消息 + `McpError`/`McpTimeoutError`/`McpConnectionError`）、`transport.ts`（`StdioTransport` spawn 子进程行式协议；`StreamableHttpTransport` fetch POST，兼容 `text/event-stream` 与纯 JSON 两种响应）、`client.ts`（握手 `initialize` + `notifications/initialized`、`tools/list` 分页、`tools/call`）、`registry.ts`（物化 `mcp__server__tool` 前缀本地 `ToolDefinition`，`normalizeSchema` 归一化远端 schema 到引擎 JsonSchema 子集、敏感类由远端工具名推断、`isError` 时 execute 抛错让模型自纠）。「注册即枚举」的时序意味着：只要先 `await registry.register(handle)` 再把 `registry.tools()` 合入 Agent 配方，远端工具与本地工具后续 100% 同路径。C6 `@agent-runtime/mcp` 拆包随 M5。（**2026-09-08 追注**：已于 M6-2 拆为独立包 `@agent-runtime/mcp`，不再位于 `packages/core/src/mcp/`；core 不反向 re-export，请从子包导入。见 §10 现状注记与 §13 v1.8/v1.9）
 
 ---
 
@@ -326,7 +326,7 @@ interface PermissionManager {
 
 策略示例（内置 `FileAccessPolicy`、`NetworkPolicy` 未来按工具类别挂载）。敏感分类建议：`无害(计算/时钟)`、`只读网络(天气)`、`写文件`、`执行命令`、`访问凭据`；默认分级 allow / ask / deny。
 
-> 实现注记（M3，2026-09-07）：`permission.ts` 已落地——`DefaultPermissionPolicy` 按 `ToolKind × SandboxMode` 决策矩阵（写文件/执行命令在 read-only 档直接 deny、可写档与 full-access 档 ask；凭据全档 deny；无害工具全档 allow）+ `PermissionManager.gate/approve/deny`，ask 挂起等待宿主（超时=按拒绝处理并触发 `permission:denied(timedOut)`）；`combinePolicies` 多策略命中取最严（对齐 codex execpolicy）。口径确认：**`network-read` 在可写/全权限档为 ask、read-only 档为 allow**——出网与否由 sandbox 的 `scope.network` 开关独立把关（能力与授权二维正交）；`approve({ always: true })` 把决定沉淀为会话级白名单，对齐 dsh 权限预设的"切档追加持久化事件"语义。敏感级别由 `ToolDefinition.meta.kind` 声明，缺省时按工具名启发式归类。
+> 实现注记（M3，2026-09-07）：`permission.ts` 已落地——`DefaultPermissionPolicy` 按 `ToolKind × SandboxMode` 决策矩阵（写文件/执行命令在 read-only 档直接 deny、可写档与 full-access 档 ask；凭据全档 deny；无害工具全档 allow）+ `PermissionManager.gate/approve/deny`，ask 挂起等待宿主（超时=按拒绝处理并触发 `permission:denied(timedOut)`）；`combinePolicies` 多策略命中取最严（对齐 codex execpolicy）。口径确认：**`network-read` 在可写/全权限档为 ask、read-only 档为 allow**——出网与否由 sandbox 的 `scope.network` 开关独立把关（能力与授权二维正交）；`approve({ always: true })` 把决定沉淀为会话级白名单，对齐 dsh 权限预设的"切档追加持久化事件"语义。敏感级别由 `ToolDefinition.meta.kind` 声明，缺省时按工具名启发式归类。（**2026-09-08 追注**：M6 起 `permission.ts` 已迁出至 `@agent-runtime/policy`，core 经 facade 转发仍可导入；工具分类纯函数 `classifyToolName`/`toolKind` 下沉 C1）
 
 ### 6.2 Sandbox（执行隔离）
 
@@ -355,7 +355,7 @@ interface SandboxScope {
 }
 ```
 
-> 实现注记（M3，2026-09-07）：`sandbox.ts` 已落地——`Sandbox.begin(mode, scope, ctx)` 建立一次 Run 的执行域，`LocalSandbox`（进程内，默认）对每个工具执行五点检查：① read-only 档拦截副作用类工具、② `scope.network === "deny"` 时拦只读网络类、③ 写工具的 path 参数解析后必须落在 workspace/writablePaths 声明域内、④ 每调用超时（默认 30s，超时抛 `SandboxTimeoutError`）、⑤ 写类工具执行后发 `sandbox:write`（尽力行级 diff，`simpleDiff`）——拦截一律抛 `SandboxViolationError`，由引擎回填给模型自纠。`SessionManager` 默认 `sandboxMode: workspace-write` + `workspace: cwd` + `network: deny`；策略层放行也过不了 read-only 沙箱（纵深防御）。OS 级 `WorkerSandbox`/`ContainerSandbox` 仍是宿主侧插口，接口不变。
+> 实现注记（M3，2026-09-07）：`sandbox.ts` 已落地——`Sandbox.begin(mode, scope, ctx)` 建立一次 Run 的执行域，`LocalSandbox`（进程内，默认）对每个工具执行五点检查：① read-only 档拦截副作用类工具、② `scope.network === "deny"` 时拦只读网络类、③ 写工具的 path 参数解析后必须落在 workspace/writablePaths 声明域内、④ 每调用超时（默认 30s，超时抛 `SandboxTimeoutError`）、⑤ 写类工具执行后发 `sandbox:write`（尽力行级 diff，`simpleDiff`）——拦截一律抛 `SandboxViolationError`，由引擎回填给模型自纠。`SessionManager` 默认 `sandboxMode: workspace-write` + `workspace: cwd` + `network: deny`；策略层放行也过不了 read-only 沙箱（纵深防御）。OS 级 `WorkerSandbox`/`ContainerSandbox` 仍是宿主侧插口，接口不变。（**2026-09-08 追注**：M6 起 `sandbox.ts` 已迁出至 `@agent-runtime/sandbox`，`LocalSandbox` 请从子包导入）
 
 ---
 
@@ -399,7 +399,7 @@ interface Artifact {
 
 落点：小文本入 KV，大文件走 Blob store（`Storage` 见 §9）；UI 通过 `locator` 拉取，无需关心实现。
 
-> 实现注记（M4，2026-09-07）：`ArtifactManager` 已落地于 C2 `packages/core/src/artifact.ts`——元数据行按 §9 文档域落 KV（`DocDomain` 新增 `artifact`），`text`/`file`/`chart`/`mcp-resource` 的 payload 统一入 Blob 域（`locator` = `blob:<key>`），`url` 类不落内容（`locator` = 目标 URL）；提供 `save`（同 id upsert）/`get`/`list(sessionId, runId?)`（新在前）/`readBytes`/`readText`/`remove`（幂等，级联删 blob）。宿主侧 `SessionManager` 暴露 `readonly artifacts`，`deleteSession` 一并清理该会话的 artifact 元数据与 payload。
+> 实现注记（M4，2026-09-07）：`ArtifactManager` 已落地于 C2 `packages/core/src/artifact.ts`——元数据行按 §9 文档域落 KV（`DocDomain` 新增 `artifact`），`text`/`file`/`chart`/`mcp-resource` 的 payload 统一入 Blob 域（`locator` = `blob:<key>`），`url` 类不落内容（`locator` = 目标 URL）；提供 `save`（同 id upsert）/`get`/`list(sessionId, runId?)`（新在前）/`readBytes`/`readText`/`remove`（幂等，级联删 blob）。宿主侧 `SessionManager` 暴露 `readonly artifacts`，`deleteSession` 一并清理该会话的 artifact 元数据与 payload。（**2026-09-08 追注**：M6-9 起 `ArtifactManager` 迁至独立包 `@agent-runtime/artifact`；`SessionManager` 门面由 `@agent-runtime/host` 提供）
 
 ### 8.2 Memory（记忆）
 
@@ -417,7 +417,7 @@ interface Memory {
 
 现状衔接：`runtime.run()` 的 `history` 参数由 Session 的 Memory 取代；引擎只读 `memory.messages()`。
 
-> 实现注记（M2，2026-09-07）：`SessionMemory` 已落地——会话层复用 per-session 追加式消息流，事实层为每会话一个 KV 文档；`recall` 当前是零依赖词面 + CJK bigram 打分，向量后端可后续替换而引擎不动。
+> 实现注记（M2，2026-09-07）：`SessionMemory` 已落地——会话层复用 per-session 追加式消息流，事实层为每会话一个 KV 文档；`recall` 当前是零依赖词面 + CJK bigram 打分，向量后端可后续替换而引擎不动。（**2026-09-08 追注**：M6 起 `SessionMemory` 已迁至 `@agent-runtime/memory`，M6-10 起 checkpoint 亦归位该包）
 
 ---
 
@@ -466,7 +466,7 @@ interface Checkpoint {
 
 恢复协议：`resume(checkpointId, continuation)` = 载入 messages + 校验 toolsHash → 以「用户追加消息」继续跑同一 run 语义（status 回到 running）。
 
-> 实现注记（M2，2026-09-07）：`SessionManager.resume()` 以 checkpoint 为基线重放 transcript，工具指纹不一致时抛 `CheckpointMismatchError`；未提供 `continuation` 时不追加用户轮次（`RunOptions.appendUserMessage = false`），因此续跑 transcript 与一次性跑完逐条一致。步级快照由引擎的 `RunOptions.onStepEnd` 回调产出，宿主负责落盘——引擎自身不持有 checkpoint 状态。
+> 实现注记（M2，2026-09-07）：`SessionManager.resume()` 以 checkpoint 为基线重放 transcript，工具指纹不一致时抛 `CheckpointMismatchError`；未提供 `continuation` 时不追加用户轮次（`RunOptions.appendUserMessage = false`），因此续跑 transcript 与一次性跑完逐条一致。步级快照由引擎的 `RunOptions.onStepEnd` 回调产出，宿主负责落盘——引擎自身不持有 checkpoint 状态。（**2026-09-08 追注**：M6-7 起 `SessionManager` 属 `@agent-runtime/host`；M6-10 起 checkpoint 以 `ToolSurface` 契约归位 `@agent-runtime/memory`）
 
 ---
 

@@ -3,14 +3,22 @@
 > 记录时间：2026-09-07
 > 依据：`docs/crate-architecture.md` §3（模块边界主表）与 §8（决策项）
 > 目标：把 `core` 内的宿主/外围模块逐步抽为独立 npm workspaces 包，最终 `core` 收窄为 facade（聚合出口）。
-> **进度（2026-09-07，split 分支）**：§5 四项阻塞决策已全部落定（见 `remaining-tasks.md` §3）；**批次 1 C6 `@agent-runtime/mcp` 已拆完并通过验收**；批次 2 C8 host 经 C1 决策移出（⏸）。
+> **进度（2026-09-07）**：§5 四项阻塞决策已全部落定（见 `remaining-tasks.md` §3）；批次 1~4 于 M6 全部执行完毕。
+>
+> **归档注记（2026-09-08，M6-12）**：本清单拆包已全部落地，并经 M6-9~11 自查整改形成 **12 包终局**——
+> - `artifact` 未并入 memory，而是自 memory **拆为独立包** `@agent-runtime/artifact`（M6-9，一包一职责）；
+> - `checkpoint` 于 M6-10 借 **ToolSurface 契约**归位 memory，不再留 core；
+> - 补充外置 `@agent-runtime/tools-basic`（内置工具）与 `@agent-runtime/mock`（MockProvider），`core` 收窄至 1005 行；
+> - §5 决策按 `remaining-tasks.md` §3 修订：§8-5 由「不出」修订为「拆 host」（M6-7）；§8-4 由「实现并 C3」修订为「独立 artifact 包」（M6-9）；§8-2 的工具/事件契约随批次 3 下沉 C1，`classifyToolName` 于 M6-9/11 最终下沉 C1。
+>
+> 现状以 `docs/architecture.md` §10（v1.9）、`docs/api-surface.md`、`docs/final-review.md` 为唯一事实源，本文归档存档。
 
-## 1. 当前现状
+## 1. 拆分前现状（历史快照，保留归档；当前 12 包布局以 README「项目结构」与 `architecture.md` v1.9 §10 为准）
 
 - `packages/`：`core`、`types`、`mcp`（新增，C6）、`provider-openai`、`store-sqlite`
-- `core/src/` 内待拆文件：`session.ts`(721 行)、`memory.ts`、`checkpoint.ts`、`sandbox.ts`、`permission.ts`、`artifact.ts`（归属已定：类型下沉 C1、实现并 C3）
+- `core/src/` 内待拆文件：`session.ts`(721 行)、`memory.ts`、`checkpoint.ts`、`sandbox.ts`、`permission.ts`、`artifact.ts`（当时归属：类型下沉 C1、实现并 C3 —— 后修订为独立包，见归档注记）
 - `core/src/mcp/` 已外置为 `packages/mcp/`（client/jsonrpc/registry/transport/types + index），core `index.ts` 相应收窄
-- 曾试行 C8 host 拆包后回滚；C1 决策 Session/Task 留 core，host 拆包移出 M6（重评触发见 remaining-tasks §3 C1）。
+- 曾试行 C8 host 拆包后回滚；C1 决策曾定 Session/Task 留 core（后被修订为「拆」，见 `remaining-tasks.md` §3 C1）。
 
 ## 2. 已完成
 
@@ -28,7 +36,7 @@
 |---|---|---|---|---|---|---|---|
 | C6 | `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + fixture | C1 + core 工具契约 | core 无反向 import；收窄 index 的 mcp 导出 | 1 | ✅ |
 | C8 | `@agent-runtime/host` | `core/src/session.ts`(721 行) | `core/test/session.test.ts` | core 引擎 API + memory/sandbox/policy + types | ✅ 已完成（2026-09-07）：C1 决策经重评**修订为「拆」**（原阻碍已随 B3/B4 消失，core 内无模块依赖 session）；core 不可反向 re-export host，故为破坏性变更，宿主改从新包导入 | 2 | ✅ |
-| C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（checkpoint 待契约下沉后再迁） |
+| C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（终局：Artifact 独立拆包 M6-9；checkpoint 归位 memory M6-10，见归档注记） |
 | C4 | `@agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（工具契约已下沉 C1） | C2 决策：独立两包 | 3 | ✅ |
 | C5 | `@agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ✅ |
 | — | facade 收窄 | `core/src/index.ts` 由直出改逐包 re-export | 全量测试 | 全部包 | ✅ 已完成（2026-09-07）：`export *` 转发 memory/sandbox/policy；mcp 不反向 re-export（避免循环） | 4 | ✅ |
@@ -64,7 +72,7 @@
 - [x] core 收窄导出后，全仓 `npm test` 与 typecheck 通过（C6 ✅）
 - [x] `examples/cli`、`examples/web` 导入已切换到新包（C6 ✅：cli 已切，web 未用 mcp）
 - [x] 根 `package.json` workspaces、`tsconfig.json` paths、`package-lock.json` 已接线（C6 ✅）
-- [ ] 文档同步：`CHANGELOG.md`（随 commit 追加）、`crate-architecture.md` 状态行、本清单状态勾选
+- [x] 文档同步：`CHANGELOG.md`（随 commit 追加）、`crate-architecture.md` v0.11 修订行、本清单归档注记与状态勾选（M6-12）
 
 ## 7. 相关文档
 

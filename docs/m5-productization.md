@@ -3,7 +3,7 @@
 > 记录时间：2026-09-07
 > 背景：M5 行内定义 = **独立分包 + Desktop 壳 + Web 控制台全面 Session 化**（`docs/architecture.md` §11，验收：桌面 demo 全流程可用）。
 > 决策：拆包暂缓（C3~C6/C8/facade 见 `docs/crate-split-todo.md`），本清单只列**与拆包解耦、现在即可前置**的工作。
-> 原则：仅消费 `@agent-runtime/core`（及已外置 `provider-openai` / `store-sqlite`）的**公共 API**；未来若拆 C8 host，examples 只需把 import 源从 core 换成 host，不白做。
+> 原则：仅消费引擎包的**公共 API**（`@agent-runtime/core` 及已外置的 `provider-openai` / `store-sqlite` / `host` 等）；C8 host 已于 M6 拆出，examples 改从 `@agent-runtime/host` 导入，本清单前置工作不白做。
 >
 > **阶段状态（2026-09-07 收尾）**：本清单前置项全部落地并验证；余下 #5 验收（安装分发实机验证、自动化 E2E、typecheck/test 全绿）移交**下一开发阶段**跟踪，本文件保留为验收依据。
 
@@ -45,7 +45,7 @@
 ### #3 Desktop（`examples/desktop-tauri/`，Tauri v2）
 
 - 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm --prefix ../../ run demo:web` 启动 Node server 提供 API + 静态，见 M5-4 Fixed）。
-- 仅依赖 `@agent-runtime/core` 公共 API（与 #1/#2 同源），未来 C8 host 不白做。
+- 仅依赖引擎公共 API（与 #1/#2 同源）；M6 起 C8 host 已拆为 `@agent-runtime/host`，示例改从子包导入，前置工作不白做。
 - **生产 sidecar 已接入并验证**：release 构建时 `lib.rs::spawn_server` 以 `tauri-plugin-shell` sidecar 拉起 app 自带 Node 运行时执行打包好的 server bundle（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`build-server.mjs` 在打包前生成 bundle + node 运行时副本 + 静态资源（`src-tauri/binaries/`，gitignore 忽略）；`tauri build` 产出 .app/.dmg，实跑 :8787 → 200（M5-6）。
 - **图标已生成**：`npx tauri icon` 产出 `src-tauri/icons/`（含 icns/ico/png），源码 `icon-source.png` 同目录。
 - 环境已具备：`cargo 1.98` + `node v22` + Xcode CLI + `@tauri-apps/cli`；`cargo check` 绿、`npm run tauri dev` 已点开验证窗口渲染（M5-4）。

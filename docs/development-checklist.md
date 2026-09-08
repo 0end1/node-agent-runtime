@@ -17,7 +17,7 @@
 | M3 · 治理 | Permission 审批 + Sandbox 执行域 | ✅ | ask 审批流、三档沙箱、`sandbox:write` diff |
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6 |
-| **M6 · 生产级改造** | demo → 可用于生产 | 🟡 进行中 | **P1 已完成（Gate 1 关闭）**：C1~C4 决策落定 + C6 mcp / C8 host / C3 memory / C4 sandbox / C5 policy 外置 + facade 收窄，经 M6-9~11 自查整改形成 **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 收窄至 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`，P2.7 ✅ 脚本化复核）；P2（除 P2.7）~P6 待办（见 §3.1） |
+| **M6 · 生产级改造** | demo → 可用于生产 | 🟡 进行中 | **P1 已完成（Gate 1 关闭）**：C1~C4 决策落定 + C6 mcp / C8 host / C3 memory / C4 sandbox / C5 policy 外置 + facade 收窄，经 M6-9~11 自查整改形成 **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 收窄至 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`，P2.7 ✅ 脚本化复核）；**P2 主体已完成（M6-14）**——P2.1 CI / P2.2 Lint·Format / P2.5 audit 门 / P2.6 `npm run ci` 总闸 ✅，P2.7 随总闸接入 CI，P2.3 覆盖率水位已出（阈值待评审）、P2.4 跨形态 E2E ☐；P3~P6 待办（见 §3.1） |
 | M7+ | 待规划 | ⏸ | 候选池（见 §3.3），M6 收口后定优先级 |
 
 ---
@@ -48,7 +48,7 @@
 | M5-8 | 仓库更名引用同步 | GitHub `0end1/nodeRuntimes` → `0end1/nodeRuntime`；`package.json` 三处引用 + origin remote 更新 | ✅ |
 | — | 工程基线 | npm workspaces monorepo（4 包，均 `private`）；TS strict + NodeNext + `declaration`/`sourceMap`；逐包 `node:test`（`tsx --test`）；docs 8 篇；CHANGELOG 按 M 编号；分支 `apps`/`main`/`dev` 三线同步 | ✅ |
 
-> **M5 收口（🟡）**：主体（三形态 + 生产打包）已验证完成；`remaining-tasks` A1 安装分发实机验证 / A2 自动化 E2E / A3 全量质量门 / A4 路线图回填 **移交 M6**（对应 P5/P2/P2/P6）。
+> **M5 收口（🟡）**：主体（三形态 + 生产打包）已验证完成；`remaining-tasks` A1 安装分发实机验证 / A2 自动化 E2E / A3 全量质量门 / A4 路线图回填 **移交 M6**（对应 P5 / P2.4 / P2.6 / P6）。其中 **A3 全量质量门已于 M6-14 完成**（`npm run ci` + CI 常态化），A1 / A2 / A4 仍在 P5 / P2.4 / P6 待办。
 
 ---
 
@@ -71,7 +71,7 @@
 
 | 组 | 内容 | 去向 |
 |---|---|---|
-| A 验收收口 | A1 安装分发实机 / A2 自动化 E2E / A3 质量门 / A4 路线图回填 | → P5 / P2 / P2 / P6 |
+| A 验收收口 | A1 安装分发实机 / A2 自动化 E2E / A3 质量门 / A4 路线图回填 | → P5 / P2.4 / **P2.6（✅ 已完成，M6-14）** / P6 |
 | B 拆包批次 | C6 mcp、C8 host、C3 memory + C4/C5 sandbox·policy、facade 收窄 | → P1.2~P1.5 |
 | C 开放决策 | Session/Task 是否出 core；sandbox·policy 分合；`Artifact` 归属；tool 契约是否下沉 C1 | → P1.1（先行） |
 | D 远期 | **D2 config/features**（已拉近 P3.8）；D1 Rust workspace 移植、D3 参考机制采纳 | D1/D3 维持 ⏸ |

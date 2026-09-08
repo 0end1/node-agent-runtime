@@ -6,6 +6,8 @@
 > 原则：仅消费引擎包的**公共 API**（`@agent-runtime/core` 及已外置的 `provider-openai` / `store-sqlite` / `host` 等）；C8 host 已于 M6 拆出，examples 改从 `@agent-runtime/host` 导入，本清单前置工作不白做。
 >
 > **阶段状态（2026-09-07 收尾）**：本清单前置项全部落地并验证；余下 #5 验收（安装分发实机验证、自动化 E2E、typecheck/test 全绿）移交**下一开发阶段**跟踪，本文件保留为验收依据。
+>
+> **（2026-09-08 追注，M6-14）**：其中「仓库级 typecheck/test 全绿」已由 M6 P2.6 常态化保障——`npm run ci`（typecheck + lint + test + coverage + `check:api`）与 `.github/workflows/ci.yml`；#5 仍余**安装分发实机验证**与**自动化 E2E**两项（后者对应 M6 P2.4）。
 
 ## 1. 现状核实（2026-09-07）
 
@@ -21,7 +23,7 @@
 | 2 | Web 控制台全面 Session 化 | 审批 / artifact / 续跑视图 | §11 M5 行原文 | ✅ |
 | 3 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2） | §11 M5 交付物 | ✅（dev 跑通 + 生产打包验证通过：`tauri build` 产出 .app/.dmg，自带 Node sidecar 实跑 :8787 → 200） |
 | 4 | store-sqlite 演示接入 | 可选后端替换 `FileStorage` 的验证 | M5-1 外置包配套 | ✅ |
-| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ➡️ 移交下一开发阶段（2026-09-07 阶段收尾）：生产打包已验证（.app/.dmg + sidecar 自包含，app 自带 node 实跑 :8787 → 200）；待补：安装分发实机验证、自动化 E2E、仓库级 typecheck/test 全绿 |
+| 5 | M5 E2E 验收 | 桌面 demo 全流程（含自动化） | §11 M5 验收 | ➡️ 移交下一开发阶段（2026-09-07 阶段收尾）：生产打包已验证（.app/.dmg + sidecar 自包含，app 自带 node 实跑 :8787 → 200）；待补：安装分发实机验证、自动化 E2E（仓库级 typecheck/test 全绿已由 M6-14 的 `npm run ci` + CI 保障） |
 | 6 | 文档 / README 子系统化 | 参考页按能力粒度补齐 | dsh P1 借鉴 | ✅ |
 
 ## 3. 明细（#1 / #2 / #3 展开）

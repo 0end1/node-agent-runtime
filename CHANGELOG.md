@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+**M6-15 · 任务状态回填（Docs）**（2026-09-08）：把 M6-14 工程护栏的完成事实回填各清单，消除双源漂移。
+
+- `docs/remaining-tasks.md`：**A3 质量门总闸 ✅**（由 M6 P2.6 吸收完成 —— `npm run ci` = typecheck+lint+test+coverage+`check:api`，并纳入 `.github/workflows/ci.yml`）；头部决策状态行、§0 总览 A3 行、§1 A3 明细、建议顺序状态行四处同步
+- `docs/development-checklist.md`：§0 M6 行改为「P2 主体已完成（P2.4 ☐、P2.3 阈值待评审）」；§2 M5 收口行与 §3.2 遗留池标注 A3 已完成（去向 P2.6）
+- `docs/m5-productization.md`：阶段状态与 #5 补注 ——「仓库级 typecheck/test 全绿」已由 `npm run ci` + CI 常态化保障，#5 仍余安装分发实机验证与自动化 E2E
+- `docs/docmap-audit.md`：§4 缺失项 CI workflow 标 ✅ 已补齐；§7 追加 M6-14 / M6-15 执行记录
+
+**验收**：纯文档状态回填，无代码与公共 API 变化；`npm run ci` 不受影响。
+
+---
+
 **M6-14 · 工程护栏（P2.1 / P2.2 / P2.5 / P2.6，含 P2.3 水位）**（2026-09-08）：
 
 - **P2.1 CI 主流程**：新增 `.github/workflows/ci.yml`，三个 job —— `quality`（typecheck → lint → test → build → `check:api`，Node 22.x）、`coverage`（仅出报告，不阻断）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3）

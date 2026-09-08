@@ -91,7 +91,7 @@
 |---|---|---|
 | `LICENSE`（根 + 各包） | 缺失 | M6 P4.1 ☐（发布前置，Gate 4） |
 | `CONTRIBUTING.md` / `SECURITY.md` | 缺失 | M6 P6.1 ☐ |
-| `.github/workflows/ci.yml`（含 typecheck/lint/test/build/coverage/e2e/audit/**api-surface** job） | 缺失 | M6 P2.1~P2.7 ☐（脚本与基线已就绪，仅差 CI 编排） |
+| `.github/workflows/ci.yml`（含 typecheck/lint/test/build/coverage/audit/**api-surface** job） | ✅ **已补齐（M6-14）** | M6 P2.1 ✅（e2e job 待 P2.4） |
 | 根 `.nvmrc` / `packageManager`（engines 口径统一） | 缺失 | M6 P4.3 ☐ |
 | README「生产用法」节（安装/升级/配置/观测/发布 + badges） | 缺失 | M6 P6.2 ☐ |
 | `docs/` 目录索引页（本盘点即候选；目前索引职责压给 development-checklist §5） | 缺失 | — |
@@ -163,6 +163,8 @@ CHANGELOG.md（贯穿所有条目的变更事实）
 | P2-1 实现注记补「M6 已迁出」追注 | `docs/architecture.md` | ✅ 已执行（§5.3/6.1/6.2/8.1/8.2/9 共 6 处） |
 | P2+ 同类未来态表述（审计未列，顺带修正） | `docs/m5-productization.md` | ✅ 已执行（原则行 + Desktop 明细行） |
 | 随批同步 | `CHANGELOG.md` | ✅ 已执行（M6-13 条目） |
+| M6-14 工程护栏（P2.1 / P2.2 / P2.3 水位 / P2.5 / P2.6） | `.github/workflows/ci.yml`、`eslint.config.js`、`.prettierrc`/`.prettierignore`、`scripts/coverage.mjs`、根 `package.json`、`.gitignore` | ✅ 已执行（`npm run ci` 全绿；lint 0 error 0 warning） |
+| M6-15 任务状态回填 | `remaining-tasks.md`、`development-checklist.md`、`m5-productization.md`、本文件 | ✅ 已执行（A3 质量门总闸标 ✅） |
 
 **复核说明**：`docs/architecture.md` §10 现状注记（v1.9）与 §11 M6 行在审计时已含 12 包/1005 行表述，属历史递进叙述，本次未改写，仅补实现注记迁出追注；§3 审计项 #10/#11 据此视为已闭环。
 

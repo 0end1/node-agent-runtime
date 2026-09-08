@@ -1,5 +1,5 @@
 import { evaluate } from "./calculator.js";
-import { defineTool } from "../tool.js";
+import { defineTool } from "@agent-runtime/core";
 import { fmtNumber } from "@agent-runtime/types";
 
 /** Evaluate arithmetic expressions, e.g. "(3.5 + 2) * 4". */

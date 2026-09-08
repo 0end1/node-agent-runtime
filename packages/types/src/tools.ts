@@ -57,3 +57,28 @@ export interface ToolDefinition<Args extends Record<string, unknown> = Record<st
 }
 
 export type AnyTool = ToolDefinition<any, any>;
+
+/**
+ * Infer a tool's sensitivity class from its name (tools may declare it).
+ *
+ * 下沉说明（M6 P1 审查 P1）：分类属**工具元数据推断**，与沙箱执行域无关；
+ * 原先放在 sandbox 包导致 mcp 为取分类而依赖 sandbox。下沉后 mcp 只依赖 C1。
+ */
+const HARMLESS = new Set(["calculator", "now", "math", "time"]);
+
+export function classifyToolName(name: string): ToolKind {
+  const n = name.toLowerCase();
+  if (/(token|secret|credential|apikey|api_key|password|_env$)/.test(n)) return "credential";
+  if (/(exec|shell|bash|command|terminal|spawn|subprocess|run_)/.test(n)) return "exec";
+  if (/(write|edit|create|delete|remove|patch|append|save|move|mkdir|truncate)/.test(n)) return "write";
+  // Built-in demos (weather / geocode / exchange) read local static data —
+  // they are harmless, not outbound network.
+  if (/(fetch|http|request|search|web|download|api)/.test(n)) return "network-read";
+  if (HARMLESS.has(n)) return "harmless";
+  return "harmless";
+}
+
+/** A tool's effective class: declared `meta.kind` wins, else inferred from name. */
+export function toolKind(tool: AnyTool): ToolKind {
+  return tool.meta?.kind ?? classifyToolName(tool.name);
+}

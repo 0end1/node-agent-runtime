@@ -10,7 +10,7 @@ import {
   type ModelResponse,
 } from "@agent-runtime/core";
 import { SessionManager } from "@agent-runtime/host";
-import { ArtifactError, ArtifactManager } from "@agent-runtime/memory";
+import { ArtifactError, ArtifactManager } from "@agent-runtime/artifact";
 
 class NeverProvider implements ModelProvider {
   readonly id = "never";

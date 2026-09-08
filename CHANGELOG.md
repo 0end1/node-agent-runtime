@@ -8,6 +8,33 @@
 
 ## [Unreleased]
 
+**M6-9 · P1 审查整改（P0 + P1）**（2026-09-08，split 分支）：依据 `docs/p1-review.md` 执行架构整改，解决「core 过重」「为拆包而人为分层」两类问题。
+**P0 演示资产外置**：`MockProvider` → 新包 `@agent-runtime/mock`；`builtinTools` / `calculator` / `CURRENCY_ALIASES` / `CurrencyCode` / `evaluate` → 新包 `@agent-runtime/tools-basic`；core 移除对应实现与导出（公共面 -5、**1804 → 1146 行，-36%**）。
+**P1-a 工具分类下沉**：`classifyToolName` / `toolKind` 由 sandbox 下沉 C1（`types/src/tools.ts`，属工具元数据推断而非执行域），sandbox 以 re-export 保持 API 不变；`mcp` 因此去掉对 sandbox 的依赖（现只依赖 core + types）。
+**P1-b 产物独立**：`artifact.ts` 从 memory 包拆出为 `@agent-runtime/artifact`（memory 导出由 13 → 5，一包一职责），host 与 core facade 同步接线。
+**破坏性变更**：从 core 导入 `MockProvider` / `builtinTools` / `evaluate` / `CURRENCY_ALIASES` / `CurrencyCode` 失效（改从 `mock` / `tools-basic`）；从 `memory` 导入 `Artifact*` 失效（改从 `artifact`）。
+**验收**：`npm run typecheck` 绿；全仓 `npm test` 0 fail（types 4 / memory 9 / artifact 8 / sandbox 13 / policy 13 / core 31+1skip / tools-basic 2 / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-9 · 整改新包）
+- `packages/mock/`：`@agent-runtime/mock`（MockProvider 演示/测试模型后端）
+- `packages/tools-basic/`：`@agent-runtime/tools-basic`（builtinTools / evaluate / CURRENCY_ALIASES / CurrencyCode）
+- `packages/artifact/`：`@agent-runtime/artifact`（ArtifactManager 产物管理，原属 memory）
+- `packages/types/src/tools.ts`：`classifyToolName` / `toolKind`（由 sandbox 下沉）
+
+### Changed（M6-9 · 整改接线）
+- `packages/core`：`providers/`、`tools/` 目录移出（演示资产）；facade 增加 artifact 转发
+- `packages/memory`：仅保留会话记忆（剥离产物）
+- `packages/mcp`：去掉 `@agent-runtime/sandbox` 依赖
+- `packages/host`、`examples/cli.ts`、`examples/web/server.ts`、四处测试：导入源更新
+- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 3 个新包（共 12 个 workspace 包）
+
+### Docs（M6-9）
+- `docs/api-surface.md`：按 12 包重新冻结并标注依赖方向
+- `docs/p1-review.md`：补记整改执行结果
+- `README.md`：包结构与验证章节同步
+
+---
+
 **M6-8 · 公共 API 冻结快照（P1.6，Gate 1 关闭）**（2026-09-07，split 分支）：新增 `docs/api-surface.md`——用 TypeScript 解析各包 `dist/index.d.ts` 提取对外导出面，冻结 9 个 workspace 包的公共 API 基线（types 7 子模块聚合 / memory 13 / sandbox 14 / policy 15 / core 61 + 4 项 facade 转发 / host 10 / mcp 28 / provider-openai 2 / store-sqlite 2），记录依赖方向 `types ← {memory,sandbox,policy} ← core ← {host,mcp,provider-openai,store-sqlite}` 与「mcp、host 不被 core 反向 re-export」约束；并定义变更规则（新增=兼容；删除/重命名/收窄=破坏性，需 break-change 评审）与发布前快照复核要求（拟纳入 P2 的 CI 作业）。至此 **M6 P1（决策冻结 + 包边界收口）Gate 1 关闭**：P1.1~P1.6 全部完成。
 
 ### Added（M6-8 · API 冻结）

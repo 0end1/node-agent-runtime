@@ -28,14 +28,13 @@ import {
   Agent,
   AgentRuntime,
   FileStorage,
-  MockProvider,
-  builtinTools,
   defineTool,
   type AnyTool,
   type ModelProvider,
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionManager, type Session } from "@agent-runtime/host";
+import { MockProvider } from "@agent-runtime/mock";
 import {
   McpClient,
   McpRegistry,
@@ -45,6 +44,7 @@ import {
 } from "@agent-runtime/mcp";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 import { SQLiteStorage } from "@agent-runtime/store-sqlite";
+import { builtinTools } from "@agent-runtime/tools-basic";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 

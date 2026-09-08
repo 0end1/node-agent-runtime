@@ -7,7 +7,6 @@ import {
   CheckpointMismatchError,
   CheckpointStore,
   MemoryStorage,
-  builtinTools,
   computeToolsHash,
   defineTool,
   type ModelProvider,
@@ -16,6 +15,7 @@ import {
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionError, SessionManager } from "@agent-runtime/host";
+import { builtinTools } from "@agent-runtime/tools-basic";
 
 // --------------------------------------------------------------- test double
 

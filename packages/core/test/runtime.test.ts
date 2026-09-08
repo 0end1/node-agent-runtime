@@ -4,12 +4,12 @@ import { describe, it } from "node:test";
 import {
   Agent,
   AgentRuntime,
-  MockProvider,
-  builtinTools,
   defineTool,
   type AnyTool,
   type RuntimeEvent,
 } from "@agent-runtime/core";
+import { MockProvider } from "@agent-runtime/mock";
+import { builtinTools } from "@agent-runtime/tools-basic";
 
 function makeRuntime() {
   return new AgentRuntime({

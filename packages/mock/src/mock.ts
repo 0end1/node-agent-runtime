@@ -3,8 +3,8 @@ import type {
   ModelRequest,
   ModelResponse,
   RawToolCall,
-} from "../provider.js";
-import { CURRENCY_ALIASES } from "../tools/builtin.js";
+} from "@agent-runtime/core";
+import { CURRENCY_ALIASES } from "@agent-runtime/tools-basic";
 import type { ChatMessage, ToolCall } from "@agent-runtime/types";
 import { newId } from "@agent-runtime/types";
 

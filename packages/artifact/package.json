@@ -1,7 +1,7 @@
 {
-  "name": "@agent-runtime/mcp",
+  "name": "@agent-runtime/artifact",
   "version": "0.2.0",
-  "description": "C6 MCP adapter package of the Agent runtime: JSON-RPC 2.0 client, stdio / streamable-HTTP transports and McpRegistry that materializes remote MCP tools as local ToolDefinitions. Depends on @agent-runtime/core for the tool contract (C4 decision: contract stays in core); the core never imports this package.",
+  "description": "Artifact package of the Agent runtime: ArtifactManager — metadata rows in the Storage doc domain plus payloads in the blob domain (text/file/chart/url), cascaded cleanup per session. Split out of the memory package (M6 P1 review, P1) so each package matches one concern.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -17,7 +17,6 @@
     "node": ">=18.17"
   },
   "dependencies": {
-    "@agent-runtime/core": "0.2.0",
     "@agent-runtime/types": "0.2.0"
   },
   "scripts": {

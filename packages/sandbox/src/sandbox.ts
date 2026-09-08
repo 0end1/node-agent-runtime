@@ -1,5 +1,5 @@
 import { resolve, sep } from "node:path";
-import type { AnyTool, ToolKind } from "@agent-runtime/types";
+import { toolKind, type AnyTool, type ToolKind } from "@agent-runtime/types";
 
 /**
  * Sandbox — run-level execution boundary (M3, docs/architecture.md §6.2 v1.2).
@@ -83,24 +83,9 @@ export class SandboxTimeoutError extends Error {
 
 // ------------------------------------------------------------- classification
 
-const HARMLESS = new Set(["calculator", "now", "math", "time"]);
-
-/** Infer a tool's sensitivity class from its name (tools may declare it). */
-export function classifyToolName(name: string): ToolKind {
-  const n = name.toLowerCase();
-  if (/(token|secret|credential|apikey|api_key|password|_env$)/.test(n)) return "credential";
-  if (/(exec|shell|bash|command|terminal|spawn|subprocess|run_)/.test(n)) return "exec";
-  if (/(write|edit|create|delete|remove|patch|append|save|move|mkdir|truncate)/.test(n)) return "write";
-  // Built-in demos (weather / geocode / exchange) read local static data —
-  // they are harmless, not outbound network.
-  if (/(fetch|http|request|search|web|download|api)/.test(n)) return "network-read";
-  if (HARMLESS.has(n)) return "harmless";
-  return "harmless";
-}
-
-export function toolKind(tool: AnyTool): ToolKind {
-  return tool.meta?.kind ?? classifyToolName(tool.name);
-}
+// 工具分类（classifyToolName / toolKind）已下沉 C1 `@agent-runtime/types`
+//（M6 P1 审查 P1：分类属工具元数据推断，非执行域职责）。此处 re-export 保持本包 API 不变。
+export { classifyToolName, toolKind } from "@agent-runtime/types";
 
 const PATH_KEY = /(^|_)(path|paths|file|filepath|filename|dir|folder|target|to|from|root)$/i;
 

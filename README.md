@@ -115,7 +115,8 @@ npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
 ```
 packages/
 ├── types/                   # C1 共享叶子包 @agent-runtime/types（零依赖：消息/工具/事件/Storage/Artifact 契约 + 校验器与纯函数）
-├── memory/                  # C3 @agent-runtime/memory（SessionMemory + ArtifactManager，M6 外置）
+├── memory/                  # C3 @agent-runtime/memory（SessionMemory 会话记忆，M6 外置）
+├── artifact/                # @agent-runtime/artifact（产物管理 ArtifactManager，M6 自查后从 memory 拆出）
 ├── sandbox/                 # C4 @agent-runtime/sandbox（LocalSandbox 执行域，M6 外置）
 ├── policy/                  # C5 @agent-runtime/policy（PermissionManager 授权决策，M6 外置）
 ├── mcp/                     # C6 @agent-runtime/mcp（MCP 适配：client/transport/registry，M6 外置）
@@ -138,6 +139,8 @@ packages/
 │   │   ├── providers/       # mock（免密钥规则模型；openai-compatible 已外置，C7）
 │   │   └── store/           # Storage 接口 + Memory/File 实现（M1）
 │   └── test/                # node:test（runtime/session/store/calculator）
+├── tools-basic/             # 内置基础工具集（calculator / builtinTools，演示友好，非引擎必需，M6 外置）
+├── mock/                    # MockProvider 免密钥规则模型（演示/测试桩，M6 外置）
 ├── host/                    # C8 @agent-runtime/host（SessionManager 会话/任务生命周期，M6 外置）
 ├── provider-openai/         # C7 可插拔模型后端 @agent-runtime/provider-openai（OpenAI 兼容 fetch）
 └── store-sqlite/            # C9 可选存储后端 @agent-runtime/store-sqlite（SQLiteStorage，node:sqlite）
@@ -193,7 +196,7 @@ examples/
 ```bash
 npm run typecheck   # tsc --noEmit（packages + examples，经 paths 别名走源码）
 npm run build       # 逐包产出 dist/（npm test 会自动先执行它）
-npm test            # node:test（types + memory + sandbox + policy + core + host + mcp + provider-openai + store-sqlite 逐包，覆盖事件循环/工具安全/Storage/Session/治理/MCP/schema）
+npm test            # node:test（types + memory + artifact + sandbox + policy + core + tools-basic + mock + host + mcp + provider-openai + store-sqlite 逐包，覆盖事件循环/工具安全/Storage/Session/治理/产物/MCP/schema）
 ```
 
 ## 目录结构 & 设计取舍

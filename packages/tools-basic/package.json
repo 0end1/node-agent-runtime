@@ -1,7 +1,7 @@
 {
-  "name": "@agent-runtime/mcp",
+  "name": "@agent-runtime/tools-basic",
   "version": "0.2.0",
-  "description": "C6 MCP adapter package of the Agent runtime: JSON-RPC 2.0 client, stdio / streamable-HTTP transports and McpRegistry that materializes remote MCP tools as local ToolDefinitions. Depends on @agent-runtime/core for the tool contract (C4 decision: contract stays in core); the core never imports this package.",
+  "description": "Basic built-in tools package of the Agent runtime: calculator (safe Pratt parser, no eval), now/geocode/weather/exchange demos and the builtinTools collection. Demo-friendly defaults; kept out of the core to keep the engine lean (M6 P1 review, P0).",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

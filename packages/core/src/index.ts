@@ -61,6 +61,7 @@ export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js"
 // 注：C6 mcp 不在此 re-export —— 其依赖方向为 mcp → core，core 反向引用会形成
 // 循环，请直接 `import { McpRegistry } from "@agent-runtime/mcp"`。
 export * from "@agent-runtime/memory";
+export * from "@agent-runtime/artifact";
 export * from "@agent-runtime/sandbox";
 export * from "@agent-runtime/policy";
 
@@ -82,11 +83,8 @@ export type {
   ToolMeta,
 } from "./tool.js";
 
-export { builtinTools } from "./tools/builtin.js";
-export type { CurrencyCode } from "./tools/builtin.js";
-export { CURRENCY_ALIASES } from "./tools/builtin.js";
-
-export { evaluate } from "./tools/calculator.js";
+// 内置基础工具集已外置（M6 P1 审查 P0）：
+//   import { builtinTools, evaluate, CURRENCY_ALIASES } from "@agent-runtime/tools-basic";
 
 // ---- MCP adapter ----
 // M6 拆包批次 B1：`mcp/` 已外置为 C6 `@agent-runtime/mcp`（方向 mcp → core，
@@ -104,5 +102,5 @@ export type {
 export { ModelRequestError } from "./provider.js";
 
 // OpenAIClientProvider 已外置到 C7 @agent-runtime/provider-openai（HTTP/IO 不进 core，
-// docs/crate-architecture.md §5.6）。MockProvider 是零 IO 演示/测试桩，留在 core。
-export { MockProvider } from "./providers/mock.js";
+// docs/crate-architecture.md §5.6）；MockProvider 作为演示/测试桩亦已外置（M6 P1 审查 P0）：
+//   import { MockProvider } from "@agent-runtime/mock";

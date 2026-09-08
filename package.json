@@ -24,10 +24,10 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "npm run build -w @agent-runtime/types && npm run build -w @agent-runtime/memory && npm run build -w @agent-runtime/sandbox && npm run build -w @agent-runtime/policy && npm run build -w @agent-runtime/core && npm run build -w @agent-runtime/host && npm run build -w @agent-runtime/mcp && npm run build -w @agent-runtime/provider-openai && npm run build -w @agent-runtime/store-sqlite",
+    "build": "npm run build -w @agent-runtime/types && npm run build -w @agent-runtime/memory && npm run build -w @agent-runtime/artifact && npm run build -w @agent-runtime/sandbox && npm run build -w @agent-runtime/policy && npm run build -w @agent-runtime/core && npm run build -w @agent-runtime/tools-basic && npm run build -w @agent-runtime/mock && npm run build -w @agent-runtime/host && npm run build -w @agent-runtime/mcp && npm run build -w @agent-runtime/provider-openai && npm run build -w @agent-runtime/store-sqlite",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "pretest": "npm run build",
-    "test": "npm run test -w @agent-runtime/types && npm run test -w @agent-runtime/memory && npm run test -w @agent-runtime/sandbox && npm run test -w @agent-runtime/policy && npm run test -w @agent-runtime/core && npm run test -w @agent-runtime/host && npm run test -w @agent-runtime/mcp && npm run test -w @agent-runtime/provider-openai && npm run test -w @agent-runtime/store-sqlite",
+    "test": "npm run test -w @agent-runtime/types && npm run test -w @agent-runtime/memory && npm run test -w @agent-runtime/artifact && npm run test -w @agent-runtime/sandbox && npm run test -w @agent-runtime/policy && npm run test -w @agent-runtime/core && npm run test -w @agent-runtime/tools-basic && npm run test -w @agent-runtime/mock && npm run test -w @agent-runtime/host && npm run test -w @agent-runtime/mcp && npm run test -w @agent-runtime/provider-openai && npm run test -w @agent-runtime/store-sqlite",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
     "clean": "rm -rf packages/*/dist"

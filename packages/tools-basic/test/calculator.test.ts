@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { evaluate } from "@agent-runtime/core";
+import { evaluate } from "@agent-runtime/tools-basic";
 
 describe("calculator (safe arithmetic)", () => {
   it("evaluates precedence & parentheses", () => {

@@ -49,6 +49,43 @@ export interface McpTransportOptions {
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
+// ------------------------------------------------ SSRF / supply-chain guard (P3.6)
+
+const SSRF_MESSAGE = "MCP 端点被拒绝（SSRF 防护）";
+
+/**
+ * Validate an MCP server URL before connecting (P3.6).
+ *  - protocol must be http: or https: (no file:/ftp:/gopher:…)
+ *  - if `allowlist` is non-empty, the URL origin must match one of its entries
+ *    (domain or full origin). Empty allowlist ⇒ only the protocol is enforced.
+ * Throws `McpConnectionError` on any violation.
+ */
+export function validateMcpServerUrl(url: string, allowlist?: readonly string[]): URL {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    throw new McpConnectionError(`${SSRF_MESSAGE}：不是合法 URL（${url}）`);
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new McpConnectionError(`${SSRF_MESSAGE}：仅允许 http/https（收到 ${parsed.protocol}）`);
+  }
+  if (allowlist && allowlist.length > 0) {
+    const origin = parsed.origin;
+    const allowed = allowlist.some((entry) => {
+      try {
+        return new URL(entry).origin === origin;
+      } catch {
+        return entry === origin || origin.startsWith(entry);
+      }
+    });
+    if (!allowed) {
+      throw new McpConnectionError(`${SSRF_MESSAGE}：${origin} 不在白名单 ${allowlist.join(", ")}`);
+    }
+  }
+  return parsed;
+}
+
 // ---------------------------------------------------------------- shared
 
 /** Reject every outstanding request (transport died / closed under it). */
@@ -99,6 +136,9 @@ export interface StdioTransportOptions extends McpTransportOptions {
   env?: NodeJS.ProcessEnv;
   /** Called for inbound server→client notifications. */
   onNotification?: (msg: JsonRpcNotification) => void;
+  /** P3.6: abort startup if the server emits no JSON-RPC on stdout within this
+   *  many ms (a broken/hung binary must not hang the run loop forever). */
+  startTimeoutMs?: number;
 }
 
 /**
@@ -114,6 +154,7 @@ export class StdioTransport implements McpTransport {
   private readonly onNotification?: (msg: JsonRpcNotification) => void;
   private readonly cwd?: string;
   private readonly env?: NodeJS.ProcessEnv;
+  private readonly startTimeoutMs?: number;
 
   private child?: ChildProcessWithoutNullStreams;
   private lines?: Interface;
@@ -128,6 +169,7 @@ export class StdioTransport implements McpTransport {
     this.onNotification = options.onNotification;
     this.cwd = options.cwd;
     this.env = options.env;
+    this.startTimeoutMs = options.startTimeoutMs;
   }
 
   async start(): Promise<void> {
@@ -139,7 +181,7 @@ export class StdioTransport implements McpTransport {
     });
     this.child = child;
 
-    // Surface spawn failures (bad path / ENOENT) as a connection error.
+    // Runtime failure handlers (persist for the connection's whole life).
     child.once("error", (err) => {
       const wrapped = new McpConnectionError(`MCP 子进程启动失败：${err.message}`);
       settlePending(this.pending, wrapped);
@@ -149,6 +191,37 @@ export class StdioTransport implements McpTransport {
       const wrapped = new McpConnectionError(`MCP 子进程意外退出（code=${code}）`);
       settlePending(this.pending, wrapped);
     });
+
+    // P3.6: startup readiness/timeout guard. A healthy MCP server prints a
+    // JSON-RPC frame to stdout; if nothing arrives within `startTimeoutMs` we
+    // kill it and reject so a broken binary can't hang the run loop.
+    if (this.startTimeoutMs && this.startTimeoutMs > 0) {
+      await new Promise<void>((resolve, reject) => {
+        let settled = false;
+        const done = (err?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (err) {
+            // A broken/runaway server must not keep the run loop alive: kill it
+            // and reject so the caller's `await t.start()` unblocks (P3.6).
+            child.kill("SIGKILL");
+            reject(err);
+          } else {
+            resolve();
+          }
+        };
+        const timer = setTimeout(
+          () => done(new McpConnectionError(`stdio 启动超时（${this.startTimeoutMs}ms 内未就绪）`)),
+          this.startTimeoutMs,
+        );
+        child.stdout.once("data", () => done());
+        child.once("error", () => done(new McpConnectionError("MCP 子进程启动失败")));
+        child.once("exit", (code) =>
+          done(this.closed ? undefined : new McpConnectionError(`MCP 子进程意外退出（code=${code}）`)),
+        );
+      });
+    }
 
     this.lines = createInterface({ input: child.stdout });
     this.lines.on("line", (line) => this.handleLine(line));
@@ -235,6 +308,8 @@ export class StdioTransport implements McpTransport {
 export interface StreamableHttpTransportOptions extends McpTransportOptions {
   /** Base URL of the server's MCP endpoint, e.g. http://127.0.0.1:8080/mcp. */
   url: string;
+  /** SSRF allowlist (P3.6): permitted URL origins; empty ⇒ only scheme-checked. */
+  urlAllowlist?: readonly string[];
   /** Extra request headers (auth tokens etc.). */
   headers?: Record<string, string>;
   /** Injectable fetch (tests / custom agents). Defaults to global fetch. */
@@ -258,6 +333,8 @@ export class StreamableHttpTransport implements McpTransport {
 
   constructor(options: StreamableHttpTransportOptions) {
     if (!options.url) throw new Error("StreamableHttpTransport 需要 url");
+    // P3.6: 拒绝不在白名单/非 http(s) 的端点（防 SSRF）。
+    validateMcpServerUrl(options.url, options.urlAllowlist);
     this.url = options.url;
     this.timeoutMs = options.requestTimeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.logger = options.logger;

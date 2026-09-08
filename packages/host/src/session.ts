@@ -18,18 +18,23 @@ import {
   classifyToolName,
   ErrorCode,
   toolKind as kindOfTool,
+  type ApprovalQuery,
+  type ApprovalRecord,
+  type ApprovalStore,
   type ChatMessage,
   type RunUsage,
   type Storage,
+  type ToolGrant,
 } from "@agent-runtime/types";
 import { SessionMemory, type Memory } from "@agent-runtime/memory";
+import { StorageApprovalStore } from "./approval-store.js";
 import {
   LocalSandbox,
   type Sandbox,
   type SandboxMode,
   type SandboxScope,
 } from "@agent-runtime/sandbox";
-import { PermissionManager } from "@agent-runtime/policy";
+import { PermissionManager, type PermissionPolicy } from "@agent-runtime/policy";
 import { ArtifactManager, type Artifact } from "@agent-runtime/artifact";
 import { newId } from "@agent-runtime/types";
 
@@ -116,8 +121,12 @@ export interface SessionManagerOptions {
   sandbox?: Sandbox;
   /** M3: permission manager. Defaults to one publishing to the runtime bus. */
   permission?: PermissionManager;
+  /** M3: policy used by the default permission manager (docs §6.1). */
+  policy?: PermissionPolicy;
   /** M4: artifact store. Defaults to one over `storage`. */
   artifacts?: ArtifactManager;
+  /** P3.3: approval audit + grant persistence. Defaults to `StorageApprovalStore`. */
+  approvalStore?: ApprovalStore;
   /** M3: run-level execution mode (default `workspace-write`, docs §6.0.1). */
   sandboxMode?: SandboxMode;
   /** M3: declared write/network domain (defaults to cwd, no network). */
@@ -151,6 +160,8 @@ export class SessionManager {
   readonly permission: PermissionManager;
   /** M4: artifact CRUD (metadata + payload over Storage). */
   readonly artifacts: ArtifactManager;
+  /** P3.3: audit trail + grants the permission manager writes through. */
+  private readonly approvalStore: ApprovalStore;
   private readonly sandbox: Sandbox;
   private readonly sandboxMode: SandboxMode;
   private readonly scope: SandboxScope;
@@ -179,7 +190,15 @@ export class SessionManager {
             ok: info.ok,
           }),
       });
-    this.permission = options.permission ?? new PermissionManager({ events: this.events });
+    this.approvalStore =
+      options.approvalStore ?? new StorageApprovalStore(this.storage, this.now);
+    this.permission =
+      options.permission ??
+      new PermissionManager({
+        events: this.events,
+        store: this.approvalStore,
+        policy: options.policy,
+      });
     this.artifacts =
       options.artifacts ?? new ArtifactManager({ storage: this.storage, now: this.now });
     this.sandboxMode = options.sandboxMode ?? "workspace-write";
@@ -302,6 +321,25 @@ export class SessionManager {
   /** Reject a pending decision. */
   deny(decisionId: string, reason?: string): boolean {
     return this.permission.deny(decisionId, reason);
+  }
+
+  // ------------------------------------------------------- P3.3 audit + grants
+
+  /** Persisted approval trail; flushes in-flight writes before reading. */
+  async approvals(query?: ApprovalQuery): Promise<ApprovalRecord[]> {
+    await this.permission.flush();
+    return this.approvalStore.list(query);
+  }
+
+  /** Tools remembered as "always allow" (survive restarts). */
+  async grants(): Promise<ToolGrant[]> {
+    await this.permission.flush();
+    return this.approvalStore.grants();
+  }
+
+  /** Remove a tool from the "always allow" set (memory + store). */
+  revokeGrant(toolName: string): void {
+    this.permission.revokeTool(toolName);
   }
 
   // --------------------------------------------------------------------- Task

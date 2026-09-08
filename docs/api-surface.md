@@ -14,11 +14,11 @@
 | `@agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@agent-runtime/policy` | 0.2.0 | 19 | C5 授权决策 |
-| `@agent-runtime/core` | 0.2.0 | 59（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
+| `@agent-runtime/core` | 0.2.0 | 60（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
 | `@agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
-| `@agent-runtime/mcp` | 0.2.0 | 28 | C6 MCP 适配 |
+| `@agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
 | `@agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@agent-runtime/store-sqlite` | 0.2.0 | 2 | C9 存储后端 |
 
@@ -58,7 +58,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 **Storage 实现**：`MemoryStorage`、`FileStorage`
 **工具契约**：`defineTool`、`findDuplicateToolNames`、`ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`
 **模型**：`ModelProvider`、`ModelRequest`、`ModelResponse`、`RawToolCall`、`FinishReason`、`ModelRequestError`
-**P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`ConsoleLogger`、`toLogger`、`errorPayload`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
+**P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`ConsoleLogger`、`toLogger`、`errorPayload`、`redact`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
 **facade 转发**：`export *` → `@agent-runtime/types`、`@agent-runtime/memory`（含 Checkpoint）、`@agent-runtime/artifact`、`@agent-runtime/sandbox`、`@agent-runtime/policy`
 
@@ -100,7 +100,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 ## 10. `@agent-runtime/mcp`（C6）
 
-`McpClient`、`McpClientOptions`、`McpRegistry`、`McpRegistryOptions`、`RegisteredServer`、`StdioTransport`、`StdioTransportOptions`、`StreamableHttpTransport`、`StreamableHttpTransportOptions`、`McpTransport`、`McpError`、`McpTimeoutError`、`McpConnectionError`、`MCP_PROTOCOL_VERSION`、`MCP_TOOL_PREFIX`、`mcpToolName`、`parseMcpToolName`、`normalizeSchema`、`pathArgKeysOf`、`parseSse`、`McpServerHandle`、`McpToolMeta`、`McpToolRef`、`McpCallToolResult`、`McpServerInfo`、`McpServerCapabilities`、`McpInitializeResult`、`McpTextContent`
+`McpClient`、`McpClientOptions`、`McpRegistry`、`McpRegistryOptions`、`RegisteredServer`、`StdioTransport`、`StdioTransportOptions`、`StreamableHttpTransport`、`StreamableHttpTransportOptions`、`McpTransport`、`McpError`、`McpTimeoutError`、`McpConnectionError`、`MCP_PROTOCOL_VERSION`、`MCP_TOOL_PREFIX`、`mcpToolName`、`parseMcpToolName`、`normalizeSchema`、`pathArgKeysOf`、`parseSse`、`validateMcpServerUrl`、`McpServerHandle`、`McpToolMeta`、`McpToolRef`、`McpCallToolResult`、`McpServerInfo`、`McpServerCapabilities`、`McpInitializeResult`、`McpTextContent`
 
 ## 11. `@agent-runtime/provider-openai`（C7）
 

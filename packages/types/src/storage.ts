@@ -20,7 +20,11 @@ export type DocDomain =
   /** M2: long-term fact memory, one KV document per session (§8.2). */
   | "memory"
   /** M4: artifact metadata rows (§8.1); payloads live in the blob domain. */
-  | "artifact";
+  | "artifact"
+  /** P3.3: approval audit trail — one record per governance decision. */
+  | "approval"
+  /** P3.3: persisted "always allow" tool grants (survive a restart). */
+  | "grant";
 
 /** Stream domains: append-only lines (messages, event logs…). */
 export type StreamDomain = "message";

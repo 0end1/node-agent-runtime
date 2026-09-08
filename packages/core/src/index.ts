@@ -2,16 +2,16 @@
 // 公共 API 兼容面：core 同时转发 C1 叶子包（@agent-runtime/types）的全部导出，
 // 因此 `import { validate, type ChatMessage } from "@agent-runtime/core"` 仍可用。
 export * from "@agent-runtime/types";
-export { AgentRuntime, RunAbortedError } from "./runtime.js";
+export { AgentRuntime, RunAbortedError, LimitExceededError } from "./runtime.js";
 export type { AgentRuntimeOptions, RunOptions, RunResult, StepSnapshot } from "./runtime.js";
 
 // ---- P3.1 observability: structured logging + stable error payloads ----
-export { ConsoleLogger, toLogger, errorPayload } from "./log.js";
+export { ConsoleLogger, toLogger, errorPayload, redact } from "./log.js";
 export type { Logger, LogLevel } from "./log.js";
 
 // ---- P3.8 configuration: layered runtime config + feature flags ----
 export { loadConfig, ConfigError } from "./config.js";
-export type { RuntimeConfig, FeatureFlags, LoadConfigOptions } from "./config.js";
+export type { RuntimeConfig, FeatureFlags, LoadConfigOptions, McpConfig } from "./config.js";
 
 export { Agent, defineAgent, DEFAULT_AGENT_INSTRUCTIONS } from "./agent.js";
 export type { AgentOptions } from "./agent.js";

@@ -14,8 +14,16 @@ import type { ModelProvider } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
 import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@agent-runtime/types";
-import { newId, stringifyResult, validate, ErrorCode } from "@agent-runtime/types";
-import { toLogger, type Logger } from "./log.js";
+import type { LimitViolation, RunLimits } from "@agent-runtime/types";
+import {
+  newId,
+  stringifyResult,
+  validate,
+  ErrorCode,
+  errorInfo,
+  checkRunLimits,
+} from "@agent-runtime/types";
+import { toLogger, redact, type Logger } from "./log.js";
 
 export interface AgentRuntimeOptions {
   /** Chat model backend. */
@@ -28,6 +36,11 @@ export interface AgentRuntimeOptions {
    * (instead of the runtime creating it internally) — M6 P1 review, P2.
    */
   events?: EventBus<RuntimeEvent>;
+  /**
+   * P3.4: default budget guardrails for every run. Per-run `RunOptions.limits`
+   * are merged on top of these (per-run wins).
+   */
+  limits?: RunLimits;
 }
 
 /**
@@ -82,6 +95,17 @@ export interface RunOptions {
    * run would have produced.
    */
   appendUserMessage?: boolean;
+  /**
+   * P3.4: budget guardrails for this run (merged over `AgentRuntimeOptions.limits`).
+   * Exceeding any cap aborts the run with `LimitExceededError` and publishes a
+   * `run:error` carrying `code: "limit_exceeded"`.
+   */
+  limits?: RunLimits;
+  /**
+   * Optional cost meter: return the estimated USD spend so far. Required for
+   * `limits.maxCostUsd`; without it the cost cap is simply not evaluated.
+   */
+  costUsd?: (usage: RunUsage) => number | undefined;
 }
 
 export interface RunResult {
@@ -109,6 +133,17 @@ export class RunAbortedError extends Error {
   }
 }
 
+/** Thrown when a run/session budget or tool rate cap is hit (P3.4). */
+export class LimitExceededError extends Error {
+  readonly code = ErrorCode.LIMIT_EXCEEDED;
+  readonly violation: LimitViolation;
+  constructor(violation: LimitViolation) {
+    super(violation.message);
+    this.name = "LimitExceededError";
+    this.violation = violation;
+  }
+}
+
 const DEFAULT_CONVERSATION = "default";
 
 /**
@@ -129,11 +164,13 @@ export class AgentRuntime {
   readonly provider: ModelProvider;
   readonly events: EventBus<RuntimeEvent>;
   private readonly logger?: Logger;
+  private readonly defaultLimits?: RunLimits;
 
   constructor(options: AgentRuntimeOptions) {
     this.provider = options.provider;
     this.logger = toLogger(options.logger);
     this.events = options.events ?? new EventBus<RuntimeEvent>();
+    this.defaultLimits = options.limits;
   }
 
   /** Subscribe to all runtime lifecycle events. */
@@ -178,10 +215,30 @@ export class AgentRuntime {
     let lastAssistant: Extract<ChatMessage, { role: "assistant" }> | null = null;
     let stoppedByMaxSteps = false;
 
+    // P3.4: per-run limits are merged over the runtime defaults (per-run wins).
+    const limits: RunLimits = { ...(this.defaultLimits ?? {}), ...(options.limits ?? {}) };
+    const maxSteps = limits.maxSteps ?? agent.maxSteps;
+    const toolCallTimes: number[] = [];
+    const assertWithinLimits = (step: number): void => {
+      const violation = checkRunLimits(
+        usage,
+        {
+          steps: step,
+          elapsedMs: Date.now() - startedAt,
+          ...(options.costUsd ? { costUsd: options.costUsd(usage) } : {}),
+          toolCallTimes,
+        },
+        limits,
+      );
+      if (violation) throw new LimitExceededError(violation);
+    };
+
     const requestTools = canUseTools ? [...toolMap.values()] : undefined;
 
     try {
-      for (let step = 1; step <= agent.maxSteps; step++) {
+      for (let step = 1; step <= maxSteps; step++) {
+        // P3.4: budget check before every model round-trip (duration / tokens / cost).
+        assertWithinLimits(step);
         this.emit({ type: "step:start", runId, step });
         this.log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
@@ -237,17 +294,21 @@ export class AgentRuntime {
             (assistantWithCalls.toolCalls ?? []).find((tc) => tc.id === rawCall.id) ??
             parseToolCall(rawCall, this.provider.id);
 
+          // P3.4: 工具调用速率（滑动窗口）——先记账再判定，超限即中止本轮。
+          toolCallTimes.push(Date.now());
+          assertWithinLimits(step);
+
           const startEvt: ToolStartEvent = {
             type: "tool:start",
             runId,
             step,
-            toolCall: { id: parsed.id, name: parsed.name, arguments: parsed.arguments },
+            // P3.2: 事件流脱敏——参数含 key/secret 时仅对订阅者暴露脱敏值；
+            // 真实参数仍经 gate/沙箱/工具执行（不走事件）安全使用。
+            toolCall: { id: parsed.id, name: parsed.name, arguments: redact(parsed.arguments) as Record<string, unknown> },
           };
           this.emit(startEvt);
           stepEvents.toolStarts.push(startEvt);
-          this.log(
-            `    tool:start ${parsed.name} ${JSON.stringify(parsed.arguments).slice(0, 120)}`,
-          );
+          this.log(`    tool:start ${parsed.name}`, redact(parsed.arguments));
 
           const toolStartMs = Date.now();
           const ctx = buildRunContext({
@@ -262,8 +323,10 @@ export class AgentRuntime {
             type: "tool:end",
             runId,
             step,
-            toolCall: { id: parsed.id, name: parsed.name, arguments: parsed.arguments },
-            result: outcome.content,
+            // P3.2: 脱敏事件参数（理由同 tool:start）。
+            toolCall: { id: parsed.id, name: parsed.name, arguments: redact(parsed.arguments) as Record<string, unknown> },
+            // 工具结果同样可能回显凭据/文件内容，事件侧只暴露脱敏后的值。
+            result: redact(outcome.content) as string,
             durationMs: Date.now() - toolStartMs,
             ok: outcome.ok,
           };
@@ -288,11 +351,11 @@ export class AgentRuntime {
         if (stoppedByMaxSteps && history.at(-1)?.role === "tool") {
           const note: ChatMessage = {
             role: "assistant",
-            content: `已达到最大步数（${agent.maxSteps}）仍未收敛，已停止。可以追问来继续。`,
+            content: `已达到最大步数（${maxSteps}）仍未收敛，已停止。可以追问来继续。`,
           };
           history.push(note);
           lastAssistant = note;
-          this.emit({ type: "model:response", runId, step: agent.maxSteps, message: note });
+          this.emit({ type: "model:response", runId, step: maxSteps, message: note });
         }
       }
       if (!lastAssistant) {
@@ -307,20 +370,22 @@ export class AgentRuntime {
           runId,
           step: null,
           error: "run aborted",
+          // P3.1: 事件携带稳定错误码，UI/CLI/日志可按 code 分支而不必匹配文案。
+          code: ErrorCode.RUN_ABORTED,
         };
         this.emit(abortedEvent);
         throw err;
       }
-      const message = err instanceof Error ? err.message : String(err);
+      const info = errorInfo(err);
       this.emit({
         type: "run:error",
         runId,
         step: history.length,
-        error: message,
+        error: info.message,
+        code: info.code,
       } as RunErrorEvent);
-      this.log(`  run:error ${message}`);
-      this.logger?.error(`run:error ${message}`);
-      throw err instanceof Error ? err : new Error(message);
+      this.logger?.error(`run:error [${info.code}] ${info.message}`);
+      throw err instanceof Error ? err : new Error(info.message);
     }
 
     const result: RunResult = {
@@ -423,11 +488,14 @@ export class AgentRuntime {
   }
 
   private emit(event: RuntimeEvent): void {
-    this.events.emit(event);
+    // P3.2: 事件流统一脱敏——任何事件（含 run:start 输入、model:response 内容、
+    // tool:end 结果）在离开引擎前都过一遍 redact，确保 key/secret 永不外泄。
+    // 工具执行本身仍使用未被脱敏的真实参数（脱敏只作用于对外事件）。
+    this.events.emit(redact(event) as RuntimeEvent);
   }
 
-  private log(line: string): void {
-    this.logger?.info(line);
+  private log(line: string, meta?: unknown): void {
+    this.logger?.info(line, meta);
   }
 }
 

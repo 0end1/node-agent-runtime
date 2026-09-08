@@ -8,6 +8,23 @@
 
 ## [Unreleased]
 
+**M6-19 · 收紧对外 API 面（P3.2 / P3.5 / P3.6）**（2026-09-08）：
+
+- **P3.2 事件/日志脱敏**：`packages/core/src/log.ts` 新增 `redact()`（强密钥字段 + 类密钥值 sk-/JWT/base64 全量脱敏，普通参数原样保留）；`ConsoleLogger` 序列化前对 meta 脱敏；`AgentRuntime` 在 `tool:start`/`tool:end` 事件与日志中对工具参数脱敏，密钥永不进入事件流/日志
+- **P3.5 Web/本地 server 鉴权与防跨站**：`examples/web/server.ts` 新增 `corsGuard`（仅放行环回/白名单 Origin，其余 403）、`authGuard`（`AGENT_API_TOKEN` 配置后要求 Bearer 令牌，默认开放）、`readBody`（请求体 256KB 上限）；demo 默认开放，生产部署应设令牌并由反代加固
+- **P3.6 MCP 供应链防护**：`packages/mcp/src/transport.ts` 新增 `validateMcpServerUrl()`（仅 http/https + 可选白名单，防 SSRF），`StreamableHttpTransport` 构造即校验；`StdioTransport` 新增 `startTimeoutMs`（启动就绪/超时守卫，卡死子进程即 SIGKILL 并 reject）；examples 经 `AGENT_MCP_HTTP_ALLOWLIST` / `AGENT_MCP_STDIO_TIMEOUT_MS` 注入
+- **API 面**：core 新增 `redact`（60 符号）；mcp 新增 `validateMcpServerUrl`（29 符号）
+- **测试**：`packages/core/test/log.test.ts` 增补 redact 用例；新增 `packages/mcp/test/transport.test.ts`（SSRF 校验 + stdio 启动超时）
+- **P3.3 审批审计 / 限额 / 白名单存储（随本次一并落库）**：`packages/types/src/audit.ts`（`ApprovalRecord`/`ApprovalStore`/`ToolGrant`/`ApprovalQuery`）、`packages/types/src/limits.ts`（`RunLimits`/`LimitViolation`/`checkRunLimits`）、`packages/host/src/approval-store.ts`（`StorageApprovalStore`）；`packages/policy/src/permission.ts` 审批审计 + always 白名单持久化、`packages/host/src/session.ts` 接线；测试 `packages/types/test/audit.test.ts`、`packages/types/test/limits.test.ts`、`packages/policy/test/permission.test.ts`
+
+### Added（M6-19）
+- `packages/core/src/log.ts`：`redact`
+- `packages/mcp/src/transport.ts`：`validateMcpServerUrl`
+- `packages/types/src/audit.ts`：`ApprovalRecord`、`ApprovalStore`、`ToolGrant`、`ApprovalQuery`
+- `packages/types/src/limits.ts`：`RunLimits`、`LimitViolation`、`checkRunLimits`
+- `packages/host/src/approval-store.ts`：`StorageApprovalStore`
+- `examples/web/server.ts`：`corsGuard` / `authGuard` / `readBody`（demo 级，生产建议反代加固）
+
 **M6-18 · 可观测 / 配置 / 默认安全（P3.1 / P3.7 / P3.8）**（2026-09-08）：
 
 - **P3.1 结构化日志 + 错误码**：`packages/core/src/log.ts` 新增 `Logger` 接口与 `ConsoleLogger`、`toLogger`（兼容旧 `(line)=>void` 回调）、`errorPayload`（HTTP/CLI 稳定错误体 `{ error: { code, message } }`）；`packages/types/src/codes.ts` 新增 `ErrorCode` 枚举与 `errorInfo()` 归一化；为 `RunAbortedError`/`SandboxViolationError`/`SandboxTimeoutError`/`ModelRequestError`/`CheckpointMismatchError`/`ArtifactError`/`SessionError`/`ConfigError` 标注 `code`

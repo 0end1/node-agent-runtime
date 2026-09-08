@@ -40,7 +40,9 @@ export class ConsoleLogger implements Logger {
 
   private write(level: LogLevel, message: string, meta?: unknown): void {
     if (LEVEL_WEIGHT[level] < LEVEL_WEIGHT[this.level]) return;
-    const metaStr = meta === undefined ? "" : " " + serialize(meta);
+    // P3.2: 任何 meta 都经脱敏，确保 key/secret 不进日志。
+    const safeMeta = meta === undefined ? undefined : redact(meta);
+    const metaStr = safeMeta === undefined ? "" : " " + serialize(safeMeta);
     this.stream(`[agent-runtime ${level}] ${message}${metaStr}`);
   }
 }
@@ -52,6 +54,44 @@ function serialize(value: unknown): string {
   } catch {
     return String(value);
   }
+}
+
+const REDACTED = "***REDACTED***";
+
+// P3.2: 脱敏——key/secret 类字段与疑似密钥的值永不进入日志/事件。
+const STRONG_SECRET_KEY =
+  /^(api[_-]?key|secret|token|password|passwd|pwd|authorization|auth|credential|private[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|session[_-]?id|cookie|set[_-]?cookie|bearer)$/i;
+const WEAK_SECRET_KEY = /^(key|auth)$/i;
+const SECRET_VALUE =
+  /^(sk-[A-Za-z0-9]{6,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$|[A-Za-z0-9+/]{32,}={0,2}$)/;
+
+/**
+ * Deep-clone and mask likely secrets. Strong-secret keys are always masked;
+ * weak keys (key/auth) are masked only when their value looks like a secret;
+ * other values pass through untouched so ordinary tool args stay readable.
+ * Used by `ConsoleLogger` and the runtime's event emission (P3.2).
+ */
+export function redact(value: unknown, depth = 0): unknown {
+  if (depth > 8) return value;
+  if (value === null || typeof value !== "object") {
+    if (typeof value === "string" && SECRET_VALUE.test(value)) return REDACTED;
+    return value;
+  }
+  if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    if (STRONG_SECRET_KEY.test(key)) {
+      out[key] = REDACTED;
+      continue;
+    }
+    if (WEAK_SECRET_KEY.test(key)) {
+      out[key] =
+        typeof val === "string" && SECRET_VALUE.test(val) ? REDACTED : redact(val, depth + 1);
+      continue;
+    }
+    out[key] = redact(val, depth + 1);
+  }
+  return out;
 }
 
 /** Normalize a `Logger` or a legacy `(line: string) => void` into a `Logger`. */

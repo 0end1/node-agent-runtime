@@ -1,6 +1,13 @@
 import type { SandboxMode, SandboxScope } from "@agent-runtime/sandbox";
-import type { EventEmitter, RuntimeEvent, ToolKind } from "@agent-runtime/types";
-import { newId } from "@agent-runtime/types";
+import type {
+  ApprovalRecord,
+  ApprovalStore,
+  EventEmitter,
+  RuntimeEvent,
+  ToolGrant,
+  ToolKind,
+} from "@agent-runtime/types";
+import { fingerprint, newId } from "@agent-runtime/types";
 
 /**
  * Permission — authorization decisions (M3, docs/architecture.md §6.1).
@@ -56,6 +63,8 @@ export interface PendingDecision {
   sessionId?: string;
   taskId?: string;
   createdAt: number;
+  /** P3.3: fingerprint of the call arguments, carried into the audit record. */
+  argumentsFingerprint: string;
 }
 
 export interface PermissionManagerOptions {
@@ -65,6 +74,11 @@ export interface PermissionManagerOptions {
   /** How long an `ask` waits for the host before it counts as denied. */
   askTimeoutMs?: number;
   now?: () => number;
+  /**
+   * P3.3: persistence for the approval audit trail and "always allow" grants.
+   * When set, every governance decision is appended and grants survive restarts.
+   */
+  store?: ApprovalStore;
 }
 
 interface Waiter {
@@ -81,14 +95,20 @@ export class PermissionManager {
   private readonly askTimeoutMs: number;
   private readonly now: () => number;
   private readonly waiters = new Map<string, Waiter>();
-  /** Tool names the host approved "always" — the decision is remembered. */
+  /** Tool names the host approved "always" — in-memory mirror of the store's grants. */
   private readonly alwaysAllowed = new Set<string>();
+  /** P3.3: audit + grant persistence. */
+  private readonly store?: ApprovalStore;
+  private hydrated = false;
+  /** Serialized chain of in-flight audit/grant writes (flushed by `flush()`). */
+  private pendingFlush: Promise<void> = Promise.resolve();
 
   constructor(options: PermissionManagerOptions = {}) {
     this.events = options.events;
     this.policy = options.policy ?? new DefaultPermissionPolicy();
     this.askTimeoutMs = options.askTimeoutMs ?? DEFAULT_ASK_TIMEOUT_MS;
     this.now = options.now ?? (() => Date.now());
+    this.store = options.store;
   }
 
   setPolicy(policy: PermissionPolicy): void {
@@ -100,6 +120,46 @@ export class PermissionManager {
     this.alwaysAllowed.add(name);
   }
 
+  /** Remove a tool from the "always allow" set (in memory and in the store). */
+  revokeTool(name: string): void {
+    this.alwaysAllowed.delete(name);
+    this.enqueue(() => this.store?.revokeTool(name));
+  }
+
+  /**
+   * P3.3: pre-load persisted "always allow" grants. Called lazily on the first
+   * `gate()`; hosts may call it eagerly to reflect grants before a run.
+   */
+  async hydrate(): Promise<void> {
+    await this.ensureHydrated();
+  }
+
+  /** Wait for every audit/grant write to land (e.g. before exporting the trail). */
+  async flush(): Promise<void> {
+    await this.pendingFlush;
+  }
+
+  /** Persist an "always allow" grant with its origin context. */
+  private persistGrant(grant: ToolGrant): void {
+    this.enqueue(() => this.store?.grantTool(grant));
+  }
+
+  private enqueue(op: () => void | Promise<void>): void {
+    if (!this.store) return;
+    this.pendingFlush = this.pendingFlush.then(op).catch(() => undefined);
+  }
+
+  private async ensureHydrated(): Promise<void> {
+    if (this.hydrated || !this.store) return;
+    try {
+      const grants = await this.store.grants();
+      for (const grant of grants) this.alwaysAllowed.add(grant.toolName);
+      this.hydrated = true;
+    } catch {
+      // A read failure degrades to no remembered grants; retry on next gate.
+    }
+  }
+
   /** Decisions waiting for the host (UI renders these as approval prompts). */
   pending(): PendingDecision[] {
     return [...this.waiters.values()].map((w) => w.decision);
@@ -107,13 +167,37 @@ export class PermissionManager {
 
   /** The single gate the run loop calls before executing a tool. */
   async gate(call: PermissionCall, ctx: PermissionContext): Promise<GateResult> {
-    if (this.alwaysAllowed.has(call.name)) return { ok: true, verdict: "allow" };
+    await this.ensureHydrated();
+    if (this.alwaysAllowed.has(call.name)) {
+      this.audit({
+        ...approvalBase(ctx, call),
+        verdict: "approved",
+        source: "grant",
+        reason: "命中 always 白名单",
+      });
+      return { ok: true, verdict: "allow" };
+    }
 
     const decision = await this.policy.decide(ctx, call);
 
-    if (decision.verdict === "allow") return { ok: true, verdict: "allow" };
+    if (decision.verdict === "allow") {
+      // P3.3: 放行也是一种治理决策——无害工具/白名单放行全部留痕。
+      this.audit({
+        ...approvalBase(ctx, call),
+        verdict: "approved",
+        source: "policy-allow",
+        reason: decision.reason ?? "策略放行",
+      });
+      return { ok: true, verdict: "allow" };
+    }
 
     if (decision.verdict === "deny") {
+      this.audit({
+        ...approvalBase(ctx, call),
+        verdict: "denied",
+        source: "policy-deny",
+        reason: decision.reason ?? "策略拒绝",
+      });
       this.emit({
         type: "permission:denied",
         decisionId: "",
@@ -128,13 +212,40 @@ export class PermissionManager {
     return this.ask(call, ctx, decision.reason ?? "需要宿主确认");
   }
 
+  /** Record one governance decision into the audit store (P3.3). */
+  private audit(partial: Omit<ApprovalRecord, "decidedAt">): void {
+    if (!this.store) return;
+    const record: ApprovalRecord = { ...partial, decidedAt: this.now() };
+    this.enqueue(() => this.store?.append(record));
+  }
+
   /** Host approved a pending decision. `always` remembers the tool. */
   approve(decisionId: string, options: { always?: boolean } = {}): boolean {
     const waiter = this.waiters.get(decisionId);
     if (!waiter) return false;
     clearTimeout(waiter.timer);
     this.waiters.delete(decisionId);
-    if (options.always) this.allowTool(waiter.decision.toolName);
+    if (options.always) {
+      this.allowTool(waiter.decision.toolName);
+      // P3.3: persist the grant so it survives a restart.
+      this.persistGrant({
+        toolName: waiter.decision.toolName,
+        grantedAt: this.now(),
+        ...(waiter.decision.runId ? { runId: waiter.decision.runId } : {}),
+        ...(waiter.decision.sessionId ? { sessionId: waiter.decision.sessionId } : {}),
+      });
+    }
+    this.audit({
+      decisionId,
+      runId: waiter.decision.runId,
+      ...(waiter.decision.sessionId ? { sessionId: waiter.decision.sessionId } : {}),
+      ...(waiter.decision.taskId ? { taskId: waiter.decision.taskId } : {}),
+      toolName: waiter.decision.toolName,
+      argumentsFingerprint: waiter.decision.argumentsFingerprint,
+      verdict: "approved",
+      source: "host",
+      ...(options.always ? { reason: "宿主批准并加入 always 白名单" } : {}),
+    });
     this.emit({
       type: "permission:approved",
       decisionId,
@@ -153,6 +264,17 @@ export class PermissionManager {
     if (!waiter) return false;
     clearTimeout(waiter.timer);
     this.waiters.delete(decisionId);
+    this.audit({
+      decisionId,
+      runId: waiter.decision.runId,
+      ...(waiter.decision.sessionId ? { sessionId: waiter.decision.sessionId } : {}),
+      ...(waiter.decision.taskId ? { taskId: waiter.decision.taskId } : {}),
+      toolName: waiter.decision.toolName,
+      argumentsFingerprint: waiter.decision.argumentsFingerprint,
+      verdict: "denied",
+      source: "host",
+      reason,
+    });
     this.emit({
       type: "permission:denied",
       decisionId,
@@ -177,6 +299,7 @@ export class PermissionManager {
       ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
       ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
       createdAt: this.now(),
+      argumentsFingerprint: fingerprint(call.arguments),
     };
 
     this.emit({
@@ -193,6 +316,17 @@ export class PermissionManager {
     return new Promise<GateResult>((resolve) => {
       const timer = setTimeout(() => {
         this.waiters.delete(decisionId);
+        this.audit({
+          decisionId,
+          runId: ctx.runId,
+          ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+          ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
+          toolName: call.name,
+          argumentsFingerprint: decision.argumentsFingerprint,
+          verdict: "timeout",
+          source: "timeout",
+          reason: `审批超时（${this.askTimeoutMs}ms）`,
+        });
         this.emit({
           type: "permission:denied",
           decisionId,
@@ -226,6 +360,22 @@ export class PermissionManager {
   private emit(event: RuntimeEvent): void {
     this.events?.emit(event);
   }
+}
+
+/** Common fields of an audit record shared by every gate outcome (P3.3). */
+function approvalBase(
+  ctx: PermissionContext,
+  call: PermissionCall,
+  decisionId = "",
+): Omit<ApprovalRecord, "verdict" | "source" | "reason" | "decidedAt"> {
+  return {
+    decisionId,
+    runId: ctx.runId,
+    ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+    ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
+    toolName: call.name,
+    argumentsFingerprint: fingerprint(call.arguments),
+  };
 }
 
 // ------------------------------------------------------------------- policies

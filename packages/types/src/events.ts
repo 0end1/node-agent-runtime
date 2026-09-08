@@ -1,4 +1,5 @@
 import type { AssistantMessage, RunUsage, ToolCall, UserMessage } from "./types.js";
+import type { ErrorCode } from "./codes.js";
 
 /**
  * Runtime event contracts (下沉 C1，M6 拆 C5 policy 前置：policy 需要
@@ -65,6 +66,11 @@ export interface RunErrorEvent {
   runId: string;
   step: number | null;
   error: string;
+  /**
+   * P3.1: stable machine-readable cause (see `ErrorCode`). Present whenever the
+   * failure came from a typed runtime error — `unknown` for legacy throws.
+   */
+  code?: ErrorCode;
 }
 
 // ---- Session & Task lifecycle events (M1) -------------------------------

@@ -18,6 +18,9 @@
  *   /deny <id> [理由]         reject a pending tool (M3 ask)
  *   /artifacts               list this session's artifacts (M4)
  *   /artifact <id>           show an artifact's text content (M4)
+ *   /audit                   show the persisted approval audit trail (P3.3)
+ *   /grants                  list "always allow" grants (P3.3)
+ *   /revoke <tool>           remove an "always allow" grant (P3.3)
  *   exit / Ctrl+C            quit
  */
 import * as readline from "node:readline/promises";
@@ -31,13 +34,15 @@ import {
   defineTool,
   loadConfig,
   ConsoleLogger,
+  errorPayload,
   type AnyTool,
   type LogLevel,
   type ModelProvider,
+  type RuntimeConfig,
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionManager, type Session } from "@agent-runtime/host";
-import { PermissionManager, createProductionDefaults } from "@agent-runtime/policy";
+import { createProductionDefaults } from "@agent-runtime/policy";
 import { MockProvider } from "@agent-runtime/mock";
 import {
   McpClient,
@@ -83,24 +88,45 @@ function mcpName(spec: string, i: number): string {
   return base.replace(/[^A-Za-z0-9_-]/g, "_").replace(/_+/g, "_") || `mcp${i + 1}`;
 }
 
-function buildMcpHandle(spec: string, i: number): McpServerHandle {
+function buildMcpHandle(
+  spec: string,
+  i: number,
+  mcp: RuntimeConfig["mcp"],
+  debug: boolean,
+): McpServerHandle {
   const trace = (line: string) => {
-    if (process.env.AGENT_DEBUG) console.log(`\x1b[90m${line}\x1b[0m`);
+    if (debug) console.log(`\x1b[90m${line}\x1b[0m`);
   };
+  // P3.6: 供应链防护参数来自 loadConfig（config.mcp），由 config.ts 集中解析
+  // AGENT_MCP_HTTP_ALLOWLIST / AGENT_MCP_STDIO_TIMEOUT_MS / AGENT_MCP_ENV_*——
+  // 宿主不再散落魔法 env 读取，stdio server 的凭据经 serverEnv 注入子进程。
+  const httpAllowlist = mcp?.httpUrlAllowlist;
+  const stdioTimeout = mcp?.stdioStartTimeoutMs;
+  const serverEnv = mcp?.serverEnv;
   if (spec.startsWith("stdio:")) {
     const rest = spec.slice("stdio:".length).trim();
     const parts = rest.split(/\s+/).filter(Boolean);
     if (!parts.length) throw new Error("stdio: 后需要命令");
     return new McpClient({
       name: mcpName(spec, i),
-      transport: new StdioTransport({ command: parts[0], args: parts.slice(1), logger: trace }),
+      transport: new StdioTransport({
+        command: parts[0],
+        args: parts.slice(1),
+        logger: trace,
+        ...(stdioTimeout ? { startTimeoutMs: stdioTimeout } : {}),
+        ...(serverEnv ? { env: serverEnv } : {}),
+      }),
       logger: trace,
     });
   }
   if (/^https?:\/\//.test(spec)) {
     return new McpClient({
       name: mcpName(spec, i),
-      transport: new StreamableHttpTransport({ url: spec, logger: trace }),
+      transport: new StreamableHttpTransport({
+        url: spec,
+        logger: trace,
+        ...(httpAllowlist ? { urlAllowlist: httpAllowlist } : {}),
+      }),
       logger: trace,
     });
   }
@@ -222,18 +248,28 @@ function printOutcome(outcome: {
   );
 }
 
+/** P3.1: 统一错误出口——按稳定错误码呈现，而不是把任意堆栈/文案甩给用户。 */
+function printError(err: unknown): void {
+  const info = errorPayload(err).error;
+  console.error(`\x1b[31m出错 [${info.code}]\x1b[0m：${info.message}`);
+}
+
 async function main() {
   const provider = pickProvider();
-  const logger = new ConsoleLogger({
-    level: (process.env.AGENT_DEBUG ? "debug" : config.logLevel) as LogLevel,
+  const debug = Boolean(process.env.AGENT_DEBUG) || config.logLevel === "debug";
+  const logger = new ConsoleLogger({ level: (debug ? "debug" : config.logLevel) as LogLevel });
+  const runtime = new AgentRuntime({
+    provider,
+    logger,
+    // P3.4: 运行级预算（步数/时长/token/费用/工具速率）来自 config.limits。
+    limits: config.limits,
   });
-  const runtime = new AgentRuntime({ provider, logger });
   // ---- Optional MCP servers: connect at startup and materialize their tools ----
   const mcpRegistry = new McpRegistry();
   const mcpTools: AnyTool[] = [];
   for (let i = 0; i < mcpSpecs.length; i++) {
     try {
-      const handle = buildMcpHandle(mcpSpecs[i]!, i);
+      const handle = buildMcpHandle(mcpSpecs[i]!, i, config.mcp, debug);
       const reg = await mcpRegistry.register(handle);
       mcpTools.push(...reg.tools);
       console.log(`\x1b[36m[MCP] 已注册 ${reg.name}：${reg.tools.length} 个工具\x1b[0m`);
@@ -256,6 +292,8 @@ async function main() {
     ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
     : new FileStorage(DATA_DIR);
   // P3.7: 生产默认——最小权限策略 + 锁定沙箱域（禁网、仅工作区内可写）。
+  // P3.3: 不再手动 new PermissionManager——SessionManager 默认管理器会把审批
+  // 审计与 always 白名单写入 approvalStore（本机 FileStorage/SQLite 持久化）。
   const prod = createProductionDefaults(process.cwd());
   const manager = new SessionManager({
     runtime,
@@ -263,7 +301,7 @@ async function main() {
     agents: [agent],
     sandboxMode: prod.sandboxMode,
     scope: prod.scope,
-    permission: new PermissionManager({ policy: prod.policy, events: runtime.events }),
+    policy: prod.policy,
   });
   managerRef = manager;
   const rl = readline.createInterface({ input, output });
@@ -374,6 +412,43 @@ async function main() {
       if (!busy) rl.prompt();
       return;
     }
+    // ---- P3.3 approval audit trail + grants (persisted across restarts) ----
+    if (text === "/audit") {
+      const rows = await manager.approvals();
+      if (!rows.length) {
+        console.log("（暂无审批审计记录）");
+      } else {
+        console.log(`\x1b[36m最近 ${rows.length} 条治理决策：\x1b[0m`);
+        for (const r of rows.slice(-12)) {
+          const at = new Date(r.decidedAt).toISOString().slice(11, 19);
+          const verdictColor = r.verdict === "approved" ? "\x1b[32m" : "\x1b[31m";
+          console.log(
+            `  ${at}  \x1b[2m${r.source.padEnd(12)}\x1b[0m ${r.toolName} → ${verdictColor}${r.verdict}\x1b[0m  ${r.reason ?? ""}${r.argumentsFingerprint ? `  \x1b[2m(fp=${r.argumentsFingerprint})\x1b[0m` : ""}`,
+          );
+        }
+      }
+      if (!busy) rl.prompt();
+      return;
+    }
+    if (text === "/grants") {
+      const g = await manager.grants();
+      if (!g.length) {
+        console.log("（暂无 always 白名单授权，用 /approve <id> always 添加）");
+      } else {
+        console.log(`\x1b[36m${g.length} 个 always 授权（持久化）：\x1b[0m`);
+        for (const x of g) console.log(`  ${x.toolName}  \x1b[2m${new Date(x.grantedAt).toISOString()}\x1b[0m`);
+      }
+      if (!busy) rl.prompt();
+      return;
+    }
+    const revokeMatch = text.match(/^\/revoke\s+(\S+)$/);
+    if (revokeMatch) {
+      manager.revokeGrant(revokeMatch[1]!);
+      console.log(`已撤销 always 授权：${revokeMatch[1]}`);
+      if (!busy) rl.prompt();
+      return;
+    }
+
     const useMatch = text.match(/^\/use\s+(\S+)$/);
     if (useMatch) {
       await useSession(useMatch[1]!);
@@ -412,7 +487,7 @@ async function main() {
         lastTaskId = outcome.task.id;
         printOutcome(outcome);
       } catch (err) {
-        console.error(`\x1b[31m出错：\x1b[0m${err instanceof Error ? err.message : err}`);
+        printError(err);
       } finally {
         unsub();
         busy = false;
@@ -452,7 +527,7 @@ async function main() {
 
     if (text.startsWith("/")) {
       console.log(
-        "未知命令。可用：/new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit",
+        "未知命令。可用：/new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  /audit  /grants  /revoke <tool>  exit",
       );
       if (!busy) rl.prompt();
       return;
@@ -470,7 +545,7 @@ async function main() {
       lastTaskId = outcome.task.id;
       printOutcome(outcome);
     } catch (err) {
-      console.error(`\x1b[31m出错：\x1b[0m${err instanceof Error ? err.message : err}`);
+      printError(err);
     } finally {
       unsub();
       busy = false;
@@ -485,7 +560,7 @@ async function main() {
       `Storage  : \x1b[36m${DATA_DIR}/\x1b[0m\n` +
       `Session  : \x1b[36m${current!.id}\x1b[0m${current!.title ? ` · “${current!.title}”` : ""}\n` +
       `试试     : 3.5 + 2 * 4 = ?  /  把结论写入 demo.txt（会触发授权）  /  现在几点了？\n` +
-      `命令     : /new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit\n`,
+      `命令     : /new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  /audit  /grants  /revoke <tool>  exit\n`,
   );
   rl.setPrompt(promptText());
   rl.prompt();
@@ -511,6 +586,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error(err);
+  printError(err);
   process.exitCode = 1;
 });

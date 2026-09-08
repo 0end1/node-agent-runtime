@@ -18,6 +18,8 @@ export const ErrorCode = {
   SESSION: "session_error",
   CONFIG_INVALID: "config_invalid",
   TOOL_ERROR: "tool_error",
+  /** P3.4: a run/session budget or tool rate cap was hit. */
+  LIMIT_EXCEEDED: "limit_exceeded",
 } as const;
 
 export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
@@ -42,6 +44,7 @@ const NAME_TO_CODE: Record<string, ErrorCode> = {
   ArtifactError: ErrorCode.ARTIFACT,
   SessionError: ErrorCode.SESSION,
   ConfigError: ErrorCode.CONFIG_INVALID,
+  LimitExceededError: ErrorCode.LIMIT_EXCEEDED,
 };
 
 /** Normalize any thrown value into a stable `{ code, message }` descriptor. */

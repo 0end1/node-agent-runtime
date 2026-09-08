@@ -1,11 +1,22 @@
 import type { SandboxMode } from "@agent-runtime/sandbox";
 import { ErrorCode } from "@agent-runtime/types";
+import type { RunLimits } from "@agent-runtime/types";
 import type { LogLevel } from "./log.js";
 
 export interface FeatureFlags {
   mcp: boolean;
   sqlite: boolean;
   artifacts: boolean;
+}
+
+/** P3.6: MCP 供应链防护参数（由宿主透传给 transport）。 */
+export interface McpConfig {
+  /** Stdio 子进程启动超时（ms）。 */
+  stdioStartTimeoutMs?: number;
+  /** Streamable HTTP 端点 URL 白名单（SSRF 防护）。 */
+  httpUrlAllowlist?: string[];
+  /** 追加注入 stdio server 的环境变量（密钥只经此注入）。 */
+  serverEnv?: Record<string, string>;
 }
 
 export interface RuntimeConfig {
@@ -25,6 +36,10 @@ export interface RuntimeConfig {
     allow?: string[];
     deny?: string[];
   };
+  /** P3.4: budget guardrails derived from env / overrides (unset = no cap). */
+  limits?: RunLimits;
+  /** P3.6: MCP supply-chain guardrails handed to hosts for their transports. */
+  mcp?: McpConfig;
   features: FeatureFlags;
 }
 
@@ -49,8 +64,79 @@ export interface LoadConfigOptions {
     provider: Partial<RuntimeConfig["provider"]>;
     sandbox: Partial<RuntimeConfig["sandbox"]>;
     permission: Partial<RuntimeConfig["permission"]>;
+    limits: Partial<RunLimits>;
+    mcp: Partial<McpConfig>;
     features: Partial<FeatureFlags>;
   }>;
+}
+
+function parsePositiveInt(value: string | undefined): number | undefined {
+  if (value === undefined || value.trim() === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+/** P3.4: assemble `limits` from `AGENT_LIMIT_*` / `AGENT_RATE_TOOL_*` env + overrides. */
+function buildLimits(
+  env: NodeJS.ProcessEnv,
+  overrides: Partial<RunLimits> | undefined,
+): RunLimits | undefined {
+  const rateCalls = parsePositiveInt(env.AGENT_RATE_TOOL_MAX_CALLS);
+  const rateWindow = parsePositiveInt(env.AGENT_RATE_TOOL_WINDOW_MS);
+  const limits: RunLimits = {
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_STEPS) !== undefined
+      ? { maxSteps: parsePositiveInt(env.AGENT_LIMIT_MAX_STEPS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_MODEL_CALLS) !== undefined
+      ? { maxModelCalls: parsePositiveInt(env.AGENT_LIMIT_MAX_MODEL_CALLS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_INPUT_TOKENS) !== undefined
+      ? { maxInputTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_INPUT_TOKENS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_OUTPUT_TOKENS) !== undefined
+      ? { maxOutputTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_OUTPUT_TOKENS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_TOTAL_TOKENS) !== undefined
+      ? { maxTotalTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_TOTAL_TOKENS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_DURATION_MS) !== undefined
+      ? { maxDurationMs: parsePositiveInt(env.AGENT_LIMIT_MAX_DURATION_MS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_COST_USD) !== undefined
+      ? { maxCostUsd: parsePositiveInt(env.AGENT_LIMIT_MAX_COST_USD) }
+      : {}),
+    ...(rateCalls !== undefined && rateWindow !== undefined
+      ? { toolRate: { maxCalls: rateCalls, windowMs: rateWindow } }
+      : {}),
+    ...(overrides ?? {}),
+  };
+  return Object.keys(limits).length === 0 ? undefined : limits;
+}
+
+const MCP_ENV_PREFIX = "AGENT_MCP_ENV_";
+
+/** P3.6: assemble MCP 供应链参数 from `AGENT_MCP_*` env + overrides. */
+function buildMcpConfig(
+  env: NodeJS.ProcessEnv,
+  overrides: Partial<McpConfig> | undefined,
+): McpConfig | undefined {
+  const serverEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (key.startsWith(MCP_ENV_PREFIX) && value !== undefined) {
+      // AGENT_MCP_ENV_MY_TOKEN=xx → { MY_TOKEN: "xx" }
+      serverEnv[key.slice(MCP_ENV_PREFIX.length)] = value;
+    }
+  }
+  const allowlist = parseList(env.AGENT_MCP_HTTP_ALLOWLIST);
+  const mcp: McpConfig = {
+    ...(parsePositiveInt(env.AGENT_MCP_STDIO_TIMEOUT_MS) !== undefined
+      ? { stdioStartTimeoutMs: parsePositiveInt(env.AGENT_MCP_STDIO_TIMEOUT_MS) }
+      : {}),
+    ...(allowlist?.length ? { httpUrlAllowlist: allowlist } : {}),
+    ...(Object.keys(serverEnv).length > 0 ? { serverEnv } : {}),
+    ...(overrides ?? {}),
+  };
+  return Object.keys(mcp).length === 0 ? undefined : mcp;
 }
 
 function parseList(value: string | undefined): string[] | undefined {
@@ -122,6 +208,8 @@ export function loadConfig(options: LoadConfigOptions = {}): RuntimeConfig {
         : {}),
     },
     permission: { ...(ov.permission ?? {}) },
+    limits: buildLimits(env, ov.limits),
+    mcp: buildMcpConfig(env, ov.mcp),
     features,
   };
 }

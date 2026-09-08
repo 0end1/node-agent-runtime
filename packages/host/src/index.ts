@@ -13,3 +13,6 @@ export type {
   ChatOutcome,
   SessionManagerOptions,
 } from "./session.js";
+
+// ---- P3.3 approval audit + grant persistence ----
+export { StorageApprovalStore } from "./approval-store.js";

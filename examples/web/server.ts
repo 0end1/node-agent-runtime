@@ -8,7 +8,7 @@
  *   PORT=8787 npm run demo:web
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { createServer, type ServerResponse } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,11 +25,12 @@ import {
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionManager, type Session } from "@agent-runtime/host";
-import { PermissionManager, createProductionDefaults } from "@agent-runtime/policy";
+import { createProductionDefaults } from "@agent-runtime/policy";
 import { MockProvider } from "@agent-runtime/mock";
 import { builtinTools } from "@agent-runtime/tools-basic";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 import { SQLiteStorage } from "@agent-runtime/store-sqlite";
+import { decideAuth, decideCors, missingTokenWhenExposed } from "./security.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -80,7 +81,12 @@ let activeSession = "default";
 const logger = new ConsoleLogger({
   level: (process.env.AGENT_DEBUG ? "debug" : config.logLevel) as LogLevel,
 });
-const runtime = new AgentRuntime({ provider, logger });
+const runtime = new AgentRuntime({
+  provider,
+  logger,
+  // P3.4: 运行级预算（步数/时长/token/费用/工具速率）来自 config.limits。
+  limits: config.limits,
+});
 /** Demo-only write tool (M3): mirrors examples/cli.ts — declares `kind: "write"`
  *  so the default policy gates it with an `ask`, and the sandbox keeps the write
  *  inside cwd. Lets the web console exercise the approval + sandbox-write surface. */
@@ -130,6 +136,7 @@ const storage = wantsSqlite
   ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
   : new FileStorage(DATA_DIR);
 // P3.7: 生产默认——最小权限策略 + 锁定沙箱域（禁网、仅工作区内可写）。
+// P3.3: 审批审计与 always 白名单经 SessionManager 默认写入 approvalStore（本机持久化）。
 const prod = createProductionDefaults(process.cwd());
 const manager = new SessionManager({
   runtime,
@@ -137,7 +144,7 @@ const manager = new SessionManager({
   agents: [agent],
   sandboxMode: prod.sandboxMode,
   scope: prod.scope,
-  permission: new PermissionManager({ policy: prod.policy, events: runtime.events }),
+  policy: prod.policy,
 });
 
 async function getOrCreateSession(sessionKey: string): Promise<Session> {
@@ -162,6 +169,67 @@ const UI_EVENTS = new Set<RuntimeEvent["type"]>([
 // ---- helpers ---------------------------------------------------------------
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// P3.5: Web/本地 server 鉴权与防跨站（安全配置收口到 AGENT_API_TOKEN / AGENT_CORS_ALLOW_ORIGINS，
+// 逻辑抽到 ./security.ts 以便自动化测试）。默认只允许 loopback 来源与显式白名单来源，
+// 显式监听非 loopback 地址却未设令牌时直接拒绝启动，避免把无鉴权控制台暴露到网络上。
+const API_TOKEN = (process.env.AGENT_API_TOKEN ?? "").trim();
+const CORS_ALLOW = (process.env.AGENT_CORS_ALLOW_ORIGINS ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+// P3.5: 非 loopback 监听（对外暴露）而缺令牌 → 启动即拒，不进入 listen（默认拒绝）。
+const refusal = missingTokenWhenExposed(HOST, API_TOKEN);
+if (refusal) {
+  console.error(`[security] ${refusal} 已拒绝启动。`);
+  process.exit(1);
+}
+
+/** Reject cross-origin requests unless the Origin is loopback or explicitly allowed. */
+function corsGuard(req: IncomingMessage, res: ServerResponse): boolean {
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, { "content-type": "text/plain", "access-control-max-age": "600" });
+    return false;
+  }
+  const decision = decideCors(req.headers.origin, CORS_ALLOW);
+  if (decision.allow) {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.setHeader("access-control-allow-origin", origin);
+      res.setHeader("vary", "Origin");
+    }
+    return true;
+  }
+  res.writeHead(decision.status, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: decision.error }));
+  return false;
+}
+
+/** Require `Authorization: Bearer <AGENT_API_TOKEN>` when a token is configured. */
+function authGuard(req: IncomingMessage, res: ServerResponse): boolean {
+  const decision = decideAuth(req.headers.authorization, API_TOKEN);
+  if (decision.allow) return true;
+  res.writeHead(decision.status, {
+    "content-type": "application/json",
+    "www-authenticate": "Bearer",
+  });
+  res.end(JSON.stringify({ error: decision.error }));
+  return false;
+}
+
+/** Read a request body with an upper bound (default 256KB) to avoid memory abuse. */
+async function readBody(req: IncomingMessage, maxBytes = 256_000): Promise<string> {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    const b = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+    size += b.length;
+    if (size > maxBytes) throw new Error("请求体过大");
+    chunks.push(b);
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
 
 function sendSSE(res: ServerResponse, obj: unknown): void {
   res.write(`data: ${JSON.stringify(obj)}\n\n`);
@@ -190,6 +258,10 @@ function pacing(type: RuntimeEvent["type"]): number {
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+
+  // P3.5: 防跨站 + 鉴权（demo 默认开放，设 AGENT_API_TOKEN / AGENT_CORS_ALLOW_ORIGINS 即收紧）。
+  if (!corsGuard(req, res)) return;
+  if (!authGuard(req, res)) return;
 
   try {
     if (url.pathname === "/" || url.pathname === "/index.html") {
@@ -306,9 +378,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/approve" && req.method === "POST") {
-      let body = "";
-      for await (const chunk of req) body += chunk.toString("utf8");
       try {
+        const body = await readBody(req);
         const { decisionId, always } = JSON.parse(body || "{}");
         const ok = manager.approve(String(decisionId ?? ""), { always: Boolean(always) });
         res.writeHead(200, { "content-type": "application/json" });
@@ -323,9 +394,8 @@ const server = createServer(async (req, res) => {
     }
 
     if (url.pathname === "/api/deny" && req.method === "POST") {
-      let body = "";
-      for await (const chunk of req) body += chunk.toString("utf8");
       try {
+        const body = await readBody(req);
         const { decisionId, reason } = JSON.parse(body || "{}");
         const ok = manager.deny(String(decisionId ?? ""), reason ? String(reason) : undefined);
         res.writeHead(200, { "content-type": "application/json" });
@@ -393,10 +463,9 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (url.pathname === "/api/resume" && req.method === "POST") {
-      let body = "";
-      for await (const chunk of req) body += chunk.toString("utf8");
       let parsed: { checkpointId?: string; continuation?: string };
       try {
+        const body = await readBody(req);
         parsed = JSON.parse(body || "{}");
       } catch {
         parsed = {};
@@ -472,6 +541,9 @@ server.listen(PORT, HOST, () => {
   console.log(`Agent Runtime console  ->  http://${HOST}:${PORT}`);
   console.log(`Provider                ->  ${provider.label}`);
   console.log(`Session storage         ->  ${DATA_DIR} (M1: sessions persist across restarts)`);
+  console.log(
+    `Security (P3.5)         ->  ${API_TOKEN ? `Bearer 鉴权（AGENT_API_TOKEN=${API_TOKEN.slice(0, 4)}…）` : "loopback-only · 无凭据放行（本机便利，可设 AGENT_API_TOKEN 收紧）"}`,
+  );
 });
 
 process.on("SIGINT", () => {

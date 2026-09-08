@@ -4,7 +4,7 @@
 
 export { McpClient } from "./client.js";
 
-export { StdioTransport, StreamableHttpTransport, parseSse } from "./transport.js";
+export { StdioTransport, StreamableHttpTransport, parseSse, validateMcpServerUrl } from "./transport.js";
 export type {
   McpTransport,
   StdioTransportOptions,

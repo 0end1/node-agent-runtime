@@ -9,6 +9,8 @@
  *  4. 浏览器跨站（Origin 非 loopback 且不在白名单）一律 403。
  */
 
+import { timingSafeEqual } from "node:crypto";
+
 export interface SecurityConfig {
   token: string;
   corsAllow: string[];
@@ -86,12 +88,51 @@ export function decidePreflight(
 
 /** 令牌决策：未配置令牌 → 放行（仅本机场景可达，见 missingTokenWhenExposed）；
  *  否则要求 `Authorization: Bearer <token>` 精确匹配。 */
+/** Constant-time comparison so a wrong token cannot be probed byte by byte. */
+function tokensEqual(a: string, b: string): boolean {
+  const left = Buffer.from(a, "utf8");
+  const right = Buffer.from(b, "utf8");
+  if (left.length !== right.length) {
+    // Still burn one comparison of equal length before bailing out.
+    timingSafeEqual(left, left);
+    return false;
+  }
+  return timingSafeEqual(left, right);
+}
+
 export function decideAuth(
   authorization: string | undefined,
   token: string,
 ): GuardDecision {
   if (!token) return { allow: true };
   const m = /^Bearer\s+(.+)$/i.exec(authorization ?? "");
-  if (m && m[1].trim() === token) return { allow: true };
+  if (m && tokensEqual(m[1].trim(), token)) return { allow: true };
   return { allow: false, status: 401, error: "需要 Bearer 令牌" };
+}
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/**
+ * CSRF backstop for tokenless (loopback) deployments (P3.5).
+ *
+ * `decideCors` can only judge requests that carry an `Origin`. Modern browsers
+ * also send `Sec-Fetch-Site`, so a cross-site state-changing request that
+ * somehow has no `Origin` is still refused. Requests with neither header (curl,
+ * CLI scripts) are allowed — that is the documented loopback convenience mode.
+ */
+export function decideCsrf(input: {
+  method?: string;
+  origin?: string;
+  secFetchSite?: string;
+  hasToken: boolean;
+}): GuardDecision {
+  // With a token configured `decideAuth` already demands a Bearer header that
+  // a cross-site page cannot forge.
+  if (input.hasToken) return { allow: true };
+  if (SAFE_METHODS.has((input.method ?? "GET").toUpperCase())) return { allow: true };
+  if (input.origin) return { allow: true }; // already vetted by decideCors
+  if (input.secFetchSite?.toLowerCase() === "cross-site") {
+    return { allow: false, status: 403, error: "跨站请求被拒绝（CSRF）" };
+  }
+  return { allow: true };
 }

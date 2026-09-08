@@ -64,4 +64,18 @@ describe("loadConfig", () => {
       (err: unknown) => err instanceof ConfigError && err.code === ErrorCode.CONFIG_INVALID,
     );
   });
+
+  it("rejects an empty OPENAI_API_KEY instead of silently falling back to mock", () => {
+    assert.throws(
+      () => loadConfig({ env: ENV({ OPENAI_API_KEY: "   " }) }),
+      (err: unknown) => err instanceof ConfigError && err.code === ErrorCode.CONFIG_INVALID,
+    );
+  });
+
+  it("rejects provider=openai without any key", () => {
+    assert.throws(
+      () => loadConfig({ env: ENV(), overrides: { provider: { kind: "openai" } } }),
+      (err: unknown) => err instanceof ConfigError && err.code === ErrorCode.CONFIG_INVALID,
+    );
+  });
 });

@@ -58,12 +58,17 @@ function serialize(value: unknown): string {
 
 const REDACTED = "***REDACTED***";
 
+/** Recursion budget. Anything deeper is masked wholesale — never passed through. */
+const REDACT_DEPTH_LIMIT = 8;
+
 // P3.2: 脱敏——key/secret 类字段与疑似密钥的值永不进入日志/事件。
+// 键名允许 `x-`/`proxy-`/下划线等前缀与点分后缀（`x-api-key`、`proxy-authorization`…）。
 const STRONG_SECRET_KEY =
-  /^(api[_-]?key|secret|token|password|passwd|pwd|authorization|auth|credential|private[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|session[_-]?id|cookie|set[_-]?cookie|bearer)$/i;
-const WEAK_SECRET_KEY = /^(key|auth)$/i;
+  /(^|[-_.])(api[_-]?key|secret|token|password|passwd|pwd|authorization|auth|credential|private[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret|session[_-]?id|cookie|set[_-]?cookie|bearer)$/i;
+const WEAK_SECRET_KEY = /(^|[-_.])(key|auth)$/i;
+// 常见厂商密钥前缀 + JWT + 长 base64/hex 串。
 const SECRET_VALUE =
-  /^(sk-[A-Za-z0-9]{6,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$|[A-Za-z0-9+/]{32,}={0,2}$)/;
+  /^(sk-[A-Za-z0-9]{6,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|gh[pousr]_[A-Za-z0-9]{16,}|github_pat_[A-Za-z0-9_]{20,}|xox[aboprs]-[A-Za-z0-9-]{10,}|AIza[A-Za-z0-9_-]{20,}|glpat-[A-Za-z0-9_-]{16,}|[A-Za-z0-9+/]{32,}={0,2}$)/;
 
 /**
  * Deep-clone and mask likely secrets. Strong-secret keys are always masked;
@@ -72,12 +77,21 @@ const SECRET_VALUE =
  * Used by `ConsoleLogger` and the runtime's event emission (P3.2).
  */
 export function redact(value: unknown, depth = 0): unknown {
-  if (depth > 8) return value;
+  return redactValue(value, new WeakSet<object>(), depth);
+}
+
+function redactValue(value: unknown, seen: WeakSet<object>, depth: number): unknown {
   if (value === null || typeof value !== "object") {
     if (typeof value === "string" && SECRET_VALUE.test(value)) return REDACTED;
     return value;
   }
-  if (Array.isArray(value)) return value.map((v) => redact(v, depth + 1));
+  // 循环引用：不再继续展开（避免无限递归）。
+  if (seen.has(value)) return REDACTED;
+  // 深度上限：整值视为不可信并脱敏，而不是"深了就放行原文"。
+  if (depth >= REDACT_DEPTH_LIMIT) return REDACTED;
+  seen.add(value);
+
+  if (Array.isArray(value)) return value.map((v) => redactValue(v, seen, depth + 1));
   const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
     if (STRONG_SECRET_KEY.test(key)) {
@@ -86,10 +100,12 @@ export function redact(value: unknown, depth = 0): unknown {
     }
     if (WEAK_SECRET_KEY.test(key)) {
       out[key] =
-        typeof val === "string" && SECRET_VALUE.test(val) ? REDACTED : redact(val, depth + 1);
+        typeof val === "string" && SECRET_VALUE.test(val)
+          ? REDACTED
+          : redactValue(val, seen, depth + 1);
       continue;
     }
-    out[key] = redact(val, depth + 1);
+    out[key] = redactValue(val, seen, depth + 1);
   }
   return out;
 }

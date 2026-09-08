@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   decideAuth,
   decideCors,
+  decideCsrf,
   decidePreflight,
   isLoopbackHost,
   missingTokenWhenExposed,
@@ -67,5 +68,26 @@ describe("P3.5 security guard", () => {
     const evil = decidePreflight("https://evil.example", []);
     assert.equal(evil.status, 403);
     assert.ok(evil.body?.includes("跨站"));
+  });
+
+  it("decideCsrf: 无令牌部署下拦截无 Origin 的跨站写请求", () => {
+    const crossWrite = decideCsrf({ method: "POST", secFetchSite: "cross-site", hasToken: false });
+    assert.equal(crossWrite.allow, false);
+    assert.equal((crossWrite as { status: number }).status, 403);
+
+    // 同源写、安全方法、带 Origin（交给 decideCors）、已配令牌、CLI（两者皆无）均放行
+    assert.deepEqual(decideCsrf({ method: "POST", secFetchSite: "same-origin", hasToken: false }), {
+      allow: true,
+    });
+    assert.deepEqual(decideCsrf({ method: "GET", secFetchSite: "cross-site", hasToken: false }), {
+      allow: true,
+    });
+    assert.deepEqual(decideCsrf({ method: "POST", origin: "https://evil.example", hasToken: false }), {
+      allow: true,
+    });
+    assert.deepEqual(decideCsrf({ method: "POST", secFetchSite: "cross-site", hasToken: true }), {
+      allow: true,
+    });
+    assert.deepEqual(decideCsrf({ method: "POST", hasToken: false }), { allow: true });
   });
 });

@@ -171,14 +171,28 @@ export function loadConfig(options: LoadConfigOptions = {}): RuntimeConfig {
     );
   }
 
-  const wantsOpenAI = ov.provider?.kind === "openai" || Boolean(env.OPENAI_API_KEY);
+  // P3.8: 空串密钥是"配了但没填"，静默回落 mock 会让宿主以为在用真模型 —— 直接报错。
+  const rawKey = env.OPENAI_API_KEY;
+  if (typeof rawKey === "string" && rawKey.trim() === "") {
+    throw new ConfigError("OPENAI_API_KEY 已设置但为空；请填写有效密钥，或移除该环境变量以显式使用 mock");
+  }
+  const apiKeyFromEnv =
+    typeof rawKey === "string" && rawKey.trim() !== "" ? rawKey.trim() : undefined;
+
+  const wantsOpenAI =
+    ov.provider?.kind === "openai" || Boolean(ov.provider?.apiKey) || apiKeyFromEnv !== undefined;
   const provider: RuntimeConfig["provider"] = {
     kind: wantsOpenAI ? "openai" : "mock",
-    ...(env.OPENAI_API_KEY ? { apiKey: env.OPENAI_API_KEY } : {}),
+    ...(apiKeyFromEnv ? { apiKey: apiKeyFromEnv } : {}),
     ...(env.OPENAI_BASE_URL ? { baseUrl: env.OPENAI_BASE_URL } : {}),
     ...(env.OPENAI_MODEL ? { model: env.OPENAI_MODEL } : {}),
     ...(ov.provider ?? {}),
   };
+  if (provider.kind === "openai" && !provider.apiKey) {
+    throw new ConfigError(
+      "provider=openai 但未配置密钥：请设置 OPENAI_API_KEY，或经 overrides.provider.apiKey 注入",
+    );
+  }
 
   const networkRaw = ov.sandbox?.network ?? (env.AGENT_SANDBOX_NETWORK as "deny" | "allowlist" | undefined);
   const network: "deny" | "allowlist" = networkRaw ?? "deny";

@@ -8,6 +8,16 @@
 
 ## [Unreleased]
 
+**M6-21 · P3 评审收尾：低危加固（L1 / L2 / L4 / L5）**（2026-09-08）：
+
+- **Security（P3.2）**：`redact()` 深度上限由"放行原文"改为**整值脱敏**（`REDACT_DEPTH_LIMIT`），并用 `WeakSet` 显式拦截循环引用；公开签名不变
+- **Security（P3.2）**：密钥识别增强 —— 键名支持 `x-`/`proxy-`/下划线等前缀（`x-api-key`、`proxy-authorization`）；值形态补充 `gh[pousr]_`、`github_pat_`、`xox[aboprs]-`、`AIza`、`glpat-` 厂商前缀，JWT 分支放宽结尾锚定
+- **Security（P3.5）**：`decideAuth` 令牌比较改恒定时间（`crypto.timingSafeEqual`）；新增 `decideCsrf()` + `server.ts` 的 `csrfGuard`，无令牌部署下拦截无 `Origin` 且 `Sec-Fetch-Site: cross-site` 的写请求（curl/CLI 不受影响）
+- **Fixed（P3.8）**：空串/空白 `OPENAI_API_KEY` 不再静默降级 mock，改抛 `ConfigError`；`provider=openai` 缺密钥同样抛 `ConfigError`
+- **Added**：`examples/web/security.ts` `decideCsrf`
+- **Docs**：`docs/p3-review.md` 更新为 8 项发现全部已修；`m6-productionization.md` P3.2/P3.5/P3.8 行补记
+- **测试**：`log.test.ts` 增补深度上限/循环引用/前缀与厂商 token 形态；`config.test.ts` 增补空串 key 与 openai 缺 key；`security.test.ts` 增补 `decideCsrf` 六场景；全量 223 用例 0 失败
+
 **M6-20 · P3 评审后安全加固（H1 / M1 / M2 / L3）**（2026-09-08）：
 
 - **Security（P3.6）**：修复 MCP 白名单可被 30x 重定向绕过的 SSRF 缺口 —— `StreamableHttpTransport` 请求统一 `redirect: "manual"`，手动跟随且**每一跳重新校验**协议与白名单（跳数上限 3），`notify()` 同样拒绝跟随 3xx

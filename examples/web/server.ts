@@ -33,6 +33,7 @@ import { SQLiteStorage } from "@agent-runtime/store-sqlite";
 import {
   decideAuth,
   decideCors,
+  decideCsrf,
   decidePreflight,
   missingTokenWhenExposed,
 } from "./security.js";
@@ -216,6 +217,21 @@ function corsGuard(req: IncomingMessage, res: ServerResponse): boolean {
   return false;
 }
 
+/** P3.5: CSRF backstop for tokenless (loopback) deployments — modern browsers
+ *  send `Sec-Fetch-Site`, so a cross-site write without an Origin is caught. */
+function csrfGuard(req: IncomingMessage, res: ServerResponse): boolean {
+  const decision = decideCsrf({
+    method: req.method,
+    origin: req.headers.origin,
+    secFetchSite: req.headers["sec-fetch-site"],
+    hasToken: Boolean(API_TOKEN),
+  });
+  if (decision.allow) return true;
+  res.writeHead(decision.status, { "content-type": "application/json" });
+  res.end(JSON.stringify({ error: decision.error }));
+  return false;
+}
+
 /** Require `Authorization: Bearer <AGENT_API_TOKEN>` when a token is configured. */
 function authGuard(req: IncomingMessage, res: ServerResponse): boolean {
   const decision = decideAuth(req.headers.authorization, API_TOKEN);
@@ -271,6 +287,7 @@ const server = createServer(async (req, res) => {
 
   // P3.5: 防跨站 + 鉴权（demo 默认开放，设 AGENT_API_TOKEN / AGENT_CORS_ALLOW_ORIGINS 即收紧）。
   if (!corsGuard(req, res)) return;
+  if (!csrfGuard(req, res)) return;
   if (!authGuard(req, res)) return;
 
   try {

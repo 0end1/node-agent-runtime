@@ -102,4 +102,30 @@ describe("redact (P3.2)", () => {
       { a: { password: "***REDACTED***" }, b: [{ secret: "***REDACTED***" }] },
     );
   });
+
+  it("masks deep values instead of passing them through (depth limit)", () => {
+    let deep: Record<string, unknown> = { password: "sk-abcdefghij" };
+    for (let i = 0; i < 12; i++) deep = { nested: deep };
+    const out = redact(deep);
+    // 到达深度上限后整值被脱敏，原文不得出现在输出里
+    assert.ok(!JSON.stringify(out).includes("sk-abcdefghij"));
+    assert.ok(JSON.stringify(out).includes("***REDACTED***"));
+  });
+
+  it("survives circular references", () => {
+    const cyclic: Record<string, unknown> = { name: "a" };
+    cyclic.self = cyclic;
+    const out = redact(cyclic) as Record<string, unknown>;
+    assert.equal(out.name, "a");
+    assert.equal(out.self, "***REDACTED***");
+  });
+
+  it("masks prefixed key names and vendor token shapes", () => {
+    assert.deepEqual(redact({ "x-api-key": "abc", "proxy-authorization": "abc" }), {
+      "x-api-key": "***REDACTED***",
+      "proxy-authorization": "***REDACTED***",
+    });
+    assert.deepEqual(redact({ note: "ghp_abcdefghijklmnop1234" }), { note: "***REDACTED***" });
+    assert.deepEqual(redact({ note: "xoxb-1234567890-abcdef" }), { note: "***REDACTED***" });
+  });
 });

@@ -47,6 +47,8 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
 
+> **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
+
 ## 2. `@agent-runtime/core`（C2 · 引擎 + facade，1005 行）
 
 **引擎与运行时**：`AgentRuntime`、`AgentRuntimeOptions`、`RunAbortedError`、`RunOptions`、`RunResult`、`StepSnapshot`、`EventBus`

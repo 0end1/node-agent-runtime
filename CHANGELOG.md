@@ -8,6 +8,17 @@
 
 ## [Unreleased]
 
+**M6 · P1 审查归档（Docs，2026-09-08，split 分支）**：将 `docs/p1-review.md` 的 7+1 主题审查结论与 M6-9~M6-11 整改事实回填至架构决策文档，形成发布（Gate 4）前置的单一核对入口，并补齐审查中要求的防腐明示。
+**交付**：`docs/architecture.md` v1.9 修订——§10 现状注记更新为 12 个 workspace 包视图（依赖方向、core 1005 行、事件可注入），§11 M6 行补 Gate 1 关闭与审查整改闭环，§13 追加 v1.9 行；`docs/api-surface.md` §1 补 types 防腐红线（只许契约声明 + 零 IO 纯函数）；新增 `docs/final-review.md`（最终审查与封板核对总表：7 项主题 + MCP-as-Tools，含决策证据出处与复核命令）。
+**验收**：纯文档变更，无代码 / 公共 API 变化，`npm run check:api` 不受影响。
+
+### Docs（M6 归档）
+- `docs/architecture.md`：v1.9 修订——§10 / §11 / §13 同步 12 包与 M6-9~M6-11 整改事实
+- `docs/api-surface.md`：§1 补 types 防腐红线（禁止 IO / 有状态逻辑 / 运行时内部依赖，超范畴能力下沉实现包）
+- `docs/final-review.md`：新增——最终审查与封板核对总表（7+1 主题单一入口）
+
+---
+
 **M6-11 · 工程护栏：API 快照复核脚本化（P2-c）**（2026-09-08，split 分支）：闭环 `docs/p1-review.md` 遗留的 P2 建议「API 快照复核脚本化，纳入 CI 作业 `api-surface`」，落地 `docs/api-surface.md` §13 的复核要求。
 **交付**：`scripts/check-api-surface.ts`（TS AST 解析各包 `dist/index.d.ts`，口径与冻结快照一致——本地 `export *` 递归展开、具名 re-export 计入、跨包 `export *` 仅记转发目标）+ 基线 `scripts/api-surface.baseline.json`。基线冻结并与 `docs/api-surface.md` 逐包符号全集对齐（types 47 / memory 14 / artifact 8 / sandbox 14 / policy 15 / core 49 + 5 转发 / tools-basic 4 / mock 1 / host 10 / mcp 28 / provider-openai 2 / store-sqlite 2）。
 **门禁**：`npm run check:api` 复核（有差异退出码 1，按 §13 评审）；`npm run check:api:update` 评审通过后重新冻结。CI 作业 `api-surface`（P2.7）复用同一脚本，随 P2 总闸（`npm run ci`）接入。

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-08T01:41:18.378Z",
+  "generatedAt": "2026-09-08T05:06:39.909Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@agent-runtime/types": {
@@ -13,6 +13,8 @@
         "CheckpointRestoredEvent",
         "CheckpointSavedEvent",
         "DocDomain",
+        "ErrorCode",
+        "ErrorInfo",
         "EventEmitter",
         "JsonSchema",
         "JsonSchemaType",
@@ -46,6 +48,7 @@
         "UserMessage",
         "UserMessageEvent",
         "classifyToolName",
+        "errorInfo",
         "fmtNumber",
         "newId",
         "stringifyResult",
@@ -112,6 +115,7 @@
         "DefaultPermissionPolicy",
         "DefaultPermissionPolicyOptions",
         "GateResult",
+        "PRODUCTION_MATRIX",
         "PendingDecision",
         "PermissionCall",
         "PermissionContext",
@@ -121,6 +125,9 @@
         "StaticPolicy",
         "Verdict",
         "combinePolicies",
+        "createProductionDefaults",
+        "createProductionPolicy",
+        "secureScope",
         "toolListPolicy"
       ],
       "forwards": []
@@ -134,10 +141,16 @@
         "AnyTool",
         "CheckpointRestoredEvent",
         "CheckpointSavedEvent",
+        "ConfigError",
+        "ConsoleLogger",
         "DEFAULT_AGENT_INSTRUCTIONS",
         "EventBus",
+        "FeatureFlags",
         "FileStorage",
         "FinishReason",
+        "LoadConfigOptions",
+        "LogLevel",
+        "Logger",
         "MemoryStorage",
         "ModelProvider",
         "ModelRequest",
@@ -156,6 +169,7 @@
         "RunOptions",
         "RunResult",
         "RunStartEvent",
+        "RuntimeConfig",
         "RuntimeEvent",
         "SandboxWriteEvent",
         "SessionClosedEvent",
@@ -175,7 +189,10 @@
         "buildRunContext",
         "defineAgent",
         "defineTool",
-        "findDuplicateToolNames"
+        "errorPayload",
+        "findDuplicateToolNames",
+        "loadConfig",
+        "toLogger"
       ],
       "forwards": [
         "@agent-runtime/artifact",

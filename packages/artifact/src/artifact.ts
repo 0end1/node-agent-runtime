@@ -13,7 +13,7 @@
  */
 
 // Artifact 契约类型已下沉 C1（M6 C3 决策），实现留在 C3 `@agent-runtime/memory`。
-import { newId } from "@agent-runtime/types";
+import { newId, ErrorCode } from "@agent-runtime/types";
 import type { Artifact, ArtifactInput, ArtifactKind, Storage } from "@agent-runtime/types";
 
 const BLOB_PREFIX = "blob:";
@@ -37,6 +37,7 @@ export interface ArtifactManagerOptions {
 }
 
 export class ArtifactError extends Error {
+  readonly code = ErrorCode.ARTIFACT;
   constructor(message: string) {
     super(message);
     this.name = "ArtifactError";

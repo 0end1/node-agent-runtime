@@ -17,10 +17,15 @@ import {
   AgentRuntime,
   FileStorage,
   defineTool,
+  errorPayload,
+  loadConfig,
+  ConsoleLogger,
+  type LogLevel,
   type ModelProvider,
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionManager, type Session } from "@agent-runtime/host";
+import { PermissionManager, createProductionDefaults } from "@agent-runtime/policy";
 import { MockProvider } from "@agent-runtime/mock";
 import { builtinTools } from "@agent-runtime/tools-basic";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
@@ -30,6 +35,12 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? "127.0.0.1";
 const argv = process.argv.slice(2);
+
+// P3.8: 集中、分层的运行时配置（密钥只经配置/环境注入，无散落 magic env 读取）。
+const config = loadConfig({
+  env: process.env,
+  overrides: argv.includes("--provider=openai") ? { provider: { kind: "openai" } } : {},
+});
 
 function nodeSupportsSqlite(): boolean {
   const [maj, min] = process.versions.node.split(".").map(Number);
@@ -51,8 +62,12 @@ const HTML_PATH = join(PUBLIC_DIR, "index.html");
 // ---- provider selection ----------------------------------------------------
 
 function pickProvider(): ModelProvider {
-  if (argv.includes("--provider=openai") || process.env.OPENAI_API_KEY) {
-    return new OpenAIClientProvider();
+  if (config.provider.kind === "openai") {
+    return new OpenAIClientProvider({
+      apiKey: config.provider.apiKey,
+      baseUrl: config.provider.baseUrl,
+      model: config.provider.model,
+    });
   }
   return new MockProvider();
 }
@@ -62,10 +77,10 @@ const provider = pickProvider();
 // 延迟引用：demo 写文件工具需把落盘结果登记为 artifact，但会话上下文在
 // 运行时（请求级）才确定，故用模块级变量记录当前活跃 session。
 let activeSession = "default";
-const runtime = new AgentRuntime({
-  provider,
-  logger: (line) => console.log(line),
+const logger = new ConsoleLogger({
+  level: (process.env.AGENT_DEBUG ? "debug" : config.logLevel) as LogLevel,
 });
+const runtime = new AgentRuntime({ provider, logger });
 /** Demo-only write tool (M3): mirrors examples/cli.ts — declares `kind: "write"`
  *  so the default policy gates it with an `ask`, and the sandbox keeps the write
  *  inside cwd. Lets the web console exercise the approval + sandbox-write surface. */
@@ -114,10 +129,15 @@ const DATA_DIR = process.env.RUNTIME_DATA ?? join(process.cwd(), ".runtime-data"
 const storage = wantsSqlite
   ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
   : new FileStorage(DATA_DIR);
+// P3.7: 生产默认——最小权限策略 + 锁定沙箱域（禁网、仅工作区内可写）。
+const prod = createProductionDefaults(process.cwd());
 const manager = new SessionManager({
   runtime,
   storage,
   agents: [agent],
+  sandboxMode: prod.sandboxMode,
+  scope: prod.scope,
+  permission: new PermissionManager({ policy: prod.policy, events: runtime.events }),
 });
 
 async function getOrCreateSession(sessionKey: string): Promise<Session> {
@@ -214,14 +234,14 @@ const server = createServer(async (req, res) => {
         if (UI_EVENTS.has(e.type)) buf.push({ type: e.type, payload: e });
       });
 
-      let runError: string | null = null;
+      let runError: unknown = null;
       let outcome: Awaited<ReturnType<SessionManager["chat"]>> | undefined;
 
       try {
         const session = await getOrCreateSession(sessionId);
         outcome = await manager.chat(session.id, input);
       } catch (err) {
-        runError = err instanceof Error ? err.message : String(err);
+        runError = err;
       } finally {
         unsubscribe();
       }
@@ -238,9 +258,10 @@ const server = createServer(async (req, res) => {
       }
 
       if (runError) {
+        const ep = errorPayload(runError).error;
         sendSSE(res, {
           type: "run:error",
-          payload: { type: "run:error", runId: "n/a", step: null, error: runError },
+          payload: { type: "run:error", runId: "n/a", step: null, error: ep.message, code: ep.code },
         });
         await sleep(300);
       }
@@ -254,7 +275,7 @@ const server = createServer(async (req, res) => {
           steps: outcome?.run.steps ?? 0,
           output: outcome?.run.output ?? "",
           usage: outcome?.run.usage,
-          error: runError,
+          error: runError ? errorPayload(runError).error.message : null,
         },
       });
       res.end();
@@ -412,9 +433,10 @@ const server = createServer(async (req, res) => {
         await sleep(pacing(entry.type as RuntimeEvent["type"]));
       }
       if (runError) {
+        const ep = errorPayload(runError).error;
         sendSSE(res, {
           type: "run:error",
-          payload: { type: "run:error", runId: "n/a", step: null, error: runError },
+          payload: { type: "run:error", runId: "n/a", step: null, error: ep.message, code: ep.code },
         });
         await sleep(300);
       }
@@ -428,7 +450,7 @@ const server = createServer(async (req, res) => {
           steps: outcome?.run.steps ?? 0,
           output: outcome?.run.output ?? "",
           usage: outcome?.run.usage,
-          error: runError,
+          error: runError ? errorPayload(runError).error.message : null,
         },
       });
       res.end();
@@ -438,11 +460,11 @@ const server = createServer(async (req, res) => {
     res.writeHead(404, { "content-type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
   } catch (err) {
-    console.error(err);
+    console.error(err instanceof Error ? err : String(err));
     if (!res.headersSent) {
       res.writeHead(500, { "content-type": "application/json" });
     }
-    res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+    res.end(JSON.stringify(errorPayload(err)));
   }
 });
 

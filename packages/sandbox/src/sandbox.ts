@@ -1,5 +1,5 @@
 import { resolve, sep } from "node:path";
-import { toolKind, type AnyTool, type ToolKind } from "@agent-runtime/types";
+import { ErrorCode, toolKind, type AnyTool, type ToolKind } from "@agent-runtime/types";
 
 /**
  * Sandbox — run-level execution boundary (M3, docs/architecture.md §6.2 v1.2).
@@ -63,6 +63,7 @@ export interface Sandbox {
 
 /** Raised when a tool call leaves the execution boundary. */
 export class SandboxViolationError extends Error {
+  readonly code = ErrorCode.SANDBOX_VIOLATION;
   constructor(message: string) {
     super(message);
     this.name = "SandboxViolationError";
@@ -71,6 +72,7 @@ export class SandboxViolationError extends Error {
 
 /** Raised when a tool exceeds its execution budget. */
 export class SandboxTimeoutError extends Error {
+  readonly code = ErrorCode.SANDBOX_TIMEOUT;
   constructor(
     readonly toolName: string,
     readonly timeoutMs: number,

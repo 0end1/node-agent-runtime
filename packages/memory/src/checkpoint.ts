@@ -1,6 +1,6 @@
 import type { AnyTool, Storage } from "@agent-runtime/types";
 import type { ChatMessage, RunUsage } from "@agent-runtime/types";
-import { newId } from "@agent-runtime/types";
+import { newId, ErrorCode } from "@agent-runtime/types";
 
 /**
  * Checkpoint (docs/architecture.md §9).
@@ -51,6 +51,7 @@ export type CheckpointSeed = Omit<Checkpoint, "id" | "createdAt"> & { id?: strin
 
 /** Thrown when a checkpoint cannot be replayed by the current agent recipe. */
 export class CheckpointMismatchError extends Error {
+  readonly code = ErrorCode.CHECKPOINT_MISMATCH;
   constructor(
     readonly checkpointId: string,
     message: string,

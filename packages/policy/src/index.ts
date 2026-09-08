@@ -8,6 +8,12 @@ export {
   combinePolicies,
   toolListPolicy,
 } from "./permission.js";
+export {
+  createProductionPolicy,
+  secureScope,
+  createProductionDefaults,
+  PRODUCTION_MATRIX,
+} from "./secure.js";
 export type {
   Verdict,
   Decision,

@@ -5,6 +5,14 @@ export * from "@agent-runtime/types";
 export { AgentRuntime, RunAbortedError } from "./runtime.js";
 export type { AgentRuntimeOptions, RunOptions, RunResult, StepSnapshot } from "./runtime.js";
 
+// ---- P3.1 observability: structured logging + stable error payloads ----
+export { ConsoleLogger, toLogger, errorPayload } from "./log.js";
+export type { Logger, LogLevel } from "./log.js";
+
+// ---- P3.8 configuration: layered runtime config + feature flags ----
+export { loadConfig, ConfigError } from "./config.js";
+export type { RuntimeConfig, FeatureFlags, LoadConfigOptions } from "./config.js";
+
 export { Agent, defineAgent, DEFAULT_AGENT_INSTRUCTIONS } from "./agent.js";
 export type { AgentOptions } from "./agent.js";
 

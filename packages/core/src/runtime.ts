@@ -14,13 +14,15 @@ import type { ModelProvider } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
 import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@agent-runtime/types";
-import { newId, stringifyResult, validate } from "@agent-runtime/types";
+import { newId, stringifyResult, validate, ErrorCode } from "@agent-runtime/types";
+import { toLogger, type Logger } from "./log.js";
 
 export interface AgentRuntimeOptions {
   /** Chat model backend. */
   provider: ModelProvider;
-  /** Optional console logger for server-side traces. */
-  logger?: (line: string) => void;
+  /** Optional structured logger for server-side traces (P3.1). Accepts a `Logger`
+   *  or the legacy `(line: string) => void` callback. */
+  logger?: Logger | ((line: string) => void);
   /**
    * Optional event bus to publish to. Injecting one lets the host own the bus
    * (instead of the runtime creating it internally) — M6 P1 review, P2.
@@ -100,6 +102,7 @@ export interface RunResult {
 
 /** Thrown when the run is aborted via AbortSignal. */
 export class RunAbortedError extends Error {
+  readonly code = ErrorCode.RUN_ABORTED;
   constructor() {
     super("run aborted");
     this.name = "RunAbortedError";
@@ -125,11 +128,11 @@ const DEFAULT_CONVERSATION = "default";
 export class AgentRuntime {
   readonly provider: ModelProvider;
   readonly events: EventBus<RuntimeEvent>;
-  private readonly logger?: (line: string) => void;
+  private readonly logger?: Logger;
 
   constructor(options: AgentRuntimeOptions) {
     this.provider = options.provider;
-    this.logger = options.logger;
+    this.logger = toLogger(options.logger);
     this.events = options.events ?? new EventBus<RuntimeEvent>();
   }
 
@@ -316,6 +319,7 @@ export class AgentRuntime {
         error: message,
       } as RunErrorEvent);
       this.log(`  run:error ${message}`);
+      this.logger?.error(`run:error ${message}`);
       throw err instanceof Error ? err : new Error(message);
     }
 
@@ -423,7 +427,7 @@ export class AgentRuntime {
   }
 
   private log(line: string): void {
-    this.logger?.(line);
+    this.logger?.info(line);
   }
 }
 

@@ -9,12 +9,12 @@
 
 | 包 | 版本 | 导出符号数 | 角色 |
 |---|---|---|---|
-| `@agent-runtime/types` | 0.2.0 | 7 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
+| `@agent-runtime/types` | 0.2.0 | 8 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
 | `@agent-runtime/memory` | 0.2.0 | 14 | C3 会话记忆 + Checkpoint（步级快照/续跑校验） |
 | `@agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
-| `@agent-runtime/policy` | 0.2.0 | 15 | C5 授权决策 |
-| `@agent-runtime/core` | 0.2.0 | 49（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
+| `@agent-runtime/policy` | 0.2.0 | 19 | C5 授权决策 |
+| `@agent-runtime/core` | 0.2.0 | 59（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
 | `@agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
@@ -40,6 +40,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 | `artifacts` | `Artifact`、`ArtifactInput`、`ArtifactKind` |
 | `events` | `RuntimeEvent` + `RunStartEvent`、`UserMessageEvent`、`StepStartEvent`、`ModelResponseEvent`、`ToolStartEvent`、`ToolEndEvent`、`RunEndEvent`、`RunErrorEvent`、`SessionCreatedEvent`、`SessionUpdatedEvent`、`SessionClosedEvent`、`TaskCreatedEvent`、`TaskStatusEvent`、`CheckpointSavedEvent`、`CheckpointRestoredEvent`、`PermissionRequestEvent`、`PermissionApprovedEvent`、`PermissionDeniedEvent`、`SandboxWriteEvent`、`EventEmitter` |
 | `schema` | `JsonSchema`、`JsonSchemaType`、`validate` |
+| `codes` | `ErrorCode`、`ErrorInfo`、`errorInfo` |
 | `storage` | `Storage`、`DocDomain`、`StreamDomain` |
 | `tools` | `ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`、`classifyToolName`、`toolKind` |
 | `types` | `ChatMessage`、`UserMessage`、`AssistantMessage`、`SystemMessage`、`ToolCall`、`ToolResultMessage`、`RunUsage` |
@@ -57,6 +58,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 **Storage 实现**：`MemoryStorage`、`FileStorage`
 **工具契约**：`defineTool`、`findDuplicateToolNames`、`ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`
 **模型**：`ModelProvider`、`ModelRequest`、`ModelResponse`、`RawToolCall`、`FinishReason`、`ModelRequestError`
+**P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`ConsoleLogger`、`toLogger`、`errorPayload`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
 **facade 转发**：`export *` → `@agent-runtime/types`、`@agent-runtime/memory`（含 Checkpoint）、`@agent-runtime/artifact`、`@agent-runtime/sandbox`、`@agent-runtime/policy`
 
@@ -80,7 +82,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 ## 6. `@agent-runtime/policy`（C5）
 
-`PermissionManager`、`PermissionManagerOptions`、`PermissionPolicy`、`DefaultPermissionPolicy`、`DefaultPermissionPolicyOptions`、`StaticPolicy`、`combinePolicies`、`toolListPolicy`、`Verdict`、`Decision`、`DecisionMatrix`、`PermissionContext`、`PermissionCall`、`GateResult`、`PendingDecision`
+`PermissionManager`、`PermissionManagerOptions`、`PermissionPolicy`、`DefaultPermissionPolicy`、`DefaultPermissionPolicyOptions`、`StaticPolicy`、`combinePolicies`、`toolListPolicy`、`Verdict`、`Decision`、`DecisionMatrix`、`PermissionContext`、`PermissionCall`、`GateResult`、`PendingDecision`、`createProductionPolicy`、`secureScope`、`createProductionDefaults`、`PRODUCTION_MATRIX`
 
 ## 7. `@agent-runtime/tools-basic`（演示资产）
 

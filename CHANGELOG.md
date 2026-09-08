@@ -8,6 +8,21 @@
 
 ## [Unreleased]
 
+**M6-18 · 可观测 / 配置 / 默认安全（P3.1 / P3.7 / P3.8）**（2026-09-08）：
+
+- **P3.1 结构化日志 + 错误码**：`packages/core/src/log.ts` 新增 `Logger` 接口与 `ConsoleLogger`、`toLogger`（兼容旧 `(line)=>void` 回调）、`errorPayload`（HTTP/CLI 稳定错误体 `{ error: { code, message } }`）；`packages/types/src/codes.ts` 新增 `ErrorCode` 枚举与 `errorInfo()` 归一化；为 `RunAbortedError`/`SandboxViolationError`/`SandboxTimeoutError`/`ModelRequestError`/`CheckpointMismatchError`/`ArtifactError`/`SessionError`/`ConfigError` 标注 `code`
+- **P3.7 默认安全策略包**：`packages/policy/src/secure.ts` 新增 `PRODUCTION_MATRIX`（生产偏置：workspace-write 下 deny 网络读、credential 全域 deny、write/exec 走 ask）、`createProductionPolicy()`、`secureScope()`（禁网、仅工作区内可写）、`createProductionDefaults()`；`examples/cli.ts` 与 `examples/web/server.ts` 默认套用生产预设（开箱即最小权限 + 锁域）
+- **P3.8 配置/特性模块**：`packages/core/src/config.ts` 新增 `loadConfig()`（分层：env > 默认；密钥仅经配置/环境注入，无散落 magic env 读取）、`RuntimeConfig`、`FeatureFlags`、`ConfigError`（非法配置报可读错误）；examples 经 `loadConfig` 解析 provider 凭证 / 日志级别 / 特性开关
+- **API 面**：新增导出 `ErrorCode`/`ErrorInfo`/`errorInfo`（types）、`Logger`/`LogLevel`/`ConsoleLogger`/`toLogger`/`errorPayload`/`loadConfig`/`ConfigError`/`RuntimeConfig`/`FeatureFlags`/`LoadConfigOptions`（core）、`createProductionPolicy`/`secureScope`/`createProductionDefaults`/`PRODUCTION_MATRIX`（policy）；runtime 现通过 `AgentRuntimeOptions.logger` 注入 `Logger`
+- **测试**：新增 `packages/core/test/log.test.ts`、`packages/core/test/config.test.ts`、`packages/policy/test/secure.test.ts`
+
+### Added（M6-18）
+- `packages/types/src/codes.ts`：`ErrorCode`、`ErrorInfo`、`errorInfo`
+- `packages/core/src/log.ts`：`Logger`、`LogLevel`、`ConsoleLogger`、`toLogger`、`errorPayload`
+- `packages/core/src/config.ts`：`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
+- `packages/policy/src/secure.ts`：`PRODUCTION_MATRIX`、`createProductionPolicy`、`secureScope`、`createProductionDefaults`
+- `scripts/api-surface.baseline.json`：刷新以纳入上述新增导出
+
 **M6-17 · 跨形态自动化 E2E（P2.4）**（2026-09-08）：
 
 - **E2E 脚本**：新增 `scripts/e2e/`（lib 公共库 + cli/web/desktop 三形态 + run-all 调度）；`npm run e2e` 默认跑 CLI + Web，`--only=<形态>` 单选，`--with-desktop` / `e2e:desktop` 追加 Desktop（需 Tauri/Rust，默认跳过）

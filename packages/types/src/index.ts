@@ -4,6 +4,7 @@
  * Zero internal dependencies; everything the engine knows about "types".
  */
 export * from "./artifacts.js";
+export * from "./codes.js";
 export * from "./events.js";
 export * from "./schema.js";
 export * from "./storage.js";

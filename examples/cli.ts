@@ -29,11 +29,15 @@ import {
   AgentRuntime,
   FileStorage,
   defineTool,
+  loadConfig,
+  ConsoleLogger,
   type AnyTool,
+  type LogLevel,
   type ModelProvider,
   type RuntimeEvent,
 } from "@agent-runtime/core";
 import { SessionManager, type Session } from "@agent-runtime/host";
+import { PermissionManager, createProductionDefaults } from "@agent-runtime/policy";
 import { MockProvider } from "@agent-runtime/mock";
 import {
   McpClient,
@@ -152,6 +156,12 @@ const wantsOpenAI = argv.includes("--provider=openai") || argv.includes("--opena
 const wantsSqlite = argv.includes("--storage=sqlite");
 const mcpSpecs = collectMcpSpecs(argv);
 
+// P3.8: 集中、分层的运行时配置（密钥只经配置/环境注入，无散落 magic env 读取）。
+const config = loadConfig({
+  env: process.env,
+  overrides: wantsOpenAI ? { provider: { kind: "openai" } } : {},
+});
+
 function nodeSupportsSqlite(): boolean {
   const [maj, min] = process.versions.node.split(".").map(Number);
   return maj > 22 || (maj === 22 && (min ?? 0) >= 13);
@@ -164,8 +174,12 @@ if (wantsSqlite && !nodeSupportsSqlite()) {
 }
 
 function pickProvider(): ModelProvider {
-  if (wantsOpenAI || process.env.OPENAI_API_KEY) {
-    return new OpenAIClientProvider();
+  if (config.provider.kind === "openai") {
+    return new OpenAIClientProvider({
+      apiKey: config.provider.apiKey,
+      baseUrl: config.provider.baseUrl,
+      model: config.provider.model,
+    });
   }
   return new MockProvider();
 }
@@ -210,11 +224,10 @@ function printOutcome(outcome: {
 
 async function main() {
   const provider = pickProvider();
-  const runtime = new AgentRuntime({
-    provider,
-    logger: (line) =>
-      process.env.AGENT_DEBUG ? console.log(`\x1b[90m[debug] ${line}\x1b[0m`) : undefined,
+  const logger = new ConsoleLogger({
+    level: (process.env.AGENT_DEBUG ? "debug" : config.logLevel) as LogLevel,
   });
+  const runtime = new AgentRuntime({ provider, logger });
   // ---- Optional MCP servers: connect at startup and materialize their tools ----
   const mcpRegistry = new McpRegistry();
   const mcpTools: AnyTool[] = [];
@@ -242,10 +255,15 @@ async function main() {
   const storage = wantsSqlite
     ? new SQLiteStorage({ file: process.env.SQLITE_FILE ?? join(DATA_DIR, "agent.db") })
     : new FileStorage(DATA_DIR);
+  // P3.7: 生产默认——最小权限策略 + 锁定沙箱域（禁网、仅工作区内可写）。
+  const prod = createProductionDefaults(process.cwd());
   const manager = new SessionManager({
     runtime,
     storage,
     agents: [agent],
+    sandboxMode: prod.sandboxMode,
+    scope: prod.scope,
+    permission: new PermissionManager({ policy: prod.policy, events: runtime.events }),
   });
   managerRef = manager;
   const rl = readline.createInterface({ input, output });

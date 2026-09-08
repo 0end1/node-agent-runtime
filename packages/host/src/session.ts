@@ -16,6 +16,7 @@ import {
 } from "@agent-runtime/memory";
 import {
   classifyToolName,
+  ErrorCode,
   toolKind as kindOfTool,
   type ChatMessage,
   type RunUsage,
@@ -131,6 +132,7 @@ export interface SessionManagerOptions {
 
 /** Thrown when an operation targets a session in a state that forbids it. */
 export class SessionError extends Error {
+  readonly code = ErrorCode.SESSION;
   constructor(message: string) {
     super(message);
     this.name = "SessionError";

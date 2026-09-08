@@ -44,7 +44,9 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 | `storage` | `Storage`、`DocDomain`、`StreamDomain` |
 | `tools` | `ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`、`classifyToolName`、`toolKind` |
 | `types` | `ChatMessage`、`UserMessage`、`AssistantMessage`、`SystemMessage`、`ToolCall`、`ToolResultMessage`、`RunUsage` |
-| `util` | `newId`、`stringifyResult`、`fmtNumber` |
+| `util` | `newId`、`stringifyResult`、`fmtNumber`、`fingerprint`、`ProcessEnv` |
+
+> `fingerprint`（P3.3 审批审计指纹）与 `ProcessEnv`（P4.5 让发布产物不依赖 `@types/node`）于 2026-09-08 加入本包。
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
 

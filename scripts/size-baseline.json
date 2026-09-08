@@ -1,0 +1,62 @@
+{
+  "@agent-runtime/artifact": {
+    "packageSize": 5104,
+    "unpackedSize": 14838,
+    "entryCount": 10
+  },
+  "@agent-runtime/core": {
+    "packageSize": 97707,
+    "unpackedSize": 387290,
+    "entryCount": 110
+  },
+  "@agent-runtime/host": {
+    "packageSize": 17326,
+    "unpackedSize": 68107,
+    "entryCount": 14
+  },
+  "@agent-runtime/mcp": {
+    "packageSize": 26116,
+    "unpackedSize": 90463,
+    "entryCount": 26
+  },
+  "@agent-runtime/memory": {
+    "packageSize": 11758,
+    "unpackedSize": 38298,
+    "entryCount": 18
+  },
+  "@agent-runtime/mock": {
+    "packageSize": 9584,
+    "unpackedSize": 27680,
+    "entryCount": 10
+  },
+  "@agent-runtime/policy": {
+    "packageSize": 11747,
+    "unpackedSize": 45211,
+    "entryCount": 14
+  },
+  "@agent-runtime/provider-openai": {
+    "packageSize": 5738,
+    "unpackedSize": 17125,
+    "entryCount": 10
+  },
+  "@agent-runtime/sandbox": {
+    "packageSize": 7920,
+    "unpackedSize": 23742,
+    "entryCount": 10
+  },
+  "@agent-runtime/store-sqlite": {
+    "packageSize": 4664,
+    "unpackedSize": 14536,
+    "entryCount": 10
+  },
+  "@agent-runtime/tools-basic": {
+    "packageSize": 8735,
+    "unpackedSize": 30357,
+    "entryCount": 14
+  },
+  "@agent-runtime/types": {
+    "packageSize": 18874,
+    "unpackedSize": 58974,
+    "entryCount": 46
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-08T07:27:03.644Z",
+  "generatedAt": "2026-09-08T13:05:02.183Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@agent-runtime/types": {
@@ -30,6 +30,7 @@
         "PermissionApprovedEvent",
         "PermissionDeniedEvent",
         "PermissionRequestEvent",
+        "ProcessEnv",
         "RunEndEvent",
         "RunErrorEvent",
         "RunLimits",

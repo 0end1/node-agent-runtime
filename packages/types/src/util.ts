@@ -1,5 +1,14 @@
 /** Tiny shared helpers. */
 
+/**
+ * `process.env`-shaped record (P4.5).
+ *
+ * Declared here (instead of reusing `NodeJS.ProcessEnv`) so the published
+ * `.d.ts` files stay self-contained: consumers must not be forced to install
+ * `@types/node` just to typecheck against `@agent-runtime/*`.
+ */
+export type ProcessEnv = Record<string, string | undefined>;
+
 export function newId(prefix = "id"): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }

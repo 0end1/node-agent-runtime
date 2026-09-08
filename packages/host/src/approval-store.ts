@@ -21,10 +21,7 @@ import { newId } from "@agent-runtime/types";
  * tool arguments (P3.2 redaction / P3.3 don't-copy-secrets).
  */
 export class StorageApprovalStore implements ApprovalStore {
-  constructor(
-    private readonly storage: Storage,
-    private readonly now: () => number = () => Date.now(),
-  ) {}
+  constructor(private readonly storage: Storage) {}
 
   async append(record: ApprovalRecord): Promise<void> {
     await this.storage.saveDoc("approval", newId("approval"), record);

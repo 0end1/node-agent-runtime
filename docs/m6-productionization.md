@@ -106,14 +106,16 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P4.1 | LICENSE 选型 | 根与各包 LICENSE（建议 MIT 或 Apache-2.0，含声明作者） | 每包发布元数据含 license | ☐ |
-| P4.2 | 去 private + 发布元数据 | 各包 `private:false` + `publishConfig.access=public` + `sideEffects:false`；包描述/关键词/仓库地址核对 | `npm pack --dry-run` 产物清单正确 | ☐ |
-| P4.3 | Node/engines 与打包决策 | 统一 engines（随 `node:sqlite` 取 `>=22.13` 或迁移后另定）；决策 ESM-only or 双格式（当前 tsc 仅 ESM） | 根 `.nvmrc` + `packageManager` 与 engines 一致 | ☐ |
-| P4.4 | 版本与发布编排 | 引入 changesets（或等价）管理 0.2.0 → 0.3.0 → 1.0.0；CI 发版 workflow（tag 触发 `npm publish --provenance` 逐包） | 试发布 canary 成功 + 实装消费验证 | ☐ |
-| P4.5 | 依赖策略 | 内部互依改 `workspace:` 协议或发布前对齐 version；对外声明 peer 依赖边界（core vs 插件） | 消费方 `npm i` 后 TS 类型与运行均正常 | ☐ |
-| P4.6 | 包体积基线 | dist 产物大小登记 + CI 体积检查（超阈值告警） | 体积报告入库 | ☐ |
+| P4.1 | LICENSE 选型 | 根与各包 LICENSE（建议 MIT 或 Apache-2.0，含声明作者） | 每包发布元数据含 license | ✅（2026-09-08，M6-22）：根 + 12 包 MIT LICENSE（Copyright 2026 wangzhiyong），各包 `license: "MIT"` |
+| P4.2 | 去 private + 发布元数据 | 各包 `private:false` + `publishConfig.access=public` + `sideEffects:false`；包描述/关键词/仓库地址核对 | `npm pack --dry-run` 产物清单正确 | ✅（2026-09-08，M6-22）：12 包去 `private`，补 `publishConfig.access=public`/`sideEffects:false`/`author`/`repository`(含 directory)/`homepage`/`bugs`/`keywords`；产物为 dist + package.json + LICENSE |
+| P4.3 | Node/engines 与打包决策 | 统一 engines（随 `node:sqlite` 取 `>=22.13` 或迁移后另定）；决策 ESM-only or 双格式（当前 tsc 仅 ESM） | 根 `.nvmrc` + `packageManager` 与 engines 一致 | ✅（2026-09-08，M6-22）：全仓 `engines.node >=22.13.0`（随 `node:sqlite`）；`.nvmrc=22.22.1`、`packageManager=npm@10.9.4`；维持 ESM-only（tsc 单格式） |
+| P4.4 | 版本与发布编排 | 引入 changesets（或等价）管理 0.2.0 → 0.3.0 → 1.0.0；CI 发版 workflow（tag 触发 `npm publish --provenance` 逐包） | 试发布 canary 成功 + 实装消费验证 | ✅（2026-09-08，M6-22）：changesets（`.changeset/`，12 包 fixed 统一版本）+ `release.yml`（push main 走 changesets/action，tag `v*` 走 `npm publish --workspaces --provenance`）；canary 实测：12 包 tarball → 全新项目安装 → demo 跑通 + `tsc --noEmit` 通过（含/不含 `@types/node`） |
+| P4.5 | 依赖策略 | 内部互依改 `workspace:` 协议或发布前对齐 version；对外声明 peer 依赖边界（core vs 插件） | 消费方 `npm i` 后 TS 类型与运行均正常 | ✅（2026-09-08，M6-22）：内部互依统一 `^0.2.0` 由 changesets 发版对齐（`workspace:` 协议在当前 npm 下不被支持）；`core`/`types` 提为插件包 `peerDependencies`；新增 `ProcessEnv` 让发布 d.ts 不依赖 `@types/node` |
+| P4.6 | 包体积基线 | dist 产物大小登记 + CI 体积检查（超阈值告警） | 体积报告入库 | ✅（2026-09-08，M6-22）：`scripts/size-report.mjs`（`npm run size` / `size:update`）+ `scripts/size-baseline.json`，包体积增长 >+25% 阻断；已纳入 `npm run ci`，报告写入 `coverage/size-report.txt` |
 
 **Gate 4 退出标准**：`npm publish --provenance` 模拟发布成功；在全新项目安装 `@agent-runtime/*` 可 typecheck 并跑通最小 demo。
+
+> **进度（2026-09-08，M6-22）**：P4.1~P4.6 全部完成，**Gate 4 关闭**。MIT LICENSE 落地；12 包可发布元数据齐备且 `npm pack --dry-run` 清单正确；`engines`/`.nvmrc`/`packageManager` 统一到 Node `>=22.13.0`（ESM-only）；changesets 编排 0.2.0 → 0.3.0 并接入发版 workflow；`core`/`types` 提为插件 peer 边界；体积基线与 CI 门禁生效。退出标准已实测：12 包 tarball 在全新项目安装后 `tsc --noEmit`（含与不含 `@types/node` 两种场景）与最小 demo 运行均通过；对 registry 的实际 `npm publish --provenance` 待仓库配置 `NPM_TOKEN` 后由 tag 触发。
 
 ## 5. P5 · 分发与部署矩阵（Gate 5）
 

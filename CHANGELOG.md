@@ -8,6 +8,22 @@
 
 ## [Unreleased]
 
+**M6-22 · SDK 发布工程（P4.1~P4.6，Gate 4）**（2026-09-08）：
+
+- **P4.1 LICENSE**：新增根 `LICENSE`（MIT，Copyright (c) 2026 wangzhiyong）并分发至 12 个包；各包 `license: "MIT"`
+- **P4.2 去 private + 发布元数据**：12 个包移除 `private`，补全 `publishConfig.access=public`、`sideEffects:false`、`author`、`repository`（含 `directory`）、`homepage`、`bugs`、`keywords`；`npm pack --dry-run` 产物为 dist + package.json + LICENSE
+- **P4.3 engines 与打包决策**：全仓 `engines.node` 统一 `>=22.13.0`（随 `node:sqlite`），新增 `.nvmrc`（22.22.1）与根 `packageManager`（npm@10.9.4）；维持 ESM-only
+- **P4.4 版本与发布编排**：引入 changesets（`.changeset/config.json`，12 包 `fixed` 统一版本）与 `changeset`/`version-packages`/`release` 脚本；新增 `.github/workflows/release.yml`（push main 走 changesets/action，tag `v*` 走 `npm publish --workspaces --provenance`）；首个 changeset 标记 0.2.0 → 0.3.0
+- **P4.5 依赖策略**：内部互依统一 `^0.2.0`（`workspace:` 协议在当前 npm/arborist 下报 `EUNSUPPORTEDPROTOCOL`，改用版本对齐由 changesets 发版时 bump）；`@agent-runtime/core` 与 `@agent-runtime/types` 提为插件包 `peerDependencies`；新增 `types` `ProcessEnv`，使发布产物 `.d.ts` 不依赖消费者安装 `@types/node`
+- **P4.6 包体积基线**：新增 `scripts/size-report.mjs`（`npm run size` / `size:update`）与 `scripts/size-baseline.json`，包体积增长 >+25% 阻断；纳入 `npm run ci`，报告写入 `coverage/size-report.txt`
+- **Gate 4 验证**：12 包 `npm pack` → 全新项目安装 → 最小 demo 运行通过（输出 `= 14`）→ `tsc --noEmit` 在"含 / 不含 `@types/node`"两种场景均通过
+- **Fixed**：`packages/types/test/limits.test.ts` 改从 `../src/types.js` 导入 `RunUsage`（原从 `limits.js` 导入未导出符号，阻断根 typecheck）；移除 `StorageApprovalStore` 未使用的 `now` 参数；新增 `packages/host/test/approval-store.test.ts`，host 行覆盖回到门禁线以上（92.25% 全仓均值）
+- **Added**：`types` `ProcessEnv`（types 64 符号，API 面已重新冻结并补 `docs/api-surface.md` 快照）
+
+### Added（M6-22）
+- `packages/types/src/util.ts`：`ProcessEnv`
+- `scripts/size-report.mjs`、`scripts/size-baseline.json`、`.changeset/`、`LICENSE`、`.nvmrc`、`.github/workflows/release.yml`
+
 **M6-21 · P3 评审收尾：低危加固（L1 / L2 / L4 / L5）**（2026-09-08）：
 
 - **Security（P3.2）**：`redact()` 深度上限由"放行原文"改为**整值脱敏**（`REDACT_DEPTH_LIMIT`），并用 `WeakSet` 显式拦截循环引用；公开签名不变

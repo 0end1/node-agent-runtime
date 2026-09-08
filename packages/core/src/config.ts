@@ -1,6 +1,6 @@
 import type { SandboxMode } from "@agent-runtime/sandbox";
 import { ErrorCode } from "@agent-runtime/types";
-import type { RunLimits } from "@agent-runtime/types";
+import type { ProcessEnv, RunLimits } from "@agent-runtime/types";
 import type { LogLevel } from "./log.js";
 
 export interface FeatureFlags {
@@ -57,7 +57,7 @@ const DEFAULT_FEATURES: FeatureFlags = { mcp: true, sqlite: false, artifacts: tr
 
 export interface LoadConfigOptions {
   /** Defaults to `process.env`. Inject a custom env for tests. */
-  env?: NodeJS.ProcessEnv;
+  env?: ProcessEnv;
   /** Environment-layering overrides (highest precedence). */
   overrides?: Partial<{
     logLevel: LogLevel;
@@ -78,7 +78,7 @@ function parsePositiveInt(value: string | undefined): number | undefined {
 
 /** P3.4: assemble `limits` from `AGENT_LIMIT_*` / `AGENT_RATE_TOOL_*` env + overrides. */
 function buildLimits(
-  env: NodeJS.ProcessEnv,
+  env: ProcessEnv,
   overrides: Partial<RunLimits> | undefined,
 ): RunLimits | undefined {
   const rateCalls = parsePositiveInt(env.AGENT_RATE_TOOL_MAX_CALLS);
@@ -117,7 +117,7 @@ const MCP_ENV_PREFIX = "AGENT_MCP_ENV_";
 
 /** P3.6: assemble MCP 供应链参数 from `AGENT_MCP_*` env + overrides. */
 function buildMcpConfig(
-  env: NodeJS.ProcessEnv,
+  env: ProcessEnv,
   overrides: Partial<McpConfig> | undefined,
 ): McpConfig | undefined {
   const serverEnv: Record<string, string> = {};

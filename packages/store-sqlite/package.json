@@ -2,7 +2,12 @@
   "name": "@agent-runtime/store-sqlite",
   "version": "0.2.0",
   "description": "C9 optional Storage backend of the Agent runtime: SQLiteStorage implementing the core Storage trait via node:sqlite (bundled with Node, no third-party native deps). Deliberately kept out of the core dependency graph.",
-  "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,11 +20,34 @@
   "files": [
     "dist"
   ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/nodeRuntime.git",
+    "directory": "packages/store-sqlite"
+  },
+  "homepage": "https://github.com/0end1/nodeRuntime",
+  "bugs": {
+    "url": "https://github.com/0end1/nodeRuntime/issues"
+  },
+  "keywords": [
+    "agent-runtime",
+    "agent",
+    "sqlite",
+    "storage",
+    "persistence"
+  ],
   "engines": {
     "node": ">=22.13.0"
   },
-  "dependencies": {
-    "@agent-runtime/core": "0.2.0"
+  "devDependencies": {
+    "@agent-runtime/core": "^0.2.0"
+  },
+  "peerDependencies": {
+    "@agent-runtime/core": "^0.2.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

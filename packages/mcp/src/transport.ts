@@ -27,6 +27,7 @@ import {
   responseError,
 } from "./jsonrpc.js";
 import { MCP_PROTOCOL_VERSION } from "./types.js";
+import type { ProcessEnv } from "@agent-runtime/types";
 
 /** Common lifecycle both transports implement. */
 export interface McpTransport {
@@ -152,12 +153,9 @@ const MINIMAL_ENV_KEYS = [
   "LC_ALL",
 ];
 
-function buildChildEnv(
-  extra: NodeJS.ProcessEnv | undefined,
-  inheritEnv: boolean,
-): NodeJS.ProcessEnv {
+function buildChildEnv(extra: ProcessEnv | undefined, inheritEnv: boolean): ProcessEnv {
   if (inheritEnv) return { ...process.env, ...(extra ?? {}) };
-  const minimal: NodeJS.ProcessEnv = {};
+  const minimal: ProcessEnv = {};
   for (const key of MINIMAL_ENV_KEYS) {
     const value = process.env[key];
     if (value !== undefined) minimal[key] = value;
@@ -171,7 +169,7 @@ export interface StdioTransportOptions extends McpTransportOptions {
   /** Script/module path + flags for the MCP server. */
   args?: string[];
   cwd?: string;
-  env?: NodeJS.ProcessEnv;
+  env?: ProcessEnv;
   /** P3.6: hand the **full** host environment to the server. Off by default so
    *  a compromised/stolen MCP server cannot read the host's other secrets;
    *  opt in only for servers you fully trust. */
@@ -195,7 +193,7 @@ export class StdioTransport implements McpTransport {
   private readonly logger?: (line: string) => void;
   private readonly onNotification?: (msg: JsonRpcNotification) => void;
   private readonly cwd?: string;
-  private readonly env?: NodeJS.ProcessEnv;
+  private readonly env?: ProcessEnv;
   private readonly inheritEnv: boolean;
   private readonly startTimeoutMs?: number;
 

@@ -191,7 +191,7 @@ export class SessionManager {
           }),
       });
     this.approvalStore =
-      options.approvalStore ?? new StorageApprovalStore(this.storage, this.now);
+      options.approvalStore ?? new StorageApprovalStore(this.storage);
     this.permission =
       options.permission ??
       new PermissionManager({

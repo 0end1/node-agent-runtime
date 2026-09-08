@@ -1,8 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
-import { checkRunLimits, type RunLimits, type RunUsage } from "../src/limits.js";
-import type { LimitProbe } from "../src/limits.js";
+import { checkRunLimits, type LimitProbe, type RunLimits } from "../src/limits.js";
+import type { RunUsage } from "../src/types.js";
 
 const usage: RunUsage = { modelCalls: 0, inputTokens: 0, outputTokens: 0 };
 

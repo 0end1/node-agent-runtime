@@ -20,8 +20,10 @@
   "bugs": {
     "url": "https://github.com/0end1/nodeRuntime/issues"
   },
+  "license": "MIT",
+  "packageManager": "npm@10.9.4",
   "engines": {
-    "node": ">=18.17"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "build": "npm run build -w @agent-runtime/types && npm run build -w @agent-runtime/memory && npm run build -w @agent-runtime/artifact && npm run build -w @agent-runtime/sandbox && npm run build -w @agent-runtime/policy && npm run build -w @agent-runtime/core && npm run build -w @agent-runtime/tools-basic && npm run build -w @agent-runtime/mock && npm run build -w @agent-runtime/host && npm run build -w @agent-runtime/mcp && npm run build -w @agent-runtime/provider-openai && npm run build -w @agent-runtime/store-sqlite",
@@ -44,10 +46,16 @@
     "e2e:desktop": "E2E_DESKTOP=1 node scripts/e2e/run-all.mjs --only=desktop",
     "check:api": "tsx scripts/check-api-surface.ts",
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage:gate && npm run check:api",
+    "size": "node scripts/size-report.mjs",
+    "size:update": "node scripts/size-report.mjs --update",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "npm run build && changeset publish",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage:gate && npm run check:api && npm run size",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.2",
     "@eslint/js": "^9.39.5",
     "@types/node": "^22.10.2",
     "eslint": "^9.39.5",

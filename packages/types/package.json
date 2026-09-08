@@ -2,7 +2,12 @@
   "name": "@agent-runtime/types",
   "version": "0.2.0",
   "description": "C1 shared leaf package of the Agent runtime: message/tool-call contracts, JSON Schema subset validator and zero-IO pure helpers. No internal dependencies.",
-  "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -15,8 +20,28 @@
   "files": [
     "dist"
   ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/nodeRuntime.git",
+    "directory": "packages/types"
+  },
+  "homepage": "https://github.com/0end1/nodeRuntime",
+  "bugs": {
+    "url": "https://github.com/0end1/nodeRuntime/issues"
+  },
+  "keywords": [
+    "agent-runtime",
+    "agent",
+    "contracts",
+    "types",
+    "json-schema"
+  ],
   "engines": {
-    "node": ">=18.17"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

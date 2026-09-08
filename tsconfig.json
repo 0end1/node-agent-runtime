@@ -18,5 +18,5 @@
       "@agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"]
     }
   },
-  "include": ["packages", "examples"]
+  "include": ["packages", "examples", "scripts"]
 }

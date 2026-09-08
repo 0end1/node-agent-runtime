@@ -8,6 +8,24 @@
 
 ## [Unreleased]
 
+**M6-11 · 工程护栏：API 快照复核脚本化（P2-c）**（2026-09-08，split 分支）：闭环 `docs/p1-review.md` 遗留的 P2 建议「API 快照复核脚本化，纳入 CI 作业 `api-surface`」，落地 `docs/api-surface.md` §13 的复核要求。
+**交付**：`scripts/check-api-surface.ts`（TS AST 解析各包 `dist/index.d.ts`，口径与冻结快照一致——本地 `export *` 递归展开、具名 re-export 计入、跨包 `export *` 仅记转发目标）+ 基线 `scripts/api-surface.baseline.json`。基线冻结并与 `docs/api-surface.md` 逐包符号全集对齐（types 47 / memory 14 / artifact 8 / sandbox 14 / policy 15 / core 49 + 5 转发 / tools-basic 4 / mock 1 / host 10 / mcp 28 / provider-openai 2 / store-sqlite 2）。
+**门禁**：`npm run check:api` 复核（有差异退出码 1，按 §13 评审）；`npm run check:api:update` 评审通过后重新冻结。CI 作业 `api-surface`（P2.7）复用同一脚本，随 P2 总闸（`npm run ci`）接入。
+**验收**：`npm run typecheck` 绿（含新增 `scripts/`）；`npm run check:api` 0 差异。
+
+### Added（M6-11）
+- `scripts/check-api-surface.ts`：API 表面提取器/复核脚本（`--summary` / `--update` / 默认复核）
+- `scripts/api-surface.baseline.json`：公共导出面机读基线（12 包）
+
+### Changed（M6-11）
+- 根 `package.json`：新增 `check:api` / `check:api:update` 脚本
+- `tsconfig.json`：`include` 增补 `scripts`
+- `docs/api-surface.md` §13：快照复核标记为已脚本化；修订轨迹追加 M6-11
+- `docs/m6-productionization.md`：P2 表新增 P2.7（api-surface CI 作业，脚本与基线已先行 ✅）
+- `docs/p1-review.md`：P2「快照复核脚本化」标记 ✅ 已完成（M6-11）
+
+---
+
 **M6-10 · P1 审查整改（P2）**（2026-09-08，split 分支）：收尾 `docs/p1-review.md` 的 P2 级建议。
 **P2-a checkpoint 归位**：`checkpoint.ts` 解耦 `Agent` 类——新增结构化契约 `ToolSurface { name, tools }` 取代 `computeToolsHash(agent: Agent)` / `assertResumable(ckpt, agent)` 对引擎类的依赖（`Agent` 结构上兼容，现有调用点无需改写）；随后迁入 C3 `@agent-runtime/memory`，测试随迁。core 由 1146 → **1005 行**，且因 facade 转发 memory，**从 core 导入 Checkpoint 符号仍可用（非破坏性）**。
 **P2-b 事件总线可注入**：`AgentRuntimeOptions.events?` 与 `SessionManagerOptions.events?` 支持宿主创建并注入 `EventBus`（默认仍自建/复用 runtime 总线）；host 内部统一改用 `this.events`，不再借用 `runtime.events` 内部构件。

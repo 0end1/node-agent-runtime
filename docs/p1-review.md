@@ -103,7 +103,7 @@ core 导出 61 项并 facade 转发 4 包，其中含 4 个演示资产符号（
 | P1 memory/artifact 名实不符 | ✅ | 拆出独立包 `@agent-runtime/artifact`；memory 导出 13 → 5，一包一职责 |
 | P2 checkpoint 解耦 `Agent` | ✅ 已完成 | 新增 `ToolSurface { name, tools }` 结构化契约取代 `Agent` 类依赖；`checkpoint.ts` 迁入 C3 memory（测试随迁）。core 1146 → **1005 行**；因 facade 转发 memory，从 core 导入 Checkpoint 符号仍可用（非破坏性） |
 | P2 事件总线反转注入 | ✅ 已完成 | `AgentRuntimeOptions.events?` + `SessionManagerOptions.events?` 支持宿主注入总线；host 内部 11 处改用 `this.events`，不再借用 `runtime.events` |
-| P2 快照复核脚本化 | ⏸ 未做 | 随 P2（工程护栏）的 CI 作业 `api-surface` 落地 |
+| P2 快照复核脚本化 | ✅ 已完成（M6-11） | `scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`；`npm run check:api` 门禁（差异退出码 1），评审通过后 `check:api:update` 重新冻结；与 `docs/api-surface.md` 逐包对齐 |
 
 **整改后依赖方向**：`types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, host, mcp, provider-openai, store-sqlite}`（12 个 workspace 包，单向无环）。
 **P2 追加结果（2026-09-08）**：checkpoint 解耦 `Agent`（新增 `ToolSurface` 结构化契约）后归位 C3 memory，事件总线改为可注入 —— core 进一步由 1146 → **1005 行**（相对整改前 1804 行累计 **-44%**）。

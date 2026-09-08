@@ -3,7 +3,7 @@
 > 记录时间：2026-09-08（split 分支；P1 审查整改 P0/P1/P2 后重新冻结）
 > 定位：M6 **P1 的 Gate 1 退出项** —— 冻结各 workspace 包的对外导出面，作为后续兼容性评审基线。
 > 提取方式：TypeScript 编译器解析各包 `dist/index.d.ts`（`npm run build` 后）与 `packages/types/dist/*.d.ts`，符号按字母序排列。
-> 修订轨迹：2026-09-08 依 `docs/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）。
+> 修订轨迹：2026-09-08 依 `docs/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）；2026-09-08 **M6-11 快照复核脚本化**（`scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`，见 §13）。
 
 ## 0. 总览
 
@@ -119,4 +119,4 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 **评审流程**：提出变更 → 在 PR 中标注 `BREAKING` 并说明影响面与迁移方式 → 更新本表对应行 + `CHANGELOG.md` → 合并。
 
-**快照复核**：每次发布前用同一提取方式重新生成并与本表比对（差异即为待评审项）；建议脚本化后纳入 P2 的 CI 作业 `api-surface`（尚未实施）。
+**快照复核（已脚本化，M6-11）**：每次发布前运行 `npm run check:api`（先 `npm run build`）——由 `scripts/check-api-surface.ts` 按上文口径重新提取各包 `dist/index.d.ts` 导出面，与基线 `scripts/api-surface.baseline.json` 比对，**差异即待评审项**（新增符号→追加本表 + CHANGELOG（`Added`）；删除/重命名→BREAKING 评审）。评审通过后运行 `npm run check:api:update` 重新冻结基线，并随本表一并提交。基线于 2026-09-08 冻结，与本表逐包符号全集核对一致；CI 作业 `api-surface`（P2.7）复用同一脚本，随 P2 总闸（`npm run ci`）接入。

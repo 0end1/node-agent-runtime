@@ -1,0 +1,266 @@
+{
+  "generatedAt": "2026-09-08T01:41:18.378Z",
+  "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
+  "packages": {
+    "@agent-runtime/types": {
+      "symbols": [
+        "AnyTool",
+        "Artifact",
+        "ArtifactInput",
+        "ArtifactKind",
+        "AssistantMessage",
+        "ChatMessage",
+        "CheckpointRestoredEvent",
+        "CheckpointSavedEvent",
+        "DocDomain",
+        "EventEmitter",
+        "JsonSchema",
+        "JsonSchemaType",
+        "ModelResponseEvent",
+        "PermissionApprovedEvent",
+        "PermissionDeniedEvent",
+        "PermissionRequestEvent",
+        "RunEndEvent",
+        "RunErrorEvent",
+        "RunStartEvent",
+        "RunUsage",
+        "RuntimeEvent",
+        "SandboxWriteEvent",
+        "SessionClosedEvent",
+        "SessionCreatedEvent",
+        "SessionUpdatedEvent",
+        "StepStartEvent",
+        "Storage",
+        "StreamDomain",
+        "SystemMessage",
+        "TaskCreatedEvent",
+        "TaskStatusEvent",
+        "ToolCall",
+        "ToolDefinition",
+        "ToolEndEvent",
+        "ToolExecutionContext",
+        "ToolKind",
+        "ToolMeta",
+        "ToolResultMessage",
+        "ToolStartEvent",
+        "UserMessage",
+        "UserMessageEvent",
+        "classifyToolName",
+        "fmtNumber",
+        "newId",
+        "stringifyResult",
+        "toolKind",
+        "validate"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/memory": {
+      "symbols": [
+        "AgentSnapshot",
+        "Checkpoint",
+        "CheckpointMismatchError",
+        "CheckpointSeed",
+        "CheckpointStore",
+        "CheckpointStoreOptions",
+        "Memory",
+        "MemoryFact",
+        "MemoryRecall",
+        "SessionMemory",
+        "SessionMemoryOptions",
+        "ToolSurface",
+        "assertResumable",
+        "computeToolsHash"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/artifact": {
+      "symbols": [
+        "Artifact",
+        "ArtifactError",
+        "ArtifactInput",
+        "ArtifactKind",
+        "ArtifactManager",
+        "ArtifactManagerOptions",
+        "MIME_BY_KIND",
+        "blobKeyOf"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/sandbox": {
+      "symbols": [
+        "LocalSandbox",
+        "LocalSandboxOptions",
+        "Sandbox",
+        "SandboxHandle",
+        "SandboxMode",
+        "SandboxRunContext",
+        "SandboxScope",
+        "SandboxTimeoutError",
+        "SandboxViolationError",
+        "SandboxWriteInfo",
+        "classifyToolName",
+        "isPathAllowed",
+        "simpleDiff",
+        "toolKind"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/policy": {
+      "symbols": [
+        "Decision",
+        "DecisionMatrix",
+        "DefaultPermissionPolicy",
+        "DefaultPermissionPolicyOptions",
+        "GateResult",
+        "PendingDecision",
+        "PermissionCall",
+        "PermissionContext",
+        "PermissionManager",
+        "PermissionManagerOptions",
+        "PermissionPolicy",
+        "StaticPolicy",
+        "Verdict",
+        "combinePolicies",
+        "toolListPolicy"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/core": {
+      "symbols": [
+        "Agent",
+        "AgentOptions",
+        "AgentRuntime",
+        "AgentRuntimeOptions",
+        "AnyTool",
+        "CheckpointRestoredEvent",
+        "CheckpointSavedEvent",
+        "DEFAULT_AGENT_INSTRUCTIONS",
+        "EventBus",
+        "FileStorage",
+        "FinishReason",
+        "MemoryStorage",
+        "ModelProvider",
+        "ModelRequest",
+        "ModelRequestError",
+        "ModelResponse",
+        "ModelResponseEvent",
+        "PermissionApprovedEvent",
+        "PermissionDeniedEvent",
+        "PermissionRequestEvent",
+        "RawToolCall",
+        "RunAbortedError",
+        "RunContext",
+        "RunContextSeed",
+        "RunEndEvent",
+        "RunErrorEvent",
+        "RunOptions",
+        "RunResult",
+        "RunStartEvent",
+        "RuntimeEvent",
+        "SandboxWriteEvent",
+        "SessionClosedEvent",
+        "SessionCreatedEvent",
+        "SessionUpdatedEvent",
+        "StepSnapshot",
+        "StepStartEvent",
+        "TaskCreatedEvent",
+        "TaskStatusEvent",
+        "ToolDefinition",
+        "ToolEndEvent",
+        "ToolExecutionContext",
+        "ToolKind",
+        "ToolMeta",
+        "ToolStartEvent",
+        "UserMessageEvent",
+        "buildRunContext",
+        "defineAgent",
+        "defineTool",
+        "findDuplicateToolNames"
+      ],
+      "forwards": [
+        "@agent-runtime/artifact",
+        "@agent-runtime/memory",
+        "@agent-runtime/policy",
+        "@agent-runtime/sandbox",
+        "@agent-runtime/types"
+      ]
+    },
+    "@agent-runtime/tools-basic": {
+      "symbols": [
+        "CURRENCY_ALIASES",
+        "CurrencyCode",
+        "builtinTools",
+        "evaluate"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/mock": {
+      "symbols": [
+        "MockProvider"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/host": {
+      "symbols": [
+        "ChatOutcome",
+        "RunRecord",
+        "RunStatus",
+        "Session",
+        "SessionError",
+        "SessionManager",
+        "SessionManagerOptions",
+        "SessionStatus",
+        "Task",
+        "TaskStatus"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/mcp": {
+      "symbols": [
+        "MCP_PROTOCOL_VERSION",
+        "MCP_TOOL_PREFIX",
+        "McpCallToolResult",
+        "McpClient",
+        "McpClientOptions",
+        "McpConnectionError",
+        "McpError",
+        "McpInitializeResult",
+        "McpRegistry",
+        "McpRegistryOptions",
+        "McpServerCapabilities",
+        "McpServerHandle",
+        "McpServerInfo",
+        "McpTextContent",
+        "McpTimeoutError",
+        "McpToolMeta",
+        "McpToolRef",
+        "McpTransport",
+        "RegisteredServer",
+        "StdioTransport",
+        "StdioTransportOptions",
+        "StreamableHttpTransport",
+        "StreamableHttpTransportOptions",
+        "mcpToolName",
+        "normalizeSchema",
+        "parseMcpToolName",
+        "parseSse",
+        "pathArgKeysOf"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/provider-openai": {
+      "symbols": [
+        "OpenAIClientOptions",
+        "OpenAIClientProvider"
+      ],
+      "forwards": []
+    },
+    "@agent-runtime/store-sqlite": {
+      "symbols": [
+        "SQLiteStorage",
+        "SQLiteStorageOptions"
+      ],
+      "forwards": []
+    }
+  }
+}

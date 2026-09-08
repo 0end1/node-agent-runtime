@@ -52,10 +52,7 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 // ---------------------------------------------------------------- shared
 
 /** Reject every outstanding request (transport died / closed under it). */
-function settlePending(
-  pending: Map<string | number, PendingRequest>,
-  error: Error
-): void {
+function settlePending(pending: Map<string | number, PendingRequest>, error: Error): void {
   for (const { reject, timer } of pending.values()) {
     clearTimeout(timer);
     reject(error);
@@ -70,10 +67,7 @@ interface PendingRequest {
 }
 
 /** Write a full frame to a stream with backpressure-aware async flush. */
-function writeLine(
-  stream: NodeJS.WritableStream,
-  payload: unknown
-): Promise<void> {
+function writeLine(stream: NodeJS.WritableStream, payload: unknown): Promise<void> {
   const line = JSON.stringify(payload) + "\n";
   return new Promise((resolve, reject) => {
     const onError = (err: Error) => {
@@ -152,9 +146,7 @@ export class StdioTransport implements McpTransport {
     });
     child.once("exit", (code) => {
       if (this.closed) return;
-      const wrapped = new McpConnectionError(
-        `MCP 子进程意外退出（code=${code}）`
-      );
+      const wrapped = new McpConnectionError(`MCP 子进程意外退出（code=${code}）`);
       settlePending(this.pending, wrapped);
     });
 
@@ -194,10 +186,7 @@ export class StdioTransport implements McpTransport {
   async close(): Promise<void> {
     if (this.closed) return;
     this.closed = true;
-    settlePending(
-      this.pending,
-      new McpConnectionError("transport 已关闭")
-    );
+    settlePending(this.pending, new McpConnectionError("transport 已关闭"));
     this.lines?.close();
     const child = this.child;
     this.child = undefined;
@@ -301,14 +290,11 @@ export class StreamableHttpTransport implements McpTransport {
         // keep open — surface it loudly instead of hanging.
         throw new McpError(
           "服务端返回 202 Accepted（要求持续 SSE 流）；当前客户端不维持服务端→客户端流",
-          { code: -32001 }
+          { code: -32001 },
         );
       }
       if (!res.ok) {
-        throw new McpError(
-          `MCP HTTP 端点返回 ${res.status} ${res.statusText}`,
-          { code: -32001 }
-        );
+        throw new McpError(`MCP HTTP 端点返回 ${res.status} ${res.statusText}`, { code: -32001 });
       }
       const raw = await res.text();
       const contentType = res.headers.get("content-type") ?? "";
@@ -332,7 +318,7 @@ export class StreamableHttpTransport implements McpTransport {
         throw new McpTimeoutError(req.method, this.timeoutMs);
       }
       throw new McpConnectionError(
-        `HTTP 请求失败：${err instanceof Error ? err.message : String(err)}`
+        `HTTP 请求失败：${err instanceof Error ? err.message : String(err)}`,
       );
     } finally {
       clearTimeout(timer);

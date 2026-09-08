@@ -21,12 +21,7 @@ export interface ModelRequest {
   signal?: AbortSignal;
 }
 
-export type FinishReason =
-  | "stop"
-  | "tool_calls"
-  | "length"
-  | "content_filter"
-  | "error";
+export type FinishReason = "stop" | "tool_calls" | "length" | "content_filter" | "error";
 
 export interface ModelResponse {
   content: string | null;

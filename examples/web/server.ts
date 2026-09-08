@@ -37,7 +37,9 @@ function nodeSupportsSqlite(): boolean {
 }
 const wantsSqlite = argv.includes("--storage=sqlite");
 if (wantsSqlite && !nodeSupportsSqlite()) {
-  console.error("⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或改用默认 FileStorage。");
+  console.error(
+    "⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或改用默认 FileStorage。",
+  );
   process.exit(1);
 }
 
@@ -254,7 +256,10 @@ const server = createServer(async (req, res) => {
       sendSSE(res, { type: "system", payload: { message: "events-ready", provider: provider.id } });
       // M3 governance events surfaced to the (long-lived) console UI.
       const GOV = new Set<RuntimeEvent["type"]>([
-        "permission:request", "permission:approved", "permission:denied", "sandbox:write",
+        "permission:request",
+        "permission:approved",
+        "permission:denied",
+        "sandbox:write",
       ]);
       const unsub = runtime.subscribe((e: RuntimeEvent) => {
         if (GOV.has(e.type)) sendSSE(res, { type: e.type, payload: e });
@@ -273,7 +278,9 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ ok }));
       } catch (err) {
         res.writeHead(400, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+        res.end(
+          JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
+        );
       }
       return;
     }
@@ -288,7 +295,9 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify({ ok }));
       } catch (err) {
         res.writeHead(400, { "content-type": "application/json" });
-        res.end(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }));
+        res.end(
+          JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }),
+        );
       }
       return;
     }
@@ -296,7 +305,11 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/api/sessions" && req.method === "GET") {
       const list = await manager.listSessions();
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify(list.map((s) => ({ id: s.id, title: s.title, status: s.status, updatedAt: s.updatedAt }))));
+      res.end(
+        JSON.stringify(
+          list.map((s) => ({ id: s.id, title: s.title, status: s.status, updatedAt: s.updatedAt })),
+        ),
+      );
       return;
     }
     if (url.pathname === "/api/new" && req.method === "POST") {
@@ -346,7 +359,11 @@ const server = createServer(async (req, res) => {
       let body = "";
       for await (const chunk of req) body += chunk.toString("utf8");
       let parsed: { checkpointId?: string; continuation?: string };
-      try { parsed = JSON.parse(body || "{}"); } catch { parsed = {}; }
+      try {
+        parsed = JSON.parse(body || "{}");
+      } catch {
+        parsed = {};
+      }
       res.writeHead(200, {
         "content-type": "text/event-stream; charset=utf-8",
         "cache-control": "no-store, no-cache, must-revalidate",
@@ -363,7 +380,10 @@ const server = createServer(async (req, res) => {
       let runError: string | null = null;
       let outcome: Awaited<ReturnType<SessionManager["resume"]>> | undefined;
       try {
-        outcome = await manager.resume(String(parsed.checkpointId ?? ""), parsed.continuation ? String(parsed.continuation) : undefined);
+        outcome = await manager.resume(
+          String(parsed.checkpointId ?? ""),
+          parsed.continuation ? String(parsed.continuation) : undefined,
+        );
       } catch (err) {
         runError = err instanceof Error ? err.message : String(err);
       } finally {
@@ -376,7 +396,10 @@ const server = createServer(async (req, res) => {
         await sleep(pacing(entry.type as RuntimeEvent["type"]));
       }
       if (runError) {
-        sendSSE(res, { type: "run:error", payload: { type: "run:error", runId: "n/a", step: null, error: runError } });
+        sendSSE(res, {
+          type: "run:error",
+          payload: { type: "run:error", runId: "n/a", step: null, error: runError },
+        });
         await sleep(300);
       }
       sendSSE(res, {

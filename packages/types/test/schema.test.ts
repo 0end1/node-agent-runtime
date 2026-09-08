@@ -16,7 +16,10 @@ describe("schema validation (subset)", () => {
   } satisfies JsonSchema;
 
   it("accepts a valid payload", () => {
-    assert.deepEqual(validate({ amount: 12.5, from: "USD", tags: ["a"], meta: { note: "x" } }, schema), []);
+    assert.deepEqual(
+      validate({ amount: 12.5, from: "USD", tags: ["a"], meta: { note: "x" } }, schema),
+      [],
+    );
   });
 
   it("reports missing required fields", () => {
@@ -26,8 +29,14 @@ describe("schema validation (subset)", () => {
 
   it("reports type & enum violations with paths", () => {
     const errors = validate({ amount: "x", from: "GBP" }, schema);
-    assert.ok(errors.some((e) => e.includes("$.amount")), `errors: ${errors.join(" | ")}`);
-    assert.ok(errors.some((e) => e.includes("$.from")), `errors: ${errors.join(" | ")}`);
+    assert.ok(
+      errors.some((e) => e.includes("$.amount")),
+      `errors: ${errors.join(" | ")}`,
+    );
+    assert.ok(
+      errors.some((e) => e.includes("$.from")),
+      `errors: ${errors.join(" | ")}`,
+    );
   });
 
   it("checks nested array items", () => {

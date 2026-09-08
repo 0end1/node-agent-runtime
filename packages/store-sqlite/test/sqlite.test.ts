@@ -89,7 +89,7 @@ function exerciseStore(name: string, make: () => Promise<Storage>, restart: bool
         const reopened = await make(); // second instance, SAME backing store
         const doc = await reopened.loadDoc<Doc>("session", "keep");
         assert.equal(doc?.name, "alpha");
-      }
+      },
     );
   });
 }
@@ -111,7 +111,11 @@ describe("SQLiteStorage (file)", () => {
     await rm(dir, { recursive: true, force: true });
   });
 
-  exerciseStore("sqlite file", async () => new SQLiteStorage({ file: join(dir, `db-${Math.random()}.db`) }), false);
+  exerciseStore(
+    "sqlite file",
+    async () => new SQLiteStorage({ file: join(dir, `db-${Math.random()}.db`) }),
+    false,
+  );
 
   it("data survives reopening the same database file", async () => {
     const a = new SQLiteStorage({ file: dbFile });

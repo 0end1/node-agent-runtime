@@ -1,9 +1,4 @@
-import type {
-  ModelProvider,
-  ModelRequest,
-  ModelResponse,
-  RawToolCall,
-} from "@agent-runtime/core";
+import type { ModelProvider, ModelRequest, ModelResponse, RawToolCall } from "@agent-runtime/core";
 import { CURRENCY_ALIASES } from "@agent-runtime/tools-basic";
 import type { ChatMessage, ToolCall } from "@agent-runtime/types";
 import { newId } from "@agent-runtime/types";
@@ -66,9 +61,16 @@ export class MockProvider implements ModelProvider {
 
     const mathExpr = has("calculator") ? detectMath(text) : null;
     if (mathExpr) {
-      return this.toolCallStep("calculator", { expression: mathExpr }, `我需要调用计算器算出准确结果。`);
+      return this.toolCallStep(
+        "calculator",
+        { expression: mathExpr },
+        `我需要调用计算器算出准确结果。`,
+      );
     }
-    if (has("now") && /(现在|当前|几点|时间|日期|几号|星期|today|time|date|what time)/i.test(text)) {
+    if (
+      has("now") &&
+      /(现在|当前|几点|时间|日期|几号|星期|today|time|date|what time)/i.test(text)
+    ) {
       return this.toolCallStep("now", {}, "我先获取一下当前的时间。");
     }
     if (has("geocode") && has("weather")) {
@@ -77,18 +79,26 @@ export class MockProvider implements ModelProvider {
         return this.toolCallStep(
           "geocode",
           { city },
-          `我来分两步：先解析城市“${city}”的坐标，再查询当地天气。`
+          `我来分两步：先解析城市“${city}”的坐标，再查询当地天气。`,
         );
       }
       if (/(天气|气温|weather)/i.test(text)) {
-        return this.toolCallStep("geocode", { city: "北京" }, "请告诉我城市，我先按“北京”演示一次坐标解析。");
+        return this.toolCallStep(
+          "geocode",
+          { city: "北京" },
+          "请告诉我城市，我先按“北京”演示一次坐标解析。",
+        );
       }
     }
     if (has("exchange") && /(汇率|兑换|等于多少|换算|exchange|convert)/i.test(text)) {
       const fx = parseExchange(text);
       if (fx) {
         const { amount, from, to } = fx;
-        return this.toolCallStep("exchange", { amount, from, to }, `我来查询 ${amount} ${from} → ${to} 的参考汇率。`);
+        return this.toolCallStep(
+          "exchange",
+          { amount, from, to },
+          `我来查询 ${amount} ${from} → ${to} 的参考汇率。`,
+        );
       }
     }
 
@@ -97,7 +107,10 @@ export class MockProvider implements ModelProvider {
 
   // ----------------------------------------------------------------- finalize
 
-  private conclude(last: Extract<ChatMessage, { role: "tool" }>, request: ModelRequest): ModelResponse {
+  private conclude(
+    last: Extract<ChatMessage, { role: "tool" }>,
+    _request: ModelRequest,
+  ): ModelResponse {
     const pending = this.issued.get(last.toolCallId);
     const content = last.content;
     if (!pending) {
@@ -120,7 +133,7 @@ export class MockProvider implements ModelProvider {
         const v = safeParse(content) as Record<string, unknown> | null;
         if (!v) return this.final(`当前时间：${content}`);
         return this.final(
-          `现在是 ${v.date}（${v.weekday}）${v.time}，时区 ${v.timezone}，ISO 时间 ${v.iso}。`
+          `现在是 ${v.date}（${v.weekday}）${v.time}，时区 ${v.timezone}，ISO 时间 ${v.iso}。`,
         );
       }
       case "exchange": {
@@ -136,14 +149,18 @@ export class MockProvider implements ModelProvider {
           rate: number;
           amount_to: string;
         };
-        return this.final(`按参考汇率 1 ${from} = ${rate} ${to}，${amount} ${from} ≈ ${amount_to} ${to}。`);
+        return this.final(
+          `按参考汇率 1 ${from} = ${rate} ${to}，${amount} ${from} ≈ ${amount_to} ${to}。`,
+        );
       }
       case "geocode": {
         const city = String(args.city ?? "");
         const v = safeParse(content) as Record<string, unknown> | null;
         if (!v || (v as { error?: string }).error) {
           const err = (v as { error?: string } | null)?.error ?? `无法解析城市`;
-          return this.final(`抱歉，${err}。可以试试演示城市：北京 / 上海 / 深圳 / 广州 / 杭州 / 东京 / 伦敦 / 纽约。`);
+          return this.final(
+            `抱歉，${err}。可以试试演示城市：北京 / 上海 / 深圳 / 广州 / 杭州 / 东京 / 伦敦 / 纽约。`,
+          );
         }
         // Success -> next step: query weather at those coordinates.
         const lat = v.lat as number;
@@ -151,7 +168,7 @@ export class MockProvider implements ModelProvider {
         return this.toolCallStep(
           "weather",
           { lat, lon, city },
-          `已定位“${city}”（${lat}, ${lon}），接下来查询当地天气。`
+          `已定位“${city}”（${lat}, ${lon}），接下来查询当地天气。`,
         );
       }
       case "weather": {
@@ -160,15 +177,12 @@ export class MockProvider implements ModelProvider {
           return this.final((v as { error?: string } | null)?.error ?? "天气查询失败");
         }
         const city = args.city ? `“${String(args.city)}”` : "该地";
-        const {
-          temperature_C,
-          feels_like_C,
-          condition,
-          humidity_pct,
-          wind_kmh,
-        } = v as Record<string, number>;
+        const { temperature_C, feels_like_C, condition, humidity_pct, wind_kmh } = v as Record<
+          string,
+          number
+        >;
         return this.final(
-          `${city}当前天气：${condition}，气温 ${temperature_C}°C，体感 ${feels_like_C}°C，湿度 ${humidity_pct}%，风速 ${wind_kmh} km/h。`
+          `${city}当前天气：${condition}，气温 ${temperature_C}°C，体感 ${feels_like_C}°C，湿度 ${humidity_pct}%，风速 ${wind_kmh} km/h。`,
         );
       }
       default:
@@ -178,7 +192,11 @@ export class MockProvider implements ModelProvider {
 
   // ----------------------------------------------------------------- helpers
 
-  private toolCallStep(name: string, args: Record<string, unknown>, reasoning: string): ModelResponse {
+  private toolCallStep(
+    name: string,
+    args: Record<string, unknown>,
+    reasoning: string,
+  ): ModelResponse {
     const call: ToolCall = { id: newId("call"), name, arguments: args };
     this.issued.set(call.id, { name, args });
     return {
@@ -251,8 +269,21 @@ function detectMath(text: string): string | null {
 }
 
 const CITY_WORDS = [
-  "北京", "beijing", "上海", "shanghai", "深圳", "shenzhen", "广州", "杭州",
-  "成都", "东京", "tokyo", "伦敦", "london", "纽约", "new york",
+  "北京",
+  "beijing",
+  "上海",
+  "shanghai",
+  "深圳",
+  "shenzhen",
+  "广州",
+  "杭州",
+  "成都",
+  "东京",
+  "tokyo",
+  "伦敦",
+  "london",
+  "纽约",
+  "new york",
 ];
 
 function detectCity(text: string): string | null {
@@ -266,10 +297,12 @@ function detectCity(text: string): string | null {
 }
 
 function parseExchange(text: string): { amount: number; from: string; to: string } | null {
-  const amountMatch = text.match(/(\d+(?:\.\d+)?)\s*([\u4e00-\u9fa5]+|usd|eur|cny|jpy|gbp|hkd|美元|人民币)/i);
+  const amountMatch = text.match(
+    /(\d+(?:\.\d+)?)\s*([\u4e00-\u9fa5]+|usd|eur|cny|jpy|gbp|hkd|美元|人民币)/i,
+  );
   if (!amountMatch) return null;
 
-  let amount = Number(amountMatch[1]);
+  const amount = Number(amountMatch[1]);
   const mentions: string[] = [];
   for (const [alias, code] of Object.entries(CURRENCY_ALIASES)) {
     if (text.includes(alias)) mentions.push(code);

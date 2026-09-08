@@ -3,11 +3,7 @@
  * Supports + - * / % ^ and parentheses / unary signs / decimals.
  */
 
-type Token =
-  | { t: "num"; v: number }
-  | { t: "op"; v: string }
-  | { t: "lparen" }
-  | { t: "rparen" };
+type Token = { t: "num"; v: number } | { t: "op"; v: string } | { t: "lparen" } | { t: "rparen" };
 
 const PREC: Record<string, number> = { "+": 1, "-": 1, "*": 2, "/": 2, "%": 2, "^": 3 };
 const RIGHT_ASSOC = new Set(["^"]);

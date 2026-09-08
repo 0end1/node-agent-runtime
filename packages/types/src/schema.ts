@@ -4,13 +4,7 @@
  */
 
 export type JsonSchemaType =
-  | "string"
-  | "number"
-  | "integer"
-  | "boolean"
-  | "array"
-  | "object"
-  | "null";
+  "string" | "number" | "integer" | "boolean" | "array" | "object" | "null";
 
 export interface JsonSchema {
   type?: JsonSchemaType | JsonSchemaType[];
@@ -25,13 +19,7 @@ export interface JsonSchema {
   additionalProperties?: boolean;
 }
 
-type JsonTypeName =
-  | "string"
-  | "number"
-  | "boolean"
-  | "null"
-  | "array"
-  | "object";
+type JsonTypeName = "string" | "number" | "boolean" | "null" | "array" | "object";
 
 function jsonTypeOf(v: unknown): JsonTypeName {
   if (v === null) return "null";
@@ -53,20 +41,13 @@ function jsonTypeOf(v: unknown): JsonTypeName {
 function typeAllows(v: unknown, type: JsonSchemaType): boolean {
   if (type === "number" || type === "integer") {
     return (
-      typeof v === "number" &&
-      Number.isFinite(v) &&
-      (type === "number" || Number.isInteger(v))
+      typeof v === "number" && Number.isFinite(v) && (type === "number" || Number.isInteger(v))
     );
   }
   return jsonTypeOf(v) === type;
 }
 
-function validateValue(
-  value: unknown,
-  schema: JsonSchema,
-  path: string,
-  errors: string[]
-): void {
+function validateValue(value: unknown, schema: JsonSchema, path: string, errors: string[]): void {
   if (!schema || typeof schema !== "object") return;
 
   const type = schema.type;
@@ -81,7 +62,10 @@ function validateValue(
 
   if (value === null || value === undefined) return;
 
-  if (Array.isArray(schema.enum) && !schema.enum.some((e) => JSON.stringify(e) === JSON.stringify(value))) {
+  if (
+    Array.isArray(schema.enum) &&
+    !schema.enum.some((e) => JSON.stringify(e) === JSON.stringify(value))
+  ) {
     errors.push(`${path}: 取值必须在枚举 ${JSON.stringify(schema.enum)} 中`);
   }
 
@@ -98,14 +82,15 @@ function validateValue(
     value.forEach((item, i) => validateValue(item, schema.items!, `${path}[${i}]`, errors));
   }
 
-  if (
-    !Array.isArray(value) &&
-    typeof value === "object" &&
-    schema.properties
-  ) {
+  if (!Array.isArray(value) && typeof value === "object" && schema.properties) {
     for (const [key, childSchema] of Object.entries(schema.properties)) {
       if (key in value) {
-        validateValue((value as Record<string, unknown>)[key], childSchema, `${path}.${key}`, errors);
+        validateValue(
+          (value as Record<string, unknown>)[key],
+          childSchema,
+          `${path}.${key}`,
+          errors,
+        );
       }
     }
     for (const requiredKey of schema.required ?? []) {

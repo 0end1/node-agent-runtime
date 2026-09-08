@@ -62,7 +62,7 @@ describe("AgentRuntime multi-step loop", () => {
   it("continues from history (multi-turn session)", async () => {
     const runtime = makeRuntime();
     const agent = agentWith();
-    let history = (await runtime.run({ agent, input: "2 + 2 = ?" })).messages;
+    const history = (await runtime.run({ agent, input: "2 + 2 = ?" })).messages;
     const second = await runtime.run({
       agent,
       input: "那 4 + 5 = ?",

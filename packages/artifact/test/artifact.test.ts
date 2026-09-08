@@ -116,9 +116,15 @@ describe("ArtifactManager over MemoryStorage (§8.1)", () => {
     await am.save({ sessionId: "s5", runId: "r1", kind: "text", name: "二", content: "2" });
     await am.save({ sessionId: "s5", runId: "r2", kind: "text", name: "三", content: "3" });
     const all = await am.list("s5");
-    assert.deepEqual(all.map((a) => a.name), ["三", "二", "一"]);
+    assert.deepEqual(
+      all.map((a) => a.name),
+      ["三", "二", "一"],
+    );
     const r1 = await am.list("s5", "r1");
-    assert.deepEqual(r1.map((a) => a.name), ["二", "一"]);
+    assert.deepEqual(
+      r1.map((a) => a.name),
+      ["二", "一"],
+    );
   });
 
   it("remove deletes payload + metadata and is idempotent", async () => {
@@ -136,16 +142,13 @@ describe("ArtifactManager over MemoryStorage (§8.1)", () => {
     const am = new ArtifactManager({ storage: new MemoryStorage() });
     await assert.rejects(
       () => am.save({ sessionId: "", kind: "text", name: "n", content: "c" }),
-      ArtifactError
+      ArtifactError,
     );
     await assert.rejects(
       () => am.save({ sessionId: "s", kind: "text", name: " ", content: "c" }),
-      ArtifactError
+      ArtifactError,
     );
-    await assert.rejects(
-      () => am.save({ sessionId: "s", kind: "url", name: "u" }),
-      ArtifactError
-    );
+    await assert.rejects(() => am.save({ sessionId: "s", kind: "url", name: "u" }), ArtifactError);
   });
 });
 

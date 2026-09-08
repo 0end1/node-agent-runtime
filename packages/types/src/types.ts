@@ -34,11 +34,7 @@ export interface ToolResultMessage {
   content: string;
 }
 
-export type ChatMessage =
-  | SystemMessage
-  | UserMessage
-  | AssistantMessage
-  | ToolResultMessage;
+export type ChatMessage = SystemMessage | UserMessage | AssistantMessage | ToolResultMessage;
 
 /** Token usage aggregation of a whole run. */
 export interface RunUsage {

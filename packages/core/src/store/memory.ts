@@ -33,8 +33,8 @@ export class MemoryStorage implements Storage {
     if (!filter) return all;
     return all.filter((doc) =>
       Object.entries(filter).every(
-        ([key, expected]) => (doc as Record<string, unknown>)[key] === expected
-      )
+        ([key, expected]) => (doc as Record<string, unknown>)[key] === expected,
+      ),
     );
   }
 

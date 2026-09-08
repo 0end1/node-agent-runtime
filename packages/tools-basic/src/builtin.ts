@@ -88,7 +88,9 @@ const geocodeTool = defineTool({
     required: ["city"],
   },
   execute(args: { city: string }) {
-    const key = String(args.city ?? "").trim().toLowerCase();
+    const key = String(args.city ?? "")
+      .trim()
+      .toLowerCase();
     const hit = GAZETTEER[key];
     if (!hit) {
       return { error: `未收录城市 "${key}"`, city: key };
@@ -201,10 +203,4 @@ const exchangeTool = defineTool({
 });
 
 /** Built-in demo tools ready to attach to an agent. */
-export const builtinTools = [
-  calculatorTool,
-  nowTool,
-  geocodeTool,
-  weatherTool,
-  exchangeTool,
-];
+export const builtinTools = [calculatorTool, nowTool, geocodeTool, weatherTool, exchangeTool];

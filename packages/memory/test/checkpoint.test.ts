@@ -11,11 +11,7 @@ import {
   type ModelResponse,
   type RuntimeEvent,
 } from "@agent-runtime/core";
-import {
-  CheckpointMismatchError,
-  CheckpointStore,
-  computeToolsHash,
-} from "@agent-runtime/memory";
+import { CheckpointMismatchError, CheckpointStore, computeToolsHash } from "@agent-runtime/memory";
 import { SessionError, SessionManager } from "@agent-runtime/host";
 import { builtinTools } from "@agent-runtime/tools-basic";
 
@@ -57,7 +53,11 @@ class ScriptedProvider implements ModelProvider {
   }
 }
 
-function makeEnv(script: Array<() => ModelResponse>, agents: readonly Agent[], storage = new MemoryStorage()) {
+function makeEnv(
+  script: Array<() => ModelResponse>,
+  agents: readonly Agent[],
+  storage = new MemoryStorage(),
+) {
   const provider = new ScriptedProvider(script);
   const runtime = new AgentRuntime({ provider });
   const events: RuntimeEvent[] = [];
@@ -84,7 +84,10 @@ describe("checkpoint — tool fingerprint (§9)", () => {
     });
     const t2 = defineTool({ name: "t2", description: "two", execute: () => "2" });
 
-    assert.equal(computeToolsHash(new Agent({ name: "x", tools: [t1, t2] })), computeToolsHash(new Agent({ name: "x", tools: [t2, t1] })));
+    assert.equal(
+      computeToolsHash(new Agent({ name: "x", tools: [t1, t2] })),
+      computeToolsHash(new Agent({ name: "x", tools: [t2, t1] })),
+    );
   });
 
   it("changes when a tool is added or its schema changes", () => {
@@ -107,19 +110,31 @@ describe("CheckpointStore", () => {
   it("saves, loads and lists checkpoints by run and task", async () => {
     const store = new CheckpointStore({ storage: new MemoryStorage() });
     const a = await store.save({
-      runId: "run_1", sessionId: "s", taskId: "t", step: 1, input: "q",
+      runId: "run_1",
+      sessionId: "s",
+      taskId: "t",
+      step: 1,
+      input: "q",
       messages: [{ role: "user", content: "q" }],
       usage: { inputTokens: 1, outputTokens: 1, modelCalls: 1 },
       agentSnapshot: { agentId: "assistant", toolsHash: "abc" },
     });
     const b = await store.save({
-      runId: "run_1", sessionId: "s", taskId: "t", step: 2, input: "q",
-      messages: [], usage: { inputTokens: 2, outputTokens: 2, modelCalls: 2 },
+      runId: "run_1",
+      sessionId: "s",
+      taskId: "t",
+      step: 2,
+      input: "q",
+      messages: [],
+      usage: { inputTokens: 2, outputTokens: 2, modelCalls: 2 },
       agentSnapshot: { agentId: "assistant", toolsHash: "abc" },
     });
 
     assert.equal((await store.load(a.id))?.step, 1);
-    assert.deepEqual((await store.listByRun("run_1")).map((c) => c.step), [1, 2]);
+    assert.deepEqual(
+      (await store.listByRun("run_1")).map((c) => c.step),
+      [1, 2],
+    );
     assert.equal((await store.latest("run_1"))?.id, b.id);
     assert.equal((await store.listByTask("t")).length, 2);
     assert.equal(await store.load("nope"), undefined);
@@ -130,7 +145,7 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
   it("writes one checkpoint per completed step and records it on the run", async () => {
     const { manager, events, storage } = makeEnv(
       [() => toolCallResp("calculator", { expression: "2+2" }), () => finalResp("答案是 4")],
-      [assistant]
+      [assistant],
     );
     const session = await manager.createSession({ agentId: "assistant", title: "ckpt" });
     const out = await manager.chat(session.id, "2+2 等于几");
@@ -140,7 +155,10 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
     assert.equal(out.run.checkpointId, saved.at(-1));
 
     const listed = await manager.listCheckpoints(out.task.id);
-    assert.deepEqual(listed.map((c) => c.step), [1, 2]);
+    assert.deepEqual(
+      listed.map((c) => c.step),
+      [1, 2],
+    );
     assert.equal(listed[0]!.sessionId, session.id);
     assert.equal(listed[0]!.agentSnapshot.agentId, "assistant");
     assert.equal(listed[0]!.agentSnapshot.toolsHash, computeToolsHash(assistant));
@@ -154,7 +172,7 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
     // A — one uninterrupted run.
     const a = makeEnv(
       [() => toolCallResp("calculator", { expression: "2+2" }), () => finalResp("答案是 4")],
-      [assistant]
+      [assistant],
     );
     const sessionA = await a.manager.createSession({ agentId: "assistant", title: "A" });
     const outA = await a.manager.chat(sessionA.id, "2+2 等于几");
@@ -170,12 +188,12 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
         },
         () => finalResp("答案是 4"),
       ],
-      [assistant]
+      [assistant],
     );
     const sessionB = await b.manager.createSession({ agentId: "assistant", title: "B" });
     await assert.rejects(
       () => b.manager.chat(sessionB.id, "2+2 等于几", { signal: controller.signal }),
-      /run aborted/
+      /run aborted/,
     );
 
     const taskB = (await b.manager.listTasks(sessionB.id))[0]!;
@@ -192,11 +210,11 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
     // identical transcript: no duplicated user turn, no lost turn
     assert.deepEqual(
       (await b.manager.messages(sessionB.id)).map((m) => m.role),
-      (await a.manager.messages(sessionA.id)).map((m) => m.role)
+      (await a.manager.messages(sessionA.id)).map((m) => m.role),
     );
     assert.deepEqual(
       (await b.manager.messages(sessionB.id)).map((m) => m.content),
-      (await a.manager.messages(sessionA.id)).map((m) => m.content)
+      (await a.manager.messages(sessionA.id)).map((m) => m.content),
     );
     assert.ok(b.events.some((e) => e.type === "checkpoint:restored"));
   });
@@ -213,12 +231,12 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
         },
       ],
       [assistant],
-      storage
+      storage,
     );
     const session = await first.manager.createSession({ agentId: "assistant", title: "restart" });
     await assert.rejects(
       () => first.manager.chat(session.id, "2+2 等于几", { signal: controller.signal }),
-      /run aborted/
+      /run aborted/,
     );
     const task = (await first.manager.listTasks(session.id))[0]!;
     const [checkpoint] = await first.manager.listCheckpoints(task.id);
@@ -241,12 +259,12 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
         },
         () => finalResp("继续后的答案"),
       ],
-      [assistant]
+      [assistant],
     );
     const session = await env.manager.createSession({ agentId: "assistant", title: "cont" });
     await assert.rejects(
       () => env.manager.chat(session.id, "2+2 等于几", { signal: controller.signal }),
-      /run aborted/
+      /run aborted/,
     );
     const task = (await env.manager.listTasks(session.id))[0]!;
     const [checkpoint] = await env.manager.listCheckpoints(task.id);
@@ -261,7 +279,7 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
   it("refuses to resume when the tool surface changed", async () => {
     const env = makeEnv(
       [() => toolCallResp("calculator", { expression: "2+2" }), () => finalResp("答案是 4")],
-      [assistant]
+      [assistant],
     );
     const session = await env.manager.createSession({ agentId: "assistant", title: "drift" });
     const out = await env.manager.chat(session.id, "2+2 等于几");
@@ -284,7 +302,7 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
   it("deleteSession also drops checkpoints and remembered facts", async () => {
     const env = makeEnv(
       [() => toolCallResp("calculator", { expression: "2+2" }), () => finalResp("答案是 4")],
-      [assistant]
+      [assistant],
     );
     const session = await env.manager.createSession({ agentId: "assistant", title: "gc" });
     const out = await env.manager.chat(session.id, "2+2 等于几");
@@ -293,10 +311,7 @@ describe("SessionManager — step-granular checkpointing (M2)", () => {
     assert.equal((await env.manager.listCheckpoints(out.task.id)).length, 2);
     await env.manager.deleteSession(session.id);
 
-    assert.deepEqual(
-      await env.storage.listDocs("checkpoint", { sessionId: session.id }),
-      []
-    );
+    assert.deepEqual(await env.storage.listDocs("checkpoint", { sessionId: session.id }), []);
     assert.equal(await env.storage.loadDoc("memory", session.id), undefined);
   });
 });

@@ -3,12 +3,7 @@
 // 因此 `import { validate, type ChatMessage } from "@agent-runtime/core"` 仍可用。
 export * from "@agent-runtime/types";
 export { AgentRuntime, RunAbortedError } from "./runtime.js";
-export type {
-  AgentRuntimeOptions,
-  RunOptions,
-  RunResult,
-  StepSnapshot,
-} from "./runtime.js";
+export type { AgentRuntimeOptions, RunOptions, RunResult, StepSnapshot } from "./runtime.js";
 
 export { Agent, defineAgent, DEFAULT_AGENT_INSTRUCTIONS } from "./agent.js";
 export type { AgentOptions } from "./agent.js";
@@ -71,13 +66,7 @@ export type { RunContext, RunContextSeed } from "./context.js";
 
 // ---- Tools ----
 export { defineTool, findDuplicateToolNames } from "./tool.js";
-export type {
-  ToolDefinition,
-  AnyTool,
-  ToolExecutionContext,
-  ToolKind,
-  ToolMeta,
-} from "./tool.js";
+export type { ToolDefinition, AnyTool, ToolExecutionContext, ToolKind, ToolMeta } from "./tool.js";
 
 // 内置基础工具集已外置（M6 P1 审查 P0）：
 //   import { builtinTools, evaluate, CURRENCY_ALIASES } from "@agent-runtime/tools-basic";

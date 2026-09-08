@@ -13,12 +13,7 @@ import {
 import type { ModelProvider } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
-import type {
-  ChatMessage,
-  RunUsage,
-  ToolCall,
-  ToolResultMessage,
-} from "@agent-runtime/types";
+import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@agent-runtime/types";
 import { newId, stringifyResult, validate } from "@agent-runtime/types";
 
 export interface AgentRuntimeOptions {
@@ -76,7 +71,7 @@ export interface RunOptions {
    */
   gate?: (
     call: { name: string; arguments: unknown },
-    ctx: ToolExecutionContext
+    ctx: ToolExecutionContext,
   ) => Promise<{ ok: boolean; reason?: string }>;
   /**
    * Whether `input` becomes a new user turn in the transcript (default true).
@@ -235,9 +230,9 @@ export class AgentRuntime {
           toolCalls: ToolCall[];
         };
         for (const rawCall of toolCalls) {
-          const parsed = (assistantWithCalls.toolCalls ?? []).find(
-            (tc) => tc.id === rawCall.id
-          ) ?? parseToolCall(rawCall, this.provider.id);
+          const parsed =
+            (assistantWithCalls.toolCalls ?? []).find((tc) => tc.id === rawCall.id) ??
+            parseToolCall(rawCall, this.provider.id);
 
           const startEvt: ToolStartEvent = {
             type: "tool:start",
@@ -247,7 +242,9 @@ export class AgentRuntime {
           };
           this.emit(startEvt);
           stepEvents.toolStarts.push(startEvt);
-          this.log(`    tool:start ${parsed.name} ${JSON.stringify(parsed.arguments).slice(0, 120)}`);
+          this.log(
+            `    tool:start ${parsed.name} ${JSON.stringify(parsed.arguments).slice(0, 120)}`,
+          );
 
           const toolStartMs = Date.now();
           const ctx = buildRunContext({
@@ -312,7 +309,12 @@ export class AgentRuntime {
         throw err;
       }
       const message = err instanceof Error ? err.message : String(err);
-      this.emit({ type: "run:error", runId, step: history.length, error: message } as RunErrorEvent);
+      this.emit({
+        type: "run:error",
+        runId,
+        step: history.length,
+        error: message,
+      } as RunErrorEvent);
       this.log(`  run:error ${message}`);
       throw err instanceof Error ? err : new Error(message);
     }
@@ -338,7 +340,7 @@ export class AgentRuntime {
       stoppedByMaxSteps,
     });
     this.log(
-      `run:end steps=${usage.modelCalls} tokens=${usage.inputTokens}+${usage.outputTokens} elapsed=${Date.now() - startedAt}ms stoppedByMaxSteps=${stoppedByMaxSteps}`
+      `run:end steps=${usage.modelCalls} tokens=${usage.inputTokens}+${usage.outputTokens} elapsed=${Date.now() - startedAt}ms stoppedByMaxSteps=${stoppedByMaxSteps}`,
     );
     return result;
   }
@@ -349,7 +351,7 @@ export class AgentRuntime {
     runId: string,
     step: number,
     history: ChatMessage[],
-    usage: RunUsage
+    usage: RunUsage,
   ): Promise<void> {
     if (!options.onStepEnd) return;
     await options.onStepEnd({
@@ -364,7 +366,7 @@ export class AgentRuntime {
     toolMap: Map<string, AnyTool>,
     call: ToolCall,
     ctx: ToolExecutionContext,
-    gate?: RunOptions["gate"]
+    gate?: RunOptions["gate"],
   ): Promise<{ content: string; ok: boolean }> {
     // M3: authorization happens before anything else — a denied call never
     // reaches the tool, and the model is told why so it can adapt.
@@ -384,7 +386,9 @@ export class AgentRuntime {
     const tool = toolMap.get(call.name);
     if (!tool) {
       return {
-        content: JSON.stringify({ error: `未知工具 "${call.name}"。可用工具：${[...toolMap.keys()].join(", ")}` }),
+        content: JSON.stringify({
+          error: `未知工具 "${call.name}"。可用工具：${[...toolMap.keys()].join(", ")}`,
+        }),
         ok: false,
       };
     }
@@ -432,7 +436,7 @@ interface StepLedger {
 /** Parse a raw provider tool call into a validated JSON-argument ToolCall. */
 function parseToolCall(
   raw: { id: string; name: string; arguments: string },
-  providerId: string
+  providerId: string,
 ): ToolCall {
   let argumentsObj: Record<string, unknown> = {};
   try {

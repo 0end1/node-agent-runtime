@@ -37,7 +37,10 @@ describe("SessionManager — session lifecycle", () => {
 
     const all = await manager.listSessions();
     assert.equal(all.length, 2);
-    assert.deepEqual(all.map((s) => s.title), ["first", "second"]); // createdAt order
+    assert.deepEqual(
+      all.map((s) => s.title),
+      ["first", "second"],
+    ); // createdAt order
 
     const closed = await manager.closeSession(s1.id);
     assert.equal(closed.status, "closed");
@@ -52,7 +55,7 @@ describe("SessionManager — session lifecycle", () => {
     const { manager } = makeManager();
     await assert.rejects(
       () => manager.createSession({ agentId: "ghost", title: "x" }),
-      /未知 Agent/
+      /未知 Agent/,
     );
   });
 
@@ -65,10 +68,7 @@ describe("SessionManager — session lifecycle", () => {
     await manager.chat(doomed.id, "3 + 3 = ?");
     assert.ok((await manager.messages(doomed.id)).length > 0);
     assert.equal((await manager.listTasks(doomed.id)).length, 1);
-    assert.equal(
-      (await storage.listDocs("run", { sessionId: doomed.id })).length,
-      1
-    );
+    assert.equal((await storage.listDocs("run", { sessionId: doomed.id })).length, 1);
 
     await manager.deleteSession(doomed.id);
     assert.equal(await manager.getSession(doomed.id), undefined);

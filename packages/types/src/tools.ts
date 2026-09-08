@@ -47,7 +47,10 @@ export interface ToolMeta {
  * A tool is a named, documented function a model can call.
  * `parameters` is a JSON Schema used both for the model prompt and local validation.
  */
-export interface ToolDefinition<Args extends Record<string, unknown> = Record<string, unknown>, Result = unknown> {
+export interface ToolDefinition<
+  Args extends Record<string, unknown> = Record<string, unknown>,
+  Result = unknown,
+> {
   name: string;
   description: string;
   parameters?: JsonSchema;
@@ -70,7 +73,8 @@ export function classifyToolName(name: string): ToolKind {
   const n = name.toLowerCase();
   if (/(token|secret|credential|apikey|api_key|password|_env$)/.test(n)) return "credential";
   if (/(exec|shell|bash|command|terminal|spawn|subprocess|run_)/.test(n)) return "exec";
-  if (/(write|edit|create|delete|remove|patch|append|save|move|mkdir|truncate)/.test(n)) return "write";
+  if (/(write|edit|create|delete|remove|patch|append|save|move|mkdir|truncate)/.test(n))
+    return "write";
   // Built-in demos (weather / geocode / exchange) read local static data —
   // they are harmless, not outbound network.
   if (/(fetch|http|request|search|web|download|api)/.test(n)) return "network-read";

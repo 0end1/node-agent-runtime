@@ -39,10 +39,9 @@ execSync(`chmod +x ${nodeOut}`);
 // 3) 静态控制台（examples/web/public）：复制到 binaries/public，
 //    以便与 server bundle 一起以 resource 平铺进 app（避免 frontendDist 上越路径不被复制）。
 const publicOut = join(binaries, "public");
-execSync(
-  `rm -rf ${publicOut} && cp -R ${join(root, "examples/web/public")} ${publicOut}`,
-  { stdio: "inherit" },
-);
+execSync(`rm -rf ${publicOut} && cp -R ${join(root, "examples/web/public")} ${publicOut}`, {
+  stdio: "inherit",
+});
 
 console.log(`[build-server] server bundle -> ${jsOut}`);
 console.log(`[build-server] node runtime  -> ${nodeOut}`);

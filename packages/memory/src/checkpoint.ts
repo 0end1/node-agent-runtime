@@ -53,7 +53,7 @@ export type CheckpointSeed = Omit<Checkpoint, "id" | "createdAt"> & { id?: strin
 export class CheckpointMismatchError extends Error {
   constructor(
     readonly checkpointId: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "CheckpointMismatchError";
@@ -129,13 +129,13 @@ export function assertResumable(checkpoint: Checkpoint, agent: ToolSurface): voi
   if (hash !== checkpoint.agentSnapshot.toolsHash) {
     throw new CheckpointMismatchError(
       checkpoint.id,
-      `checkpoint ${checkpoint.id} 的工具集已变化（toolsHash ${checkpoint.agentSnapshot.toolsHash} → ${hash}），无法续跑`
+      `checkpoint ${checkpoint.id} 的工具集已变化（toolsHash ${checkpoint.agentSnapshot.toolsHash} → ${hash}），无法续跑`,
     );
   }
   if (agent.name !== checkpoint.agentSnapshot.agentId) {
     throw new CheckpointMismatchError(
       checkpoint.id,
-      `checkpoint ${checkpoint.id} 属于 Agent "${checkpoint.agentSnapshot.agentId}"，与当前配方 "${agent.name}" 不一致`
+      `checkpoint ${checkpoint.id} 属于 Agent "${checkpoint.agentSnapshot.agentId}"，与当前配方 "${agent.name}" 不一致`,
     );
   }
 }

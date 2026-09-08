@@ -161,12 +161,17 @@ function main(): void {
     console.log("API 表面提取摘要（代码事实源）：");
     for (const p of PACKAGES) {
       const s = current.packages[p.name];
-      const mark = p.expect == null ? "" : s.symbols.length === p.expect ? " ✓" : ` ✗ 文档期望 ${p.expect}`;
-      console.log(`  ${p.name.padEnd(28)} ${String(s.symbols.length).padStart(3)} 符号  ${s.forwards.length ? "+ " + s.forwards.join(", ") + " 转发" : ""}${mark}`);
+      const mark =
+        p.expect == null ? "" : s.symbols.length === p.expect ? " ✓" : ` ✗ 文档期望 ${p.expect}`;
+      console.log(
+        `  ${p.name.padEnd(28)} ${String(s.symbols.length).padStart(3)} 符号  ${s.forwards.length ? "+ " + s.forwards.join(", ") + " 转发" : ""}${mark}`,
+      );
     }
     if (update) {
       writeBaseline(current);
-      console.log(`\n已更新基线：${path.relative(ROOT, BASELINE_FILE)}（评审通过后随快照文档一起提交）`);
+      console.log(
+        `\n已更新基线：${path.relative(ROOT, BASELINE_FILE)}（评审通过后随快照文档一起提交）`,
+      );
       process.exit(0);
     }
     process.exit(0);
@@ -175,7 +180,9 @@ function main(): void {
   const base = loadBaseline();
   if (!base) {
     console.error("缺少基线文件 scripts/api-surface.baseline.json。");
-    console.error("首次冻结请运行：tsx scripts/check-api-surface.ts --update（提交前人工核验符号与 docs/api-surface.md 一致）");
+    console.error(
+      "首次冻结请运行：tsx scripts/check-api-surface.ts --update（提交前人工核验符号与 docs/api-surface.md 一致）",
+    );
     process.exit(2);
   }
 
@@ -199,9 +206,12 @@ function main(): void {
     for (const s of fRemoved) console.log(`  [移除转发]   facade - ${s}`);
   }
 
-  console.log("\n" + (dirty
-    ? "公共 API 表面与基线存在差异：按 docs/api-surface.md §13 逐条评审后执行 --update 重新冻结。"
-    : "公共 API 表面与基线一致：无待评审变更。"));
+  console.log(
+    "\n" +
+      (dirty
+        ? "公共 API 表面与基线存在差异：按 docs/api-surface.md §13 逐条评审后执行 --update 重新冻结。"
+        : "公共 API 表面与基线一致：无待评审变更。"),
+  );
   process.exit(dirty ? 1 : 0);
 }
 

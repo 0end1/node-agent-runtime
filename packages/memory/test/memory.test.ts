@@ -19,14 +19,20 @@ describe("SessionMemory — transcript layer (§8.2)", () => {
     await memory.append({ role: "assistant", content: "收到" });
 
     const all = await memory.messages();
-    assert.deepEqual(all.map((m) => m.content), ["第一句", "收到"]);
+    assert.deepEqual(
+      all.map((m) => m.content),
+      ["第一句", "收到"],
+    );
   });
 
   it("messages(limit) returns the newest N turns", async () => {
     const { memory } = makeMemory();
     for (const text of ["a", "b", "c", "d"]) await memory.append(user(text));
 
-    assert.deepEqual((await memory.messages(2)).map((m) => m.content), ["c", "d"]);
+    assert.deepEqual(
+      (await memory.messages(2)).map((m) => m.content),
+      ["c", "d"],
+    );
     assert.equal((await memory.messages()).length, 4);
   });
 
@@ -35,7 +41,10 @@ describe("SessionMemory — transcript layer (§8.2)", () => {
     await memory.append(user("跨实例仍可读"));
 
     const reloaded = new SessionMemory({ storage, sessionId: "session_1" });
-    assert.deepEqual((await reloaded.messages()).map((m) => m.content), ["跨实例仍可读"]);
+    assert.deepEqual(
+      (await reloaded.messages()).map((m) => m.content),
+      ["跨实例仍可读"],
+    );
   });
 
   it("skips corrupt lines instead of losing the whole session", async () => {
@@ -44,7 +53,10 @@ describe("SessionMemory — transcript layer (§8.2)", () => {
     await storage.appendStream("message", "session_1", "{ 这不是 JSON");
     await memory.append(user("后面还有"));
 
-    assert.deepEqual((await memory.messages()).map((m) => m.content), ["好的一行", "后面还有"]);
+    assert.deepEqual(
+      (await memory.messages()).map((m) => m.content),
+      ["好的一行", "后面还有"],
+    );
   });
 
   it("keeps sessions isolated", async () => {
@@ -54,7 +66,7 @@ describe("SessionMemory — transcript layer (§8.2)", () => {
 
     assert.deepEqual(
       (await new SessionMemory({ storage, sessionId: "s_a" }).messages()).map((m) => m.content),
-      ["A"]
+      ["A"],
     );
   });
 });

@@ -53,7 +53,7 @@ export class FileStorage implements Storage {
         if (
           !filter ||
           Object.entries(filter).every(
-            ([key, expected]) => (doc as Record<string, unknown>)[key] === expected
+            ([key, expected]) => (doc as Record<string, unknown>)[key] === expected,
           )
         ) {
           out.push(doc);
@@ -97,7 +97,7 @@ export class FileStorage implements Storage {
     try {
       const raw = await readFile(
         join(this.root, `${domain}.stream`, `${safe(id)}${STREAM_EXT}`),
-        "utf8"
+        "utf8",
       );
       return raw.split("\n").filter((l) => l.trim().length > 0);
     } catch {

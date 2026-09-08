@@ -54,25 +54,45 @@ describe("DefaultPermissionPolicy — decision matrix (§6.0.1 × §6.1)", () =>
   it("harmless tools run in every mode", () => {
     for (const mode of ["read-only", "workspace-write", "full-access"] as const) {
       assert.deepEqual(
-        policy.decide(ctx({ tool: { name: "calculator", kind: "harmless" }, sandboxMode: mode }), call("calculator")),
-        { verdict: "allow" }
+        policy.decide(
+          ctx({ tool: { name: "calculator", kind: "harmless" }, sandboxMode: mode }),
+          call("calculator"),
+        ),
+        { verdict: "allow" },
       );
     }
   });
 
   it("write/exec ask in write modes and are denied read-only", () => {
     for (const kind of ["write", "exec"] as const) {
-      assert.equal(policy.decide(ctx({ tool: { name: kind, kind }, sandboxMode: "read-only" }), call(kind)).verdict, "deny");
-      assert.equal(policy.decide(ctx({ tool: { name: kind, kind }, sandboxMode: "workspace-write" }), call(kind)).verdict, "ask");
-      assert.equal(policy.decide(ctx({ tool: { name: kind, kind }, sandboxMode: "full-access" }), call(kind)).verdict, "ask");
+      assert.equal(
+        policy.decide(ctx({ tool: { name: kind, kind }, sandboxMode: "read-only" }), call(kind))
+          .verdict,
+        "deny",
+      );
+      assert.equal(
+        policy.decide(
+          ctx({ tool: { name: kind, kind }, sandboxMode: "workspace-write" }),
+          call(kind),
+        ).verdict,
+        "ask",
+      );
+      assert.equal(
+        policy.decide(ctx({ tool: { name: kind, kind }, sandboxMode: "full-access" }), call(kind))
+          .verdict,
+        "ask",
+      );
     }
   });
 
   it("credentials are never allowed by default", () => {
     for (const mode of ["read-only", "workspace-write", "full-access"] as const) {
       assert.equal(
-        policy.decide(ctx({ tool: { name: "get_secret", kind: "credential" }, sandboxMode: mode }), call("get_secret")).verdict,
-        "deny"
+        policy.decide(
+          ctx({ tool: { name: "get_secret", kind: "credential" }, sandboxMode: mode }),
+          call("get_secret"),
+        ).verdict,
+        "deny",
       );
     }
   });
@@ -87,14 +107,20 @@ describe("DefaultPermissionPolicy — decision matrix (§6.0.1 × §6.1)", () =>
 describe("PermissionManager — gate (§6.1)", () => {
   it("allows when the policy says so, without events", async () => {
     const { pm, events } = manager();
-    const out = await pm.gate(call("calculator"), ctx({ tool: { name: "calculator", kind: "harmless" } }));
+    const out = await pm.gate(
+      call("calculator"),
+      ctx({ tool: { name: "calculator", kind: "harmless" } }),
+    );
     assert.deepEqual(out, { ok: true, verdict: "allow" });
     assert.equal(events.length, 0);
   });
 
   it("denies and publishes permission:denied when the policy says so", async () => {
     const { pm, events } = manager();
-    const out = await pm.gate(call("get_secret"), ctx({ tool: { name: "get_secret", kind: "credential" } }));
+    const out = await pm.gate(
+      call("get_secret"),
+      ctx({ tool: { name: "get_secret", kind: "credential" } }),
+    );
     assert.equal(out.ok, false);
     assert.equal(out.verdict, "deny");
     assert.ok(out.reason);
@@ -108,13 +134,17 @@ describe("PermissionManager — gate (§6.1)", () => {
 
     const [pending] = pm.pending();
     assert.equal(pending.toolName, "sh");
-    assert.ok(events.some((e) => e.type === "permission:request" && e.decisionId === pending.decisionId));
+    assert.ok(
+      events.some((e) => e.type === "permission:request" && e.decisionId === pending.decisionId),
+    );
 
     assert.equal(pm.approve(pending.decisionId), true);
     const out = await gating;
     assert.equal(out.ok, true);
     assert.equal(out.verdict, "ask-approved");
-    assert.ok(events.some((e) => e.type === "permission:approved" && e.decisionId === pending.decisionId));
+    assert.ok(
+      events.some((e) => e.type === "permission:approved" && e.decisionId === pending.decisionId),
+    );
   });
 
   it("ask → host deny → gate resolves not-ok", async () => {
@@ -172,8 +202,14 @@ describe("combinePolicies — strictest verdict wins (§6.1)", () => {
   const denyAll = new StaticPolicy({ verdict: "deny", reason: "!" });
 
   it("allow + ask → ask; allow + ask + deny → deny", async () => {
-    assert.equal((await combinePolicies(allowAll, askAll).decide(ctxAny, call("sh"))).verdict, "ask");
-    assert.equal((await combinePolicies(allowAll, askAll, denyAll).decide(ctxAny, call("sh"))).verdict, "deny");
+    assert.equal(
+      (await combinePolicies(allowAll, askAll).decide(ctxAny, call("sh"))).verdict,
+      "ask",
+    );
+    assert.equal(
+      (await combinePolicies(allowAll, askAll, denyAll).decide(ctxAny, call("sh"))).verdict,
+      "deny",
+    );
   });
 
   it("toolListPolicy keeps unknown tools pending", async () => {

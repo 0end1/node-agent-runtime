@@ -58,11 +58,7 @@ export interface SandboxHandle {
 }
 
 export interface Sandbox {
-  begin(
-    mode: SandboxMode,
-    scope: SandboxScope,
-    ctx?: SandboxRunContext
-  ): Promise<SandboxHandle>;
+  begin(mode: SandboxMode, scope: SandboxScope, ctx?: SandboxRunContext): Promise<SandboxHandle>;
 }
 
 /** Raised when a tool call leaves the execution boundary. */
@@ -75,7 +71,10 @@ export class SandboxViolationError extends Error {
 
 /** Raised when a tool exceeds its execution budget. */
 export class SandboxTimeoutError extends Error {
-  constructor(readonly toolName: string, readonly timeoutMs: number) {
+  constructor(
+    readonly toolName: string,
+    readonly timeoutMs: number,
+  ) {
     super(`工具 ${toolName} 执行超时（${timeoutMs}ms），已被沙箱中止`);
     this.name = "SandboxTimeoutError";
   }
@@ -151,7 +150,11 @@ export class LocalSandbox implements Sandbox {
       });
   }
 
-  async begin(mode: SandboxMode, scope: SandboxScope, ctx?: SandboxRunContext): Promise<SandboxHandle> {
+  async begin(
+    mode: SandboxMode,
+    scope: SandboxScope,
+    ctx?: SandboxRunContext,
+  ): Promise<SandboxHandle> {
     return new LocalSandboxHandle(mode, scope, ctx, {
       timeoutMs: this.timeoutMs,
       onWrite: this.onWrite,
@@ -166,7 +169,7 @@ class LocalSandboxHandle implements SandboxHandle {
     readonly scope: SandboxScope,
     private readonly ctx: SandboxRunContext | undefined,
     private readonly options: Required<Pick<LocalSandboxOptions, "timeoutMs" | "readText">> &
-      Pick<LocalSandboxOptions, "onWrite">
+      Pick<LocalSandboxOptions, "onWrite">,
   ) {}
 
   wrap<T extends AnyTool>(tool: T): T {
@@ -178,9 +181,7 @@ class LocalSandboxHandle implements SandboxHandle {
       execute: async (args: Record<string, unknown>, toolCtx: Parameters<T["execute"]>[1]) => {
         // 1) run-level boundary: side effects are off in read-only mode
         if (mode === "read-only" && BLOCKED_IN_READ_ONLY.has(kind)) {
-          throw new SandboxViolationError(
-            `沙箱为 read-only，禁止 ${kind} 类工具「${tool.name}」`
-          );
+          throw new SandboxViolationError(`沙箱为 read-only，禁止 ${kind} 类工具「${tool.name}」`);
         }
         // 2) network is denied unless the host allowlisted it
         if (kind === "network-read" && scope.network === "deny") {
@@ -191,7 +192,7 @@ class LocalSandboxHandle implements SandboxHandle {
         for (const target of paths) {
           if (!isPathAllowed(target, scope, mode)) {
             throw new SandboxViolationError(
-              `路径越界「${target}」：不在可写域 ${scope.workspace || "(未声明)"} 内`
+              `路径越界「${target}」：不在可写域 ${scope.workspace || "(未声明)"} 内`,
             );
           }
         }
@@ -199,9 +200,14 @@ class LocalSandboxHandle implements SandboxHandle {
         // 4) snapshot before a write so the change is visible afterwards
         const before = kind === "write" ? await firstText(options.readText, paths) : undefined;
 
-        const result = options.timeoutMs > 0
-          ? await withTimeout(Promise.resolve(tool.execute(args as never, toolCtx)), options.timeoutMs, tool.name)
-          : await tool.execute(args as never, toolCtx);
+        const result =
+          options.timeoutMs > 0
+            ? await withTimeout(
+                Promise.resolve(tool.execute(args as never, toolCtx)),
+                options.timeoutMs,
+                tool.name,
+              )
+            : await tool.execute(args as never, toolCtx);
 
         // 5) "write is visible": publish a best-effort diff
         if (kind === "write" && options.onWrite) {
@@ -230,7 +236,7 @@ class LocalSandboxHandle implements SandboxHandle {
 
 async function firstText(
   readText: (path: string) => Promise<string | undefined>,
-  paths: string[]
+  paths: string[],
 ): Promise<string | undefined> {
   for (const p of paths) {
     const text = await readText(p);

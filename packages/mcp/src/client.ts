@@ -58,14 +58,11 @@ export class McpClient implements McpServerHandle {
   async connect(): Promise<void> {
     if (this.connected) return;
     await this.transport.start();
-    const result = (await this.request(
-      "initialize",
-      {
-        protocolVersion: MCP_PROTOCOL_VERSION,
-        capabilities: {},
-        clientInfo: CLIENT_INFO,
-      }
-    )) as McpInitializeResult;
+    const result = (await this.request("initialize", {
+      protocolVersion: MCP_PROTOCOL_VERSION,
+      capabilities: {},
+      clientInfo: CLIENT_INFO,
+    })) as McpInitializeResult;
     if (!result || typeof result !== "object") {
       throw new McpError("initialize 响应缺少 result", { remote: true });
     }
@@ -73,18 +70,16 @@ export class McpClient implements McpServerHandle {
     if (typeof serverVersion !== "string" || !/^202[45]-/.test(serverVersion)) {
       throw new McpError(
         `服务器协议版本 ${String(serverVersion)} 不受支持（客户端为 ${MCP_PROTOCOL_VERSION}）`,
-        { remote: true }
+        { remote: true },
       );
     }
     this.protocolVersion = serverVersion;
     this.serverInfoValue = result.serverInfo;
     // Mark ourselves initialized; the server now accepts requests.
-    await this.transport.notify(
-      makeNotification("notifications/initialized")
-    );
+    await this.transport.notify(makeNotification("notifications/initialized"));
     this.connected = true;
     this.logger?.(
-      `[mcp] ${this.name} connected (${result.serverInfo?.name ?? "?"} v${result.serverInfo?.version ?? "?"} @ ${serverVersion})`
+      `[mcp] ${this.name} connected (${result.serverInfo?.name ?? "?"} v${result.serverInfo?.version ?? "?"} @ ${serverVersion})`,
     );
   }
 
@@ -106,10 +101,7 @@ export class McpClient implements McpServerHandle {
     return tools;
   }
 
-  async callTool(
-    name: string,
-    arguments_: Record<string, unknown>
-  ): Promise<McpCallToolResult> {
+  async callTool(name: string, arguments_: Record<string, unknown>): Promise<McpCallToolResult> {
     this.requireConnected();
     if (!name) throw new Error("callTool 需要一个工具名");
     const result = (await this.request("tools/call", {

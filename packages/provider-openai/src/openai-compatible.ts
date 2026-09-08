@@ -123,7 +123,10 @@ export class OpenAIClientProvider implements ModelProvider {
     }
 
     const messages = request.system
-      ? [{ role: "system" as const, content: request.system }, ...request.messages.map(serializeMessage)]
+      ? [
+          { role: "system" as const, content: request.system },
+          ...request.messages.map(serializeMessage),
+        ]
       : request.messages.map(serializeMessage);
 
     const body: Record<string, unknown> = {
@@ -131,7 +134,9 @@ export class OpenAIClientProvider implements ModelProvider {
       messages,
       temperature: request.temperature ?? this.temperature ?? 0.7,
       stream: false,
-      ...(request.maxTokens ?? this.maxTokens ? { max_tokens: request.maxTokens ?? this.maxTokens } : {}),
+      ...((request.maxTokens ?? this.maxTokens)
+        ? { max_tokens: request.maxTokens ?? this.maxTokens }
+        : {}),
       ...(request.tools && request.tools.length > 0
         ? { tools: serializeTools(request.tools), tool_choice: "auto" as const }
         : {}),

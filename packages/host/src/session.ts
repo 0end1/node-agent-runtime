@@ -365,9 +365,9 @@ export class SessionManager {
   async chat(
     sessionId: string,
     input: string,
-    options: { signal?: AbortSignal } = {}
+    options: { signal?: AbortSignal } = {},
   ): Promise<ChatOutcome> {
-    const session = await this.requireOpenSession(sessionId);
+    await this.requireOpenSession(sessionId); // 校验会话存在且处于 open 态
     const text = (input ?? "").trim();
     if (!text) throw new SessionError("输入不能为空");
     const task = await this.createTask(sessionId, text);
@@ -381,7 +381,14 @@ export class SessionManager {
   async submitTask(taskId: string, options: { signal?: AbortSignal } = {}): Promise<ChatOutcome> {
     const { task, session, agent } = await this.prepareRun(taskId);
     const history = await this.messages(session.id);
-    return this.executeRun({ task, session, agent, history, input: task.goal, signal: options.signal });
+    return this.executeRun({
+      task,
+      session,
+      agent,
+      history,
+      input: task.goal,
+      signal: options.signal,
+    });
   }
 
   /**
@@ -398,7 +405,7 @@ export class SessionManager {
   async resume(
     checkpointId: string,
     continuation?: string,
-    options: { signal?: AbortSignal } = {}
+    options: { signal?: AbortSignal } = {},
   ): Promise<ChatOutcome> {
     const checkpoint = await this.checkpoints.load(checkpointId);
     if (!checkpoint) throw new SessionError(`未知 checkpoint：${checkpointId}`);
@@ -436,7 +443,9 @@ export class SessionManager {
   }
 
   /** Load + lock everything a run needs (throws if the session is closed/busy). */
-  private async prepareRun(taskId: string): Promise<{ task: Task; session: Session; agent: Agent }> {
+  private async prepareRun(
+    taskId: string,
+  ): Promise<{ task: Task; session: Session; agent: Agent }> {
     const task = await this.storage.loadDoc<Task>("task", taskId);
     if (!task) throw new SessionError(`未知 Task：${taskId}`);
     const session = await this.requireOpenSession(task.sessionId);
@@ -497,9 +506,10 @@ export class SessionManager {
     });
 
     /** M3: the single governance seam — policy decides, sandbox enforces. */
-    const gate = async (
-      call: { name: string; arguments: unknown }
-    ): Promise<{ ok: boolean; reason?: string }> => {
+    const gate = async (call: {
+      name: string;
+      arguments: unknown;
+    }): Promise<{ ok: boolean; reason?: string }> => {
       const definition = agent.tools.find((tool) => tool.name === call.name);
       const verdict = await this.permission.gate(call, {
         runId,

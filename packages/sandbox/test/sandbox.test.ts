@@ -71,12 +71,6 @@ function fixture(t: { after: (fn: () => void) => void }): string {
   return dir;
 }
 
-function manager(env: { runtime: AgentRuntime; storage: MemoryStorage }, agents: readonly Agent[]) {
-  const events: RuntimeEvent[] = [];
-  env.runtime.subscribe((e) => events.push(e));
-  return { manager: new SessionManager({ runtime: env.runtime, storage: env.storage, agents }), events };
-}
-
 const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 async function waitFor(cond: () => boolean, ms = 2000): Promise<void> {
   const start = Date.now();
@@ -109,7 +103,14 @@ describe("isPathAllowed (§6.2 declared write domain)", () => {
   it("rejects escapes and rejects everything when no root is declared", () => {
     assert.equal(isPathAllowed("/etc/passwd", scope, "workspace-write"), false);
     assert.equal(isPathAllowed("/ws2/x.txt", scope, "workspace-write"), false);
-    assert.equal(isPathAllowed("/anything", { workspace: "", writablePaths: [], network: "deny" }, "workspace-write"), false);
+    assert.equal(
+      isPathAllowed(
+        "/anything",
+        { workspace: "", writablePaths: [], network: "deny" },
+        "workspace-write",
+      ),
+      false,
+    );
   });
   it("full-access opens the boundary", () => {
     assert.ok(isPathAllowed("/etc/passwd", scope, "full-access"));
@@ -152,7 +153,11 @@ describe("LocalSandbox — run-level boundary (§6.2)", () => {
         return "ran";
       },
     });
-    const handle = await new LocalSandbox().begin("read-only", { workspace: dir, writablePaths: [], network: "deny" });
+    const handle = await new LocalSandbox().begin("read-only", {
+      workspace: dir,
+      writablePaths: [],
+      network: "deny",
+    });
     await assert.rejects(async () => {
       await handle.wrap(probe).execute({ path: join(dir, "x") }, dummyCtx);
     }, SandboxViolationError);
@@ -181,7 +186,11 @@ describe("LocalSandbox — run-level boundary (§6.2)", () => {
   it("write tools cannot escape the declared workspace", async (t) => {
     const dir = fixture(t);
     const escapePath = join(dir, "..", `escape-${Date.now()}.txt`);
-    const handle = await new LocalSandbox().begin("workspace-write", { workspace: dir, writablePaths: [], network: "deny" });
+    const handle = await new LocalSandbox().begin("workspace-write", {
+      workspace: dir,
+      writablePaths: [],
+      network: "deny",
+    });
     await assert.rejects(async () => {
       await handle.wrap(writeTool).execute({ path: escapePath, content: "x" }, dummyCtx);
     }, SandboxViolationError);
@@ -196,7 +205,11 @@ describe("LocalSandbox — run-level boundary (§6.2)", () => {
         new Promise((resolve) => setTimeout(() => resolve("done"), 200)),
     });
     const sandbox = new LocalSandbox({ timeoutMs: 30 });
-    const handle = await sandbox.begin("read-only", { workspace: "", writablePaths: [], network: "deny" });
+    const handle = await sandbox.begin("read-only", {
+      workspace: "",
+      writablePaths: [],
+      network: "deny",
+    });
     await assert.rejects(async () => {
       await handle.wrap(sleepy).execute({}, dummyCtx);
     }, SandboxTimeoutError);
@@ -209,9 +222,11 @@ describe("LocalSandbox — run-level boundary (§6.2)", () => {
     const handle = await sandbox.begin(
       "workspace-write",
       { workspace: dir, writablePaths: [], network: "deny" },
-      { runId: "run1", sessionId: "s1", taskId: "t1" }
+      { runId: "run1", sessionId: "s1", taskId: "t1" },
     );
-    await handle.wrap(writeTool).execute({ path: join(dir, "a.txt"), content: "line1\nline2" }, dummyCtx);
+    await handle
+      .wrap(writeTool)
+      .execute({ path: join(dir, "a.txt"), content: "line1\nline2" }, dummyCtx);
 
     assert.equal(writes.length, 1);
     assert.equal(writes[0]!.toolName, "write_file");
@@ -223,7 +238,11 @@ describe("LocalSandbox — run-level boundary (§6.2)", () => {
 describe("M3 integration — SessionManager enforces the boundary (§11 M3 验收)", () => {
   type EnvOptions = Partial<Omit<SessionManagerOptions, "runtime" | "storage" | "agents">>;
 
-  function makeEnv(script: Array<() => ModelResponse>, agents: readonly Agent[], options: EnvOptions = {}) {
+  function makeEnv(
+    script: Array<() => ModelResponse>,
+    agents: readonly Agent[],
+    options: EnvOptions = {},
+  ) {
     const provider = new ScriptedProvider(script);
     const runtime = new AgentRuntime({ provider });
     const storage = new MemoryStorage();
@@ -249,7 +268,7 @@ describe("M3 integration — SessionManager enforces the boundary (§11 M3 验�
     const env = makeEnv(
       [() => toolCallResp("run_command", { cmd: "ls" }), () => finalResp("命令未执行")],
       [coder],
-      { sandboxMode: "read-only", scope: { workspace: dir, writablePaths: [], network: "deny" } }
+      { sandboxMode: "read-only", scope: { workspace: dir, writablePaths: [], network: "deny" } },
     );
     const session = await env.mgr.createSession({ agentId: "coder", title: "ro" });
     const out = await env.mgr.chat(session.id, "跑一下 ls");
@@ -276,9 +295,15 @@ describe("M3 integration — SessionManager enforces the boundary (§11 M3 验�
     const editor = new Agent({ name: "editor", tools: [writeTool] });
     const target = join(dir, "notes.txt");
     const env = makeEnv(
-      [() => toolCallResp("edit_file", { path: target, content: "hello m3" }), () => finalResp("写完了")],
+      [
+        () => toolCallResp("edit_file", { path: target, content: "hello m3" }),
+        () => finalResp("写完了"),
+      ],
       [editor],
-      { sandboxMode: "workspace-write", scope: { workspace: dir, writablePaths: [], network: "deny" } }
+      {
+        sandboxMode: "workspace-write",
+        scope: { workspace: dir, writablePaths: [], network: "deny" },
+      },
     );
     const session = await env.mgr.createSession({ agentId: "editor", title: "ww" });
 
@@ -314,7 +339,10 @@ describe("M3 integration — SessionManager enforces the boundary (§11 M3 验�
     });
     const editor = new Agent({ name: "editor", tools: [writeTool] });
     // policy would allow everything — the sandbox boundary still holds
-    const provider = new ScriptedProvider([() => toolCallResp("write_file", { path: "x" }), () => finalResp("done")]);
+    const provider = new ScriptedProvider([
+      () => toolCallResp("write_file", { path: "x" }),
+      () => finalResp("done"),
+    ]);
     const runtime = new AgentRuntime({ provider });
     const events: RuntimeEvent[] = [];
     runtime.subscribe((e) => events.push(e));
@@ -324,7 +352,10 @@ describe("M3 integration — SessionManager enforces the boundary (§11 M3 验�
       agents: [editor],
       sandboxMode: "read-only",
       scope: { workspace: dir, writablePaths: [], network: "deny" },
-      permission: new PermissionManager({ events: runtime.events, policy: new StaticPolicy({ verdict: "allow" }) }),
+      permission: new PermissionManager({
+        events: runtime.events,
+        policy: new StaticPolicy({ verdict: "allow" }),
+      }),
     });
     const session = await mgr.createSession({ agentId: "editor", title: "deep" });
     const out = await mgr.chat(session.id, "写 x");

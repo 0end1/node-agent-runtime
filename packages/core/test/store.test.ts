@@ -4,11 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import {
-  FileStorage,
-  MemoryStorage,
-  type Storage,
-} from "@agent-runtime/core";
+import { FileStorage, MemoryStorage, type Storage } from "@agent-runtime/core";
 
 interface Doc {
   id: string;
@@ -95,7 +91,7 @@ function exerciseStore(name: string, make: () => Promise<Storage>, restart: bool
         const reopened = await make(); // second instance, SAME backing store
         const doc = await reopened.loadDoc<Doc>("session", "keep");
         assert.equal(doc?.name, "alpha");
-      }
+      },
     );
   });
 }

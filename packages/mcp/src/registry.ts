@@ -139,11 +139,7 @@ export class McpRegistry {
    *  - execute → forwards to `tools/call`, returns text content; throws on
    *             business-level `isError` so the model sees the server's words
    */
-  private materialize(
-    serverName: string,
-    handle: McpServerHandle,
-    meta: McpToolMeta
-  ): AnyTool {
+  private materialize(serverName: string, handle: McpServerHandle, meta: McpToolMeta): AnyTool {
     const localName = mcpToolName(serverName, meta.name);
     const description = meta.description
       ? `${meta.description}\n（远程工具，由 MCP server "${serverName}" 提供）`
@@ -186,7 +182,15 @@ export function normalizeSchema(input: unknown): JsonSchema | undefined {
   if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
   const src = input as Record<string, unknown>;
   const out: JsonSchema = {};
-  for (const key of ["type", "description", "enum", "required", "additionalProperties", "minimum", "maximum"] as const) {
+  for (const key of [
+    "type",
+    "description",
+    "enum",
+    "required",
+    "additionalProperties",
+    "minimum",
+    "maximum",
+  ] as const) {
     if (key in src) {
       (out as Record<string, unknown>)[key] = src[key];
     }
@@ -213,7 +217,5 @@ export function pathArgKeysOf(input: unknown): string[] {
   if (!input || typeof input !== "object") return [];
   const properties = (input as Record<string, unknown>).properties;
   if (!properties || typeof properties !== "object") return [];
-  return Object.keys(properties as Record<string, unknown>).filter((key) =>
-    PATH_ARG_KEY.test(key)
-  );
+  return Object.keys(properties as Record<string, unknown>).filter((key) => PATH_ARG_KEY.test(key));
 }

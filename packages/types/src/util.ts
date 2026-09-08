@@ -1,9 +1,7 @@
 /** Tiny shared helpers. */
 
 export function newId(prefix = "id"): string {
-  return `${prefix}_${Date.now().toString(36)}${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+  return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /** Serialize a tool return value into the string that will be fed back to the model. */

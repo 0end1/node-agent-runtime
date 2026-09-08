@@ -17,8 +17,7 @@ import { newId } from "@agent-runtime/types";
 export type Verdict = "allow" | "deny" | "ask";
 
 export type Decision =
-  | { verdict: "allow" | "deny"; reason?: string }
-  | { verdict: "ask"; reason: string };
+  { verdict: "allow" | "deny"; reason?: string } | { verdict: "ask"; reason: string };
 
 export interface PermissionCall {
   name: string;
@@ -218,7 +217,7 @@ export class PermissionManager {
           resolve(
             approved
               ? { ok: true, verdict: "ask-approved", decisionId }
-              : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId }
+              : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId },
           ),
       });
     });

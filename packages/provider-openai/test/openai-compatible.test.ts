@@ -7,9 +7,10 @@ import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 
 // ---- fetch stubbing helpers ------------------------------------------------
 
-function stubFetch(
-  impl: (url: string, init: RequestInit) => Response | Promise<Response>
-): { url: string; init: RequestInit } {
+function stubFetch(impl: (url: string, init: RequestInit) => Response | Promise<Response>): {
+  url: string;
+  init: RequestInit;
+} {
   const captured: { url: string; init: RequestInit } = { url: "", init: {} };
   globalThis.fetch = (async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
     captured.url = String(url);
@@ -56,7 +57,7 @@ const req: ModelRequest = {
 describe("OpenAIClientProvider", () => {
   it("sends a serialized chat/completions request (model, messages, tools)", async () => {
     const captured = stubFetch(() =>
-      jsonResponse({ choices: [{ message: { content: "5.5" }, finish_reason: "stop" }] })
+      jsonResponse({ choices: [{ message: { content: "5.5" }, finish_reason: "stop" }] }),
     );
     const provider = new OpenAIClientProvider({
       apiKey: "sk-test",
@@ -105,9 +106,12 @@ describe("OpenAIClientProvider", () => {
           },
         ],
         usage: { prompt_tokens: 12, completion_tokens: 4 },
-      })
+      }),
     );
-    const provider = new OpenAIClientProvider({ apiKey: "sk-test", baseUrl: "http://localhost:1234/v1" });
+    const provider = new OpenAIClientProvider({
+      apiKey: "sk-test",
+      baseUrl: "http://localhost:1234/v1",
+    });
 
     const res = await provider.chat({ messages: [{ role: "user", content: "hi" }] });
 
@@ -120,7 +124,7 @@ describe("OpenAIClientProvider", () => {
 
   it("round-trips assistant tool calls and tool results back to the wire", async () => {
     const captured = stubFetch(() =>
-      jsonResponse({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] })
+      jsonResponse({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }),
     );
     const provider = new OpenAIClientProvider({ apiKey: "sk", baseUrl: "http://localhost:1/v1" });
 
@@ -146,14 +150,14 @@ describe("OpenAIClientProvider", () => {
           tool_calls: Array<{ function: { name: string; arguments: string } }>;
         }
       ).tool_calls[0]?.function,
-      { name: "calculator", arguments: '{"expression":"3.5+2"}' }
+      { name: "calculator", arguments: '{"expression":"3.5+2"}' },
     );
     assert.equal((sent.messages[2] as { tool_call_id: string }).tool_call_id, "call_1");
   });
 
   it("maps a non-2xx response to ModelRequestError with status", async () => {
     stubFetch(() =>
-      jsonResponse({ error: { message: "rate limited", type: "rate_limit_error" } }, 429)
+      jsonResponse({ error: { message: "rate limited", type: "rate_limit_error" } }, 429),
     );
     const provider = new OpenAIClientProvider({ apiKey: "sk", baseUrl: "http://localhost:1/v1" });
 
@@ -164,7 +168,7 @@ describe("OpenAIClientProvider", () => {
         assert.equal(err.status, 429);
         assert.equal(err.retryable, true);
         return true;
-      }
+      },
     );
   });
 
@@ -172,13 +176,13 @@ describe("OpenAIClientProvider", () => {
     const provider = new OpenAIClientProvider({ baseUrl: "https://api.openai.com/v1" });
     await assert.rejects(
       () => provider.chat({ messages: [{ role: "user", content: "hi" }] }),
-      /OPENAI_API_KEY/
+      /OPENAI_API_KEY/,
     );
   });
 
   it("allows local endpoints (localhost/ollama) without an api key", async () => {
     const captured = stubFetch(() =>
-      jsonResponse({ choices: [{ message: { content: "hi" }, finish_reason: "stop" }] })
+      jsonResponse({ choices: [{ message: { content: "hi" }, finish_reason: "stop" }] }),
     );
     const provider = new OpenAIClientProvider({ baseUrl: "http://localhost:11434/v1" });
     const res = await provider.chat({ messages: [{ role: "user", content: "hi" }] });
@@ -193,13 +197,13 @@ describe("OpenAIClientProvider", () => {
     const provider = new OpenAIClientProvider({ apiKey: "sk", baseUrl: "http://localhost:1/v1" });
     await assert.rejects(
       () => provider.chat({ messages: [{ role: "user", content: "hi" }] }),
-      (err: unknown) => err instanceof ModelRequestError && err.retryable === true
+      (err: unknown) => err instanceof ModelRequestError && err.retryable === true,
     );
   });
 
   it("respects a system prompt by prepending it to the message list", async () => {
     const captured = stubFetch(() =>
-      jsonResponse({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] })
+      jsonResponse({ choices: [{ message: { content: "ok" }, finish_reason: "stop" }] }),
     );
     const provider = new OpenAIClientProvider({ apiKey: "sk", baseUrl: "http://localhost:1/v1" });
     await provider.chat({ messages: [{ role: "user", content: "hello" }], system: "SYSTEM-X" });

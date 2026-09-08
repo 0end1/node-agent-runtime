@@ -139,7 +139,7 @@ function nodeSupportsSqlite(): boolean {
 }
 if (wantsSqlite && !nodeSupportsSqlite()) {
   console.error(
-    "⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或去掉该参数改用默认 FileStorage。"
+    "⚠ --storage=sqlite 需要 Node >= 22.13（node:sqlite）。请升级 Node 或去掉该参数改用默认 FileStorage。",
   );
   process.exit(1);
 }
@@ -175,10 +175,17 @@ function describeEvent(e: RuntimeEvent): string {
   }
 }
 
-function printOutcome(outcome: { run: { output: string; id: string; usage: { modelCalls: number; inputTokens: number; outputTokens: number } }; task: { id: string } }): void {
+function printOutcome(outcome: {
+  run: {
+    output: string;
+    id: string;
+    usage: { modelCalls: number; inputTokens: number; outputTokens: number };
+  };
+  task: { id: string };
+}): void {
   console.log(`\n\x1b[1m助手\x1b[0m > ${outcome.run.output}`);
   console.log(
-    `\x1b[90m(task=${outcome.task.id.slice(-6)} · run=${outcome.run.id.slice(-6)} · round-trips=${outcome.run.usage.modelCalls} · input=${outcome.run.usage.inputTokens} · output=${outcome.run.usage.outputTokens})\x1b[0m`
+    `\x1b[90m(task=${outcome.task.id.slice(-6)} · run=${outcome.run.id.slice(-6)} · round-trips=${outcome.run.usage.modelCalls} · input=${outcome.run.usage.inputTokens} · output=${outcome.run.usage.outputTokens})\x1b[0m`,
   );
 }
 
@@ -186,7 +193,8 @@ async function main() {
   const provider = pickProvider();
   const runtime = new AgentRuntime({
     provider,
-    logger: (line) => process.env.AGENT_DEBUG ? console.log(`\x1b[90m[debug] ${line}\x1b[0m`) : undefined,
+    logger: (line) =>
+      process.env.AGENT_DEBUG ? console.log(`\x1b[90m[debug] ${line}\x1b[0m`) : undefined,
   });
   // ---- Optional MCP servers: connect at startup and materialize their tools ----
   const mcpRegistry = new McpRegistry();
@@ -198,7 +206,9 @@ async function main() {
       mcpTools.push(...reg.tools);
       console.log(`\x1b[36m[MCP] 已注册 ${reg.name}：${reg.tools.length} 个工具\x1b[0m`);
     } catch (err) {
-      console.error(`\x1b[31m[MCP] 注册失败 ${mcpSpecs[i]}：${err instanceof Error ? err.message : err}\x1b[0m`);
+      console.error(
+        `\x1b[31m[MCP] 注册失败 ${mcpSpecs[i]}：${err instanceof Error ? err.message : err}\x1b[0m`,
+      );
     }
   }
 
@@ -232,7 +242,9 @@ async function main() {
   runtime.events.on("permission:request", (e) => {
     console.log(`\n  \x1b[35m⚠ 需要授权：工具 ${e.toolName}\x1b[0m`);
     console.log(`    \x1b[2m(decisionId=${e.decisionId} · ${e.reason})\x1b[0m`);
-    console.log(`    \x1b[2m↳ 输入 /approve ${e.decisionId} [always] 或 /deny ${e.decisionId}\x1b[0m`);
+    console.log(
+      `    \x1b[2m↳ 输入 /approve ${e.decisionId} [always] 或 /deny ${e.decisionId}\x1b[0m`,
+    );
     if (!busy) rl.prompt();
   });
   runtime.events.on("sandbox:write", (e) => {
@@ -316,7 +328,7 @@ async function main() {
           const msgs = (await manager.messages(s.id)).length;
           const mark = s.id === current?.id ? "  \x1b[36m← 当前\x1b[0m" : "";
           console.log(
-            `  ${s.id}  \x1b[2m${s.title || "(无标题)"} · ${s.status} · ${msgs} msgs\x1b[0m${mark}`
+            `  ${s.id}  \x1b[2m${s.title || "(无标题)"} · ${s.status} · ${msgs} msgs\x1b[0m${mark}`,
           );
         }
       }
@@ -400,7 +412,9 @@ async function main() {
     }
 
     if (text.startsWith("/")) {
-      console.log("未知命令。可用：/new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit");
+      console.log(
+        "未知命令。可用：/new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit",
+      );
       if (!busy) rl.prompt();
       return;
     }
@@ -427,12 +441,12 @@ async function main() {
 
   console.log(
     `\x1b[1mAgent Runtime · CLI demo (Session 化 · M1~M4)\x1b[0m\n` +
-    `Provider : \x1b[36m${provider.label}\x1b[0m\n` +
-    `MCP      : \x1b[36m${mcpSpecs.length ? `${mcpTools.length} 工具 / ${mcpRegistry.list().length} server` : "（未注册，用 --mcp 接入）"}\x1b[0m\n` +
-    `Storage  : \x1b[36m${DATA_DIR}/\x1b[0m\n` +
-    `Session  : \x1b[36m${current!.id}\x1b[0m${current!.title ? ` · “${current!.title}”` : ""}\n` +
-    `试试     : 3.5 + 2 * 4 = ?  /  把结论写入 demo.txt（会触发授权）  /  现在几点了？\n` +
-    `命令     : /new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit\n`
+      `Provider : \x1b[36m${provider.label}\x1b[0m\n` +
+      `MCP      : \x1b[36m${mcpSpecs.length ? `${mcpTools.length} 工具 / ${mcpRegistry.list().length} server` : "（未注册，用 --mcp 接入）"}\x1b[0m\n` +
+      `Storage  : \x1b[36m${DATA_DIR}/\x1b[0m\n` +
+      `Session  : \x1b[36m${current!.id}\x1b[0m${current!.title ? ` · “${current!.title}”` : ""}\n` +
+      `试试     : 3.5 + 2 * 4 = ?  /  把结论写入 demo.txt（会触发授权）  /  现在几点了？\n` +
+      `命令     : /new  /list  /use <id>  /checkpoints  /resume <id>  /approve <id>  /deny <id>  /artifacts  /artifact <id>  exit\n`,
   );
   rl.setPrompt(promptText());
   rl.prompt();

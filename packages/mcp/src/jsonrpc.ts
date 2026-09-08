@@ -65,10 +65,7 @@ export class McpError extends Error {
   readonly remote: boolean;
   readonly data?: unknown;
 
-  constructor(
-    message: string,
-    options: { code?: number; remote?: boolean; data?: unknown } = {}
-  ) {
+  constructor(message: string, options: { code?: number; remote?: boolean; data?: unknown } = {}) {
     super(message);
     this.name = "McpError";
     this.code = options.code ?? JSON_RPC_ERRORS.internalError;
@@ -122,8 +119,9 @@ export function parseFrame(line: string): unknown {
 
 /** Turn a non-ok JSON-RPC response into an McpError. */
 export function responseError(res: JsonRpcResponseErr): McpError {
-  return new McpError(
-    `远端错误 ${res.error.code}：${res.error.message}`,
-    { code: res.error.code, remote: true, data: res.error.data }
-  );
+  return new McpError(`远端错误 ${res.error.code}：${res.error.message}`, {
+    code: res.error.code,
+    remote: true,
+    data: res.error.data,
+  });
 }

@@ -105,11 +105,15 @@ const REMOTE_TOOLS = [
 ];
 
 /** Build a JSON-RPC response envelope as the *server* would. */
-function answerRequest(msg: {
-  id?: unknown;
-  method?: string;
-  params?: { name?: string; arguments?: Record<string, unknown> };
-}, serverName: string, version: string): Record<string, unknown> | undefined {
+function answerRequest(
+  msg: {
+    id?: unknown;
+    method?: string;
+    params?: { name?: string; arguments?: Record<string, unknown> };
+  },
+  serverName: string,
+  version: string,
+): Record<string, unknown> | undefined {
   if (msg.id === undefined) return undefined; // notification
   const id = msg.id;
   try {
@@ -190,7 +194,11 @@ function mockHttpServer(t: { after: (fn: () => void) => void }, name = "mock-htt
       } catch {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(
-          JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } })
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: null,
+            error: { code: -32700, message: "parse error" },
+          }),
         );
         return;
       }
@@ -212,8 +220,7 @@ function mockHttpServer(t: { after: (fn: () => void) => void }, name = "mock-htt
           res.end(`event: message\ndata: ${JSON.stringify(payload)}\n\n`);
         }
       };
-      const delay =
-        msg.method === "tools/call" ? Number(req.headers["x-mcp-delay-ms"] ?? 0) : 0;
+      const delay = msg.method === "tools/call" ? Number(req.headers["x-mcp-delay-ms"] ?? 0) : 0;
       if (delay > 0) setTimeout(send, delay);
       else send();
     });
@@ -222,7 +229,12 @@ function mockHttpServer(t: { after: (fn: () => void) => void }, name = "mock-htt
     server.listen(0, "127.0.0.1", () => {
       const port = (server.address() as AddressInfo).port;
       t.after(() => new Promise<void>((done) => server.close(() => done())));
-      resolve({ url: `http://127.0.0.1:${port}/mcp`, setVersion: (v) => { overrideVersion = v; } });
+      resolve({
+        url: `http://127.0.0.1:${port}/mcp`,
+        setVersion: (v) => {
+          overrideVersion = v;
+        },
+      });
     });
   });
 }
@@ -281,7 +293,10 @@ describe("McpClient over Streamable HTTP (§5.3 transport)", () => {
     assert.equal(client.serverInfo?.name, "mock-http-server");
     assert.equal(client.negotiatedProtocolVersion, "2024-11-05");
     const tools = await client.listTools();
-    assert.deepEqual(tools.map((tool) => tool.name), ["echo", "add", "fail", "write_note"]);
+    assert.deepEqual(
+      tools.map((tool) => tool.name),
+      ["echo", "add", "fail", "write_note"],
+    );
     const res = await client.callTool("add", { a: 40, b: 2 });
     assert.equal(res.content[0].text, "42");
   });
@@ -300,11 +315,14 @@ describe("McpClient over Streamable HTTP (§5.3 transport)", () => {
     const client = httpClient("httpd-err", url);
     t.after(() => client.close());
     await client.connect();
-    await assert.rejects(() => client.callTool("nope", {}), (err: Error) => {
-      assert.ok(err instanceof McpError);
-      assert.equal((err as McpError).remote, true);
-      return true;
-    });
+    await assert.rejects(
+      () => client.callTool("nope", {}),
+      (err: Error) => {
+        assert.ok(err instanceof McpError);
+        assert.equal((err as McpError).remote, true);
+        return true;
+      },
+    );
   });
 
   it("times out when a tools/call exceeds the deadline", async (t) => {
@@ -338,7 +356,10 @@ describe("McpClient over stdio (real child process)", () => {
     await client.connect();
     assert.equal(client.serverInfo?.name, "mock-stdio-server");
     const tools = await client.listTools();
-    assert.deepEqual(tools.map((tool) => tool.name), ["echo", "add", "fail", "write_note"]);
+    assert.deepEqual(
+      tools.map((tool) => tool.name),
+      ["echo", "add", "fail", "write_note"],
+    );
     const echo = await client.callTool("echo", { text: "来自子进程" });
     assert.equal(echo.content[0].text, "echo: 来自子进程");
     assert.equal((await client.callTool("add", { a: 1, b: 2 })).content[0].text, "3");
@@ -363,7 +384,12 @@ describe("McpRegistry — materialization into local tools (§5.3)", () => {
     assert.equal(registered.tools.length, 4);
     assert.deepEqual(
       registry.tools().map((tool) => tool.name),
-      ["mcp__math-server__echo", "mcp__math-server__add", "mcp__math-server__fail", "mcp__math-server__write_note"]
+      [
+        "mcp__math-server__echo",
+        "mcp__math-server__add",
+        "mcp__math-server__fail",
+        "mcp__math-server__write_note",
+      ],
     );
     // schema normalized: no $schema/title survived into the local definition
     const echo = registry.get("mcp__math-server__echo")!;
@@ -374,9 +400,15 @@ describe("McpRegistry — materialization into local tools (§5.3)", () => {
     assert.equal(registry.get("mcp__math-server__write_note")?.meta?.kind, "write");
     assert.deepEqual(registry.get("mcp__math-server__write_note")?.meta?.pathArgs, ["path"]);
     // name round-trips
-    assert.deepEqual(parseMcpToolName("mcp__math-server__echo"), { server: "math-server", tool: "echo" });
+    assert.deepEqual(parseMcpToolName("mcp__math-server__echo"), {
+      server: "math-server",
+      tool: "echo",
+    });
     assert.deepEqual(parseMcpToolName(mcpToolName("a", "b")), { server: "a", tool: "b" });
-    assert.equal(registry.resolve({ server: "math-server", tool: "add" })?.name, "mcp__math-server__add");
+    assert.equal(
+      registry.resolve({ server: "math-server", tool: "add" })?.name,
+      "mcp__math-server__add",
+    );
     assert.equal(registry.resolve({ server: "math-server", tool: "missing" }), undefined);
   });
 
@@ -443,7 +475,11 @@ describe("M4 acceptance — mock MCP server's tools callable by the model", () =
 
     const run = await runtime.run({ agent, input: "帮我 echo hello from MCP" });
     assert.equal(run.output, "回声收到");
-    assert.ok(events.some((e) => e.type === "tool:end" && e.toolCall.name === "mcp__demo-server__echo" && e.ok));
+    assert.ok(
+      events.some(
+        (e) => e.type === "tool:end" && e.toolCall.name === "mcp__demo-server__echo" && e.ok,
+      ),
+    );
     const toolTurn = run.messages.find((m) => m.role === "tool") as { content: string } | undefined;
     assert.equal(toolTurn?.content, "echo: hello from MCP");
   });

@@ -71,25 +71,25 @@ export class SQLiteStorage implements Storage {
     this.db = db;
     this.upsertDocStmt = db.prepare(
       `INSERT INTO docs (domain, id, body) VALUES (?, ?, ?)
-       ON CONFLICT (domain, id) DO UPDATE SET body = excluded.body`
+       ON CONFLICT (domain, id) DO UPDATE SET body = excluded.body`,
     );
     this.loadDocStmt = db.prepare(`SELECT body FROM docs WHERE domain = ? AND id = ?`);
     this.listDocStmt = db.prepare(`SELECT body FROM docs WHERE domain = ?`);
     this.deleteDocStmt = db.prepare(`DELETE FROM docs WHERE domain = ? AND id = ?`);
     this.putBlobStmt = db.prepare(
       `INSERT INTO blobs (key, data) VALUES (?, ?)
-       ON CONFLICT (key) DO UPDATE SET data = excluded.data`
+       ON CONFLICT (key) DO UPDATE SET data = excluded.data`,
     );
     this.getBlobStmt = db.prepare(`SELECT data FROM blobs WHERE key = ?`);
     this.deleteBlobStmt = db.prepare(`DELETE FROM blobs WHERE key = ?`);
     this.nextSeqStmt = db.prepare(
-      `SELECT COALESCE(MAX(seq), 0) + 1 AS next FROM streams WHERE domain = ? AND id = ?`
+      `SELECT COALESCE(MAX(seq), 0) + 1 AS next FROM streams WHERE domain = ? AND id = ?`,
     );
     this.appendLineStmt = db.prepare(
-      `INSERT INTO streams (domain, id, seq, line) VALUES (?, ?, ?, ?)`
+      `INSERT INTO streams (domain, id, seq, line) VALUES (?, ?, ?, ?)`,
     );
     this.readStreamStmt = db.prepare(
-      `SELECT line FROM streams WHERE domain = ? AND id = ? ORDER BY seq ASC`
+      `SELECT line FROM streams WHERE domain = ? AND id = ? ORDER BY seq ASC`,
     );
     this.deleteStreamStmt = db.prepare(`DELETE FROM streams WHERE domain = ? AND id = ?`);
   }
@@ -117,7 +117,7 @@ export class SQLiteStorage implements Storage {
       if (
         !filter ||
         Object.entries(filter).every(
-          ([key, expected]) => (doc as Record<string, unknown>)[key] === expected
+          ([key, expected]) => (doc as Record<string, unknown>)[key] === expected,
         )
       ) {
         out.push(doc);

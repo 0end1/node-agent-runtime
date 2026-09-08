@@ -50,6 +50,40 @@ export function decideCors(origin: string | undefined, allowlist: readonly strin
   return { allow: false, status: 403, error: "跨站请求被拒绝（CORS）" };
 }
 
+/** Preflight (OPTIONS) answer for `origin`. Allowlisted origins must get a
+ *  *usable* 204 — echoing no CORS headers would make the allowlist a no-op. */
+export interface PreflightResponse {
+  status: 204 | 403;
+  headers: Record<string, string>;
+  /** JSON error body, set only when refused. */
+  body?: string;
+}
+
+export function decidePreflight(
+  origin: string | undefined,
+  allowlist: readonly string[],
+  allowedMethods = "GET, POST, OPTIONS",
+): PreflightResponse {
+  const decision = decideCors(origin, allowlist);
+  if (!decision.allow) {
+    return {
+      status: 403,
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ error: decision.error }),
+    };
+  }
+  const headers: Record<string, string> = {
+    "access-control-max-age": "600",
+    "access-control-allow-methods": allowedMethods,
+    "access-control-allow-headers": "content-type, authorization",
+  };
+  if (origin) {
+    headers["access-control-allow-origin"] = origin;
+    headers["vary"] = "Origin";
+  }
+  return { status: 204, headers };
+}
+
 /** 令牌决策：未配置令牌 → 放行（仅本机场景可达，见 missingTokenWhenExposed）；
  *  否则要求 `Authorization: Bearer <token>` 精确匹配。 */
 export function decideAuth(

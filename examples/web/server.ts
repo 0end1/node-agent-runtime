@@ -30,7 +30,12 @@ import { MockProvider } from "@agent-runtime/mock";
 import { builtinTools } from "@agent-runtime/tools-basic";
 import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
 import { SQLiteStorage } from "@agent-runtime/store-sqlite";
-import { decideAuth, decideCors, missingTokenWhenExposed } from "./security.js";
+import {
+  decideAuth,
+  decideCors,
+  decidePreflight,
+  missingTokenWhenExposed,
+} from "./security.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -189,7 +194,12 @@ if (refusal) {
 /** Reject cross-origin requests unless the Origin is loopback or explicitly allowed. */
 function corsGuard(req: IncomingMessage, res: ServerResponse): boolean {
   if (req.method === "OPTIONS") {
-    res.writeHead(204, { "content-type": "text/plain", "access-control-max-age": "600" });
+    // P3.5: preflight goes through the same origin guard, and an allowed
+    // origin also gets the headers that make the actual request possible.
+    const pre = decidePreflight(req.headers.origin, CORS_ALLOW);
+    res.writeHead(pre.status, pre.headers);
+    if (pre.body) res.end(pre.body);
+    else res.end();
     return false;
   }
   const decision = decideCors(req.headers.origin, CORS_ALLOW);

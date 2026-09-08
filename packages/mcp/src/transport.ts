@@ -53,6 +53,9 @@ const DEFAULT_TIMEOUT_MS = 10_000;
 
 const SSRF_MESSAGE = "MCP 端点被拒绝（SSRF 防护）";
 
+/** Redirect hops we are willing to follow; every hop is re-validated. */
+const MAX_REDIRECTS = 3;
+
 /**
  * Validate an MCP server URL before connecting (P3.6).
  *  - protocol must be http: or https: (no file:/ftp:/gopher:…)
@@ -127,6 +130,41 @@ function writeLine(stream: NodeJS.WritableStream, payload: unknown): Promise<voi
 
 // ------------------------------------------------------------------ stdio
 
+/**
+ * Environment handed to a spawned MCP server when `inheritEnv` is off (P3.6).
+ * Only what a process needs to locate binaries and its temp/home dirs — never
+ * the host's credentials (`OPENAI_API_KEY`, cloud tokens, …). Hosts pass
+ * secrets explicitly through `env` / `config.mcp.serverEnv` instead.
+ */
+const MINIMAL_ENV_KEYS = [
+  "PATH",
+  "HOME",
+  "USER",
+  "LOGNAME",
+  "SHELL",
+  "TMPDIR",
+  "TEMP",
+  "TMP",
+  "SystemRoot",
+  "USERPROFILE",
+  "PATHEXT",
+  "LANG",
+  "LC_ALL",
+];
+
+function buildChildEnv(
+  extra: NodeJS.ProcessEnv | undefined,
+  inheritEnv: boolean,
+): NodeJS.ProcessEnv {
+  if (inheritEnv) return { ...process.env, ...(extra ?? {}) };
+  const minimal: NodeJS.ProcessEnv = {};
+  for (const key of MINIMAL_ENV_KEYS) {
+    const value = process.env[key];
+    if (value !== undefined) minimal[key] = value;
+  }
+  return { ...minimal, ...(extra ?? {}) };
+}
+
 export interface StdioTransportOptions extends McpTransportOptions {
   /** Executable to spawn (defaults to the running Node executable). */
   command?: string;
@@ -134,6 +172,10 @@ export interface StdioTransportOptions extends McpTransportOptions {
   args?: string[];
   cwd?: string;
   env?: NodeJS.ProcessEnv;
+  /** P3.6: hand the **full** host environment to the server. Off by default so
+   *  a compromised/stolen MCP server cannot read the host's other secrets;
+   *  opt in only for servers you fully trust. */
+  inheritEnv?: boolean;
   /** Called for inbound server→client notifications. */
   onNotification?: (msg: JsonRpcNotification) => void;
   /** P3.6: abort startup if the server emits no JSON-RPC on stdout within this
@@ -154,6 +196,7 @@ export class StdioTransport implements McpTransport {
   private readonly onNotification?: (msg: JsonRpcNotification) => void;
   private readonly cwd?: string;
   private readonly env?: NodeJS.ProcessEnv;
+  private readonly inheritEnv: boolean;
   private readonly startTimeoutMs?: number;
 
   private child?: ChildProcessWithoutNullStreams;
@@ -169,6 +212,7 @@ export class StdioTransport implements McpTransport {
     this.onNotification = options.onNotification;
     this.cwd = options.cwd;
     this.env = options.env;
+    this.inheritEnv = options.inheritEnv ?? false;
     this.startTimeoutMs = options.startTimeoutMs;
   }
 
@@ -177,7 +221,9 @@ export class StdioTransport implements McpTransport {
     const child = spawn(this.command, this.args, {
       stdio: ["pipe", "pipe", "pipe"],
       ...(this.cwd ? { cwd: this.cwd } : {}),
-      ...(this.env ? { env: { ...process.env, ...this.env } } : {}),
+      // P3.6: minimal env by default — explicit `env` (serverEnv) is merged on
+      // top, `inheritEnv: true` is required to expose the whole host env.
+      env: buildChildEnv(this.env, this.inheritEnv),
     });
     this.child = child;
 
@@ -330,6 +376,7 @@ export class StreamableHttpTransport implements McpTransport {
   private readonly logger?: (line: string) => void;
   private readonly headers: Record<string, string>;
   private readonly fetchImpl: typeof fetch;
+  private readonly urlAllowlist?: readonly string[];
 
   constructor(options: StreamableHttpTransportOptions) {
     if (!options.url) throw new Error("StreamableHttpTransport 需要 url");
@@ -340,6 +387,7 @@ export class StreamableHttpTransport implements McpTransport {
     this.logger = options.logger;
     this.headers = { ...(options.headers ?? {}) };
     this.fetchImpl = options.fetchImpl ?? fetch;
+    this.urlAllowlist = options.urlAllowlist;
   }
 
   async start(): Promise<void> {
@@ -351,17 +399,7 @@ export class StreamableHttpTransport implements McpTransport {
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), this.timeoutMs);
     try {
-      const res = await this.fetchImpl(this.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json, text/event-stream",
-          "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
-          ...this.headers,
-        },
-        body: JSON.stringify(req),
-        signal: ac.signal,
-      });
+      const res = await this.requestWithGuardedRedirects(JSON.stringify(req), ac.signal);
       if (res.status === 202) {
         // Accepted but the reply would arrive over an SSE stream we do not
         // keep open — surface it loudly instead of hanging.
@@ -402,19 +440,65 @@ export class StreamableHttpTransport implements McpTransport {
     }
   }
 
+  /** One POST with redirects disabled — see `requestWithGuardedRedirects`. */
+  private async requestOnce(
+    url: string,
+    body: string,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    return this.fetchImpl(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
+        ...this.headers,
+      },
+      body,
+      signal,
+      // P3.6: never auto-follow. A whitelisted endpoint must not be able to
+      // bounce us into the private network (cloud metadata, internal services).
+      redirect: "manual",
+    });
+  }
+
+  /**
+   * POST with manual redirect handling (P3.6 SSRF guard): every hop is
+   * re-checked against the scheme + origin allowlist, so a 30x cannot smuggle
+   * the request past `validateMcpServerUrl`.
+   */
+  private async requestWithGuardedRedirects(
+    body: string,
+    signal?: AbortSignal,
+  ): Promise<Response> {
+    let target = this.url;
+    for (let hop = 0; ; hop++) {
+      const res = await this.requestOnce(target, body, signal);
+      if (res.status < 300 || res.status >= 400) return res;
+
+      const location = res.headers.get("location");
+      if (!location) return res;
+      if (hop >= MAX_REDIRECTS) {
+        throw new McpConnectionError(`${SSRF_MESSAGE}：重定向次数超过上限（${MAX_REDIRECTS}）`);
+      }
+      let next: string;
+      try {
+        next = new URL(location, target).toString();
+      } catch {
+        throw new McpConnectionError(`${SSRF_MESSAGE}：非法重定向目标（${location}）`);
+      }
+      validateMcpServerUrl(next, this.urlAllowlist);
+      target = next;
+    }
+  }
+
   async notify(msg: JsonRpcNotification): Promise<void> {
     // Fire-and-forget: spec servers answer notifications with 202 + no body.
     try {
-      const res = await this.fetchImpl(this.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json, text/event-stream",
-          "MCP-Protocol-Version": MCP_PROTOCOL_VERSION,
-          ...this.headers,
-        },
-        body: JSON.stringify(msg),
-      });
+      const res = await this.requestOnce(this.url, JSON.stringify(msg), undefined);
+      if (res.status >= 300 && res.status < 400) {
+        throw new Error(`${SSRF_MESSAGE}：端点返回重定向（${res.status}），已拒绝跟随`);
+      }
       // Drain so the socket can be reused.
       await res.text();
     } catch (err) {

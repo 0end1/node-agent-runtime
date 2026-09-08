@@ -94,6 +94,41 @@ describe("AgentRuntime multi-step loop", () => {
     assert.equal(result.usage.modelCalls, 8); // agent default maxSteps
     assert.ok(result.output.includes("最大步数"));
   });
+
+  it("P3.4: limits.maxSteps is a budget — tripping it emits run:error(limit_exceeded)", async () => {
+    const foreverProvider = {
+      id: "forever",
+      label: "forever-tool-caller",
+      async chat() {
+        return {
+          content: "keep going",
+          toolCalls: [{ id: "c1", name: "calculator", arguments: '{"expression":"1+1"}' }],
+          finishReason: "tool_calls" as const,
+        };
+      },
+    };
+    const runtime = new AgentRuntime({ provider: foreverProvider });
+    const events: RuntimeEvent[] = [];
+    const off = runtime.subscribe((e: RuntimeEvent) => events.push(e));
+
+    // 预算 1 步：第 2 步即超限，必须失败而不是"自然收敛"结束。
+    await assert.rejects(
+      () =>
+        runtime.run({
+          agent: agentWith([builtinTools[0]]),
+          input: "hi",
+          limits: { maxSteps: 1 },
+        }),
+      (err: unknown) => (err as Error).name === "LimitExceededError",
+    );
+    off();
+
+    const runError = events.find((e) => e.type === "run:error") as
+      | Extract<RuntimeEvent, { type: "run:error" }>
+      | undefined;
+    assert.ok(runError, "超限必须产 run:error");
+    assert.equal(runError.code, "limit_exceeded");
+  });
 });
 
 describe("tool safety", () => {

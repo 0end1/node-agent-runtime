@@ -8,6 +8,16 @@
 
 ## [Unreleased]
 
+**M6-20 · P3 评审后安全加固（H1 / M1 / M2 / L3）**（2026-09-08）：
+
+- **Security（P3.6）**：修复 MCP 白名单可被 30x 重定向绕过的 SSRF 缺口 —— `StreamableHttpTransport` 请求统一 `redirect: "manual"`，手动跟随且**每一跳重新校验**协议与白名单（跳数上限 3），`notify()` 同样拒绝跟随 3xx
+- **Security（P3.6）**：`StdioTransport` 默认不再把宿主完整 `process.env` 交给 MCP 子进程，只透传最小集（`PATH`/`HOME`/`TMP*` 等）+ 显式 `env`（`config.mcp.serverEnv`）；新增 `inheritEnv?: boolean` 供可信 server 显式放开
+- **Fixed（P3.4）**：`limits.maxSteps` 与循环上界解耦 —— 循环上界固定 `agent.maxSteps`，预算越界的那一步抛 `LimitExceededError` 并产 `run:error`（`code: limit_exceeded`），不再按"自然收敛"静默结束
+- **Fixed（P3.5）**：CORS 预检（OPTIONS）改经 `decidePreflight()` 守卫，放行时回 `Access-Control-Allow-Origin/Methods/Headers` + `Vary`，白名单来源的非简单请求才真正可用
+- **Added**：`examples/web/security.ts` `decidePreflight`、`PreflightResponse`
+- **Docs**：新增 `docs/p3-review.md`（P3 全量评审：8 项发现，4 项已修，4 项低危待办）
+- **测试**：`transport.test.ts` 增补重定向守卫（内网拒绝 / 白名单内跟随）与 stdio env 隔离；`runtime.test.ts` 增补 maxSteps 预算产 `run:error`；`security.test.ts` 增补预检用例；全量 217 用例 0 失败
+
 **M6-19 · 收紧对外 API 面（P3.2 / P3.5 / P3.6）**（2026-09-08）：
 
 - **P3.2 事件/日志脱敏**：`packages/core/src/log.ts` 新增 `redact()`（强密钥字段 + 类密钥值 sk-/JWT/base64 全量脱敏，普通参数原样保留）；`ConsoleLogger` 序列化前对 meta 脱敏；`AgentRuntime` 在 `tool:start`/`tool:end` 事件与日志中对工具参数脱敏，密钥永不进入事件流/日志

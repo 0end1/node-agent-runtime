@@ -217,7 +217,11 @@ export class AgentRuntime {
 
     // P3.4: per-run limits are merged over the runtime defaults (per-run wins).
     const limits: RunLimits = { ...(this.defaultLimits ?? {}), ...(options.limits ?? {}) };
-    const maxSteps = limits.maxSteps ?? agent.maxSteps;
+    // The loop bound stays `agent.maxSteps` (a soft "stop converging here").
+    // `limits.maxSteps` is a **budget**: tripping it must surface as a
+    // `run:error` with `code: limit_exceeded` on the step that goes over,
+    // not as an ordinary end-of-loop result.
+    const maxSteps = agent.maxSteps;
     const toolCallTimes: number[] = [];
     const assertWithinLimits = (step: number): void => {
       const violation = checkRunLimits(

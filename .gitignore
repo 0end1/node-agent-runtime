@@ -5,3 +5,5 @@ dist/
 .env
 # M1: demo persistence (FileStorage) — session transcripts are runtime data
 .runtime-data/
+# M6 P2.3: coverage report output
+coverage/

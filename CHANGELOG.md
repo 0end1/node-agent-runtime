@@ -8,6 +8,28 @@
 
 ## [Unreleased]
 
+**M6-14 · 工程护栏（P2.1 / P2.2 / P2.5 / P2.6，含 P2.3 水位）**（2026-09-08）：
+
+- **P2.1 CI 主流程**：新增 `.github/workflows/ci.yml`，三个 job —— `quality`（typecheck → lint → test → build → `check:api`，Node 22.x）、`coverage`（仅出报告，不阻断）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3）
+- **P2.2 Lint/Format 基线**：新增 `eslint.config.js`（ESLint 9 flat config + typescript-eslint）与 `.prettierrc` / `.prettierignore`；根脚本 `lint` / `lint:fix` / `format` / `format:check`；已执行一次全仓格式化（52 文件）
+- **P2.3 覆盖率（先出水位）**：新增 `scripts/coverage.mjs` 与 `npm run coverage`，逐包跑 `node --import tsx --test --experimental-test-coverage` 并汇总，完整输出落 `coverage/report.txt`（已入 `.gitignore`）；**暂不设门槛**
+- **P2.5 依赖审计门**：CI `audit` job；`package-lock.json` 在库，当前 0 vulnerabilities
+- **P2.6 质量门总闸**：`npm run ci` = `typecheck && lint && test && coverage && check:api`（`test` 的 `pretest` 已含 build），本地一键全绿
+
+### Added（M6-14）
+- `.github/workflows/ci.yml`、`eslint.config.js`、`.prettierrc`、`.prettierignore`、`scripts/coverage.mjs`
+- 根脚本：`lint`、`lint:fix`、`format`、`format:check`、`coverage`、`ci`
+- devDependencies：`eslint@^9`、`@eslint/js@^9`、`typescript-eslint@^8`、`prettier`、`globals`
+
+### Changed（M6-14）
+- 全仓 Prettier 格式化（代码风格统一：printWidth 100 / 双引号 / trailing comma）
+- 清理 lint 问题：`prefer-const` 2 处（`core/test/runtime.test.ts`、`mock/src/mock.ts`）、未使用变量 3 处（`host/src/session.ts` 改直接校验、`mock/src/mock.ts` 参数加 `_` 前缀、`sandbox/test/sandbox.test.ts` 删除未调用的 `manager()` 死代码）
+- `.gitignore` 增加 `coverage/`
+
+**验收**：`npm run ci` 全绿（`lint` 0 error 0 warning、`test` 0 fail、12 包 `check:api` 0 差异）；`npm audit --omit=dev` 0 vulnerabilities；覆盖率水位（首次）行 58.62% / 分支 72.26% / 函数 53.77%（11 包有测试，`mock` 无测试），明细见 `docs/m6-productionization.md` §2。
+
+---
+
 **M6-13 · 文档同步收口（P0/P1 修正）**（2026-09-08）：基于 `docs/docmap-audit.md`（M6-12 文档盘点）执行其 §6 的 P0/P1 修正清单，把拆包后仍残留的单包时代/中间态描述对齐到 **12 包终局**：
 
 - `README.md`：项目结构树改为 12 包依赖分层布局（含 `core/src/store/` 与真实源码文件，去掉拆包前旧树）；核心代码示例与会话示例导入源由 `./src/index.js` 改按包导入（`@agent-runtime/core` / `mock` / `tools-basic` / `provider-openai` / `host`）；概念表补包名；内置工具节注明源自 `@agent-runtime/tools-basic`；兼容注改为「core = facade 聚合出口，导出面以 api-surface + check:api 为准」

@@ -59,7 +59,7 @@
 | 批次 | 主题 | 关键项 | 状态 |
 |---|---|---|---|
 | **P1** | 决策冻结 + 包边界收口（**发布前置**） | 落定 C1~C4 决策 → 拆包 B1 mcp / B2 host / B3 memory·sandbox·policy / B4 facade 收窄 → M6-9~11 自查整改（Artifact 独立 / mock·tools-basic 外置 / checkpoint 归位，**12 包终局**）→ 公共 API 冻结快照 | ✅ 全部完成（Gate 1 已关闭，快照见 `docs/api-surface.md`，基线复核见 P2.7） |
-| **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率 ≥80%、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3）；**P2.7 ✅** API 面复核脚本已落地（`npm run check:api`，M6-11） | 🟡（P2.7 ✅，余下 ☐） |
+| **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率门禁、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3） | 🟡 **P2.1 / P2.2 / P2.5 / P2.6 ✅**（M6-14）：`.github/workflows/ci.yml`（quality / coverage / audit 三 job）+ ESLint 9 + Prettier 基线 + `npm run ci` 总闸；**P2.7 ✅** 已随总闸接入 CI；**P2.3 🟡** 覆盖率水位已出（行 58.62%），阈值待评审；**P2.4 ☐** 跨形态 E2E 未做 |
 | **P3** | 可观测 · 安全 · 配置 | 结构化日志+错误码、事件/日志脱敏、审批审计与白名单持久化、成本/速率上限、Web/本地 server 鉴权与防跨站、MCP 防 SSRF、默认安全策略包、config/features（吸收 D2） | ☐ |
 | **P4** | SDK 发布工程 | LICENSE、去 `private` + `publishConfig`、engines/Node 基线统一、changesets 版本编排 + `npm publish --provenance`、依赖策略（`workspace:`）、包体积基线 | ☐ |
 | **P5** | 分发与部署矩阵 | 桌面实机验证（吸收 A1）、macOS 签名+公证、Windows/Linux 三平台产物、auto-updater、store-sqlite 生产基线（WAL/索引/迁移）、Web 容器化部署样例 | ☐ |

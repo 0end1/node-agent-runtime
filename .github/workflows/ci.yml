@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev, apps]
+  pull_request:
+    branches: [main, dev, apps]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # P2.1 主流程：typecheck → lint → test → build → API 面复核（P2.7）
+  # Node matrix：固定 22.x —— @agent-runtime/store-sqlite 依赖 node:sqlite（>=22.5），
+  # 根 engines 与包 engines 的统一口径待 P4.3 收敛，届时再扩 matrix。
+  quality:
+    name: quality (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["22.x"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: lint (P2.2)
+        run: npm run lint
+      - name: test
+        run: npm run test
+      - name: build
+        run: npm run build
+      - name: api surface check (P2.7)
+        run: npm run check:api
+
+  # P2.3 覆盖率：先出水位报告，不设门槛（阈值待水位评审后设定）
+  coverage:
+    name: coverage report (no gate)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/report.txt
+          if-no-files-found: warn
+
+  # P2.5 依赖审计门：高危阻断
+  audit:
+    name: npm audit (P2.5)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+      - run: npm ci
+      - name: audit (production deps, high+ blocks)
+        run: npm audit --omit=dev --audit-level=high

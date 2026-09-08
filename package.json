@@ -30,13 +30,24 @@
     "test": "npm run test -w @agent-runtime/types && npm run test -w @agent-runtime/memory && npm run test -w @agent-runtime/artifact && npm run test -w @agent-runtime/sandbox && npm run test -w @agent-runtime/policy && npm run test -w @agent-runtime/core && npm run test -w @agent-runtime/tools-basic && npm run test -w @agent-runtime/mock && npm run test -w @agent-runtime/host && npm run test -w @agent-runtime/mcp && npm run test -w @agent-runtime/provider-openai && npm run test -w @agent-runtime/store-sqlite",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,js,mjs,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,mjs,json}\"",
+    "coverage": "node scripts/coverage.mjs",
     "check:api": "tsx scripts/check-api-surface.ts",
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage && npm run check:api",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^22.10.2",
+    "eslint": "^9.39.5",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.70.0"
   }
 }

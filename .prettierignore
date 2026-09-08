@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+# 由 npm run check:api:update 生成并维护格式，不交 Prettier 排版
+scripts/api-surface.baseline.json
+examples/desktop-tauri/src-tauri/
+examples/desktop-tauri/dist/

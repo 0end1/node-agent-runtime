@@ -39,9 +39,9 @@ jobs:
       - name: api surface check (P2.7)
         run: npm run check:api
 
-  # P2.3 覆盖率：先出水位报告，不设门槛（阈值待水位评审后设定）
+  # P2.3 覆盖率门禁：逐包 行≥80 / 分支≥60 / 函数≥55；全仓均值 行≥90 / 分支≥78 / 函数≥85
   coverage:
-    name: coverage report (no gate)
+    name: coverage gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run coverage
+      - run: npm run coverage:gate
       - uses: actions/upload-artifact@v4
         if: always()
         with:

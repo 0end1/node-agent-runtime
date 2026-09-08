@@ -35,9 +35,10 @@
     "format": "prettier --write \"**/*.{ts,js,mjs,json}\"",
     "format:check": "prettier --check \"**/*.{ts,js,mjs,json}\"",
     "coverage": "node scripts/coverage.mjs",
+    "coverage:gate": "node scripts/coverage.mjs --gate",
     "check:api": "tsx scripts/check-api-surface.ts",
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage && npm run check:api",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage:gate && npm run check:api",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {

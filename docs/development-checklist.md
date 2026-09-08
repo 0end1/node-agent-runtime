@@ -17,7 +17,7 @@
 | M3 · 治理 | Permission 审批 + Sandbox 执行域 | ✅ | ask 审批流、三档沙箱、`sandbox:write` diff |
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6 |
-| **M6 · 生产级改造** | demo → 可用于生产 | 🟡 进行中 | **P1 已完成（Gate 1 关闭）**：C1~C4 决策落定 + C6 mcp / C8 host / C3 memory / C4 sandbox / C5 policy 外置 + facade 收窄，经 M6-9~11 自查整改形成 **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 收窄至 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`，P2.7 ✅ 脚本化复核）；**P2 主体已完成（M6-14）**——P2.1 CI / P2.2 Lint·Format / P2.5 audit 门 / P2.6 `npm run ci` 总闸 ✅，P2.7 随总闸接入 CI，P2.3 覆盖率水位已出（阈值待评审）、P2.4 跨形态 E2E ☐；P3~P6 待办（见 §3.1） |
+| **M6 · 生产级改造** | demo → 可用于生产 | 🟡 进行中 | **P1 已完成（Gate 1 关闭）**：C1~C4 决策落定 + C6 mcp / C8 host / C3 memory / C4 sandbox / C5 policy 外置 + facade 收窄，经 M6-9~11 自查整改形成 **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 收窄至 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`，P2.7 ✅ 脚本化复核）；**P2 主体已完成（M6-14）**——P2.1 CI / P2.2 Lint·Format / P2.5 audit 门 / P2.6 `npm run ci` 总闸 ✅，P2.7 随总闸接入 CI，**P2.3 覆盖率门禁 ✅**（M6-16：口径修正 + 补测 + 阈值定档，水位 行 92.38%）、P2.4 跨形态 E2E ☐；P3~P6 待办（见 §3.1） |
 | M7+ | 待规划 | ⏸ | 候选池（见 §3.3），M6 收口后定优先级 |
 
 ---
@@ -59,7 +59,7 @@
 | 批次 | 主题 | 关键项 | 状态 |
 |---|---|---|---|
 | **P1** | 决策冻结 + 包边界收口（**发布前置**） | 落定 C1~C4 决策 → 拆包 B1 mcp / B2 host / B3 memory·sandbox·policy / B4 facade 收窄 → M6-9~11 自查整改（Artifact 独立 / mock·tools-basic 外置 / checkpoint 归位，**12 包终局**）→ 公共 API 冻结快照 | ✅ 全部完成（Gate 1 已关闭，快照见 `docs/api-surface.md`，基线复核见 P2.7） |
-| **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率门禁、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3） | 🟡 **P2.1 / P2.2 / P2.5 / P2.6 ✅**（M6-14）：`.github/workflows/ci.yml`（quality / coverage / audit 三 job）+ ESLint 9 + Prettier 基线 + `npm run ci` 总闸；**P2.7 ✅** 已随总闸接入 CI；**P2.3 🟡** 覆盖率水位已出（行 58.62%），阈值待评审；**P2.4 ☐** 跨形态 E2E 未做 |
+| **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率门禁、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3） | 🟡 **P2.1 / P2.2 / P2.5 / P2.6 ✅**（M6-14）：`.github/workflows/ci.yml`（quality / coverage / audit 三 job）+ ESLint 9 + Prettier 基线 + `npm run ci` 总闸；**P2.7 ✅** 已随总闸接入 CI；**P2.3 ✅**（M6-16）：统计口径修正为只统计本包 + 补 `types`/`tools-basic` 测试 + 阈值定档（逐包 行≥80 / 分支≥60 / 函数≥55，全仓均值 行≥90 / 分支≥78 / 函数≥85），`npm run coverage:gate` 阻断；**P2.4 ☐** 跨形态 E2E 未做 |
 | **P3** | 可观测 · 安全 · 配置 | 结构化日志+错误码、事件/日志脱敏、审批审计与白名单持久化、成本/速率上限、Web/本地 server 鉴权与防跨站、MCP 防 SSRF、默认安全策略包、config/features（吸收 D2） | ☐ |
 | **P4** | SDK 发布工程 | LICENSE、去 `private` + `publishConfig`、engines/Node 基线统一、changesets 版本编排 + `npm publish --provenance`、依赖策略（`workspace:`）、包体积基线 | ☐ |
 | **P5** | 分发与部署矩阵 | 桌面实机验证（吸收 A1）、macOS 签名+公证、Windows/Linux 三平台产物、auto-updater、store-sqlite 生产基线（WAL/索引/迁移）、Web 容器化部署样例 | ☐ |

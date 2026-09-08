@@ -8,6 +8,27 @@
 
 ## [Unreleased]
 
+**M6-16 · 覆盖率门禁（P2.3）**（2026-09-08）：
+
+- **口径修正**：`scripts/coverage.mjs` 增加 `--test-coverage-include=src/**|dist/**`，覆盖率**只统计本包**。首测（M6-14）把依赖包的 `dist` 计入本包，导致数值严重失真——`policy/permission.js` 实际 98.17% 却被 `types/dist/*.js` 拉低到 34.65%，`artifact/artifact.js` 实际 100% 被拉低到 35.18%
+- **补测**：新增 `packages/types/test/util.test.ts`（`newId` / `stringifyResult` / `fmtNumber` 含循环引用与非有限数分支）、`packages/types/test/tools.test.ts`（`classifyToolName` 五类分支 + `toolKind` 声明优先）、`packages/tools-basic/test/builtin.test.ts`（`now` / `geocode` / `weather` / `exchange` 执行体与错误分支）
+- **缺陷修复**：`packages/types` 的 `test` 脚本由硬编码 `test/schema.test.ts` 改为 `test/*.test.ts`（此前该包新增测试文件不会被执行）
+- **阈值定档**：逐包 行 ≥80 / 分支 ≥60 / 函数 ≥55；全仓均值 行 ≥90 / 分支 ≥78 / 函数 ≥85；新增 `npm run coverage:gate`（阻断）并接入 `npm run ci` 与 CI `coverage` job；`npm run coverage` 保留为纯报告
+
+### Added（M6-16）
+- `packages/types/test/util.test.ts`、`packages/types/test/tools.test.ts`、`packages/tools-basic/test/builtin.test.ts`
+- 根脚本 `coverage:gate`
+
+### Changed（M6-16）
+- `scripts/coverage.mjs`：统计口径、阈值常量与 `--gate` 校验
+- `packages/types/package.json`：`test` 脚本改为通配（与其它 11 包一致）
+- `.github/workflows/ci.yml`：`coverage` job 改跑 `npm run coverage:gate`
+- `package.json`：`ci` 中的 `coverage` 改为 `coverage:gate`
+
+**验收**：`npm run ci` 全绿；`npm run coverage:gate` 通过；覆盖率水位（口径修正 + 补测后）行 **92.38%** / 分支 **80.44%** / 函数 **89.74%**（`mock` 无测试文件，跳过）。分支低水位（`mcp` 64.74 / `host` 66.23 / `core` 72.79 / `provider-openai` 73.13 / `tools-basic` 76.38 / `policy` 77.14）经评审豁免，下一档目标 ≥70、最终 ≥80。
+
+---
+
 **M6-15 · 任务状态回填（Docs）**（2026-09-08）：把 M6-14 工程护栏的完成事实回填各清单，消除双源漂移。
 
 - `docs/remaining-tasks.md`：**A3 质量门总闸 ✅**（由 M6 P2.6 吸收完成 —— `npm run ci` = typecheck+lint+test+coverage+`check:api`，并纳入 `.github/workflows/ci.yml`）；头部决策状态行、§0 总览 A3 行、§1 A3 明细、建议顺序状态行四处同步

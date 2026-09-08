@@ -74,7 +74,7 @@
 | A 验收收口 | A1 安装分发实机 / A2 自动化 E2E / A3 质量门 / A4 路线图回填 | → P5 / P2.4 / **P2.6（✅ 已完成，M6-14）** / P6 |
 | B 拆包批次 | C6 mcp、C8 host、C3 memory + C4/C5 sandbox·policy、facade 收窄 | → P1.2~P1.5 |
 | C 开放决策 | Session/Task 是否出 core；sandbox·policy 分合；`Artifact` 归属；tool 契约是否下沉 C1 | → P1.1（先行） |
-| D 远期 | **D2 config/features**（已拉近 P3.8）；D1 Rust workspace 移植、D3 参考机制采纳 | D1/D3 维持 ⏸ |
+| D 远期 | **D2 config/features**（已于 M6-18 落地 P3.8 ✅）；D1 Rust workspace 移植、D3 参考机制采纳 | D1/D3 维持 ⏸ |
 
 ### 3.3 M7+ 候选池（未排期，M6 收口后按反馈定优先级）
 

@@ -22,7 +22,7 @@
 | C 开放决策 | C3 | `Artifact` 归属（草案：类型入 C1、实现并入 C3） | crate-architecture §8-4 | ✅ 已定 |
 | C 开放决策 | C4 | `tool.ts`/`ToolDefinition` 契约层是否下沉 C1 | crate-architecture §8-2 | ✅ 已定 |
 | D 远期 | D1 | Rust workspace 移植（对齐 codex，长期选项） | crate-architecture §7/§8-1 | ☐（远期） |
-| D 远期 | D2 | `config`/`features` 配置与特性开关模块 | crate-architecture §8-7 | ☐（已拉近 M6 P3.8） |
+| D 远期 | D2 | `config`/`features` 配置与特性开关模块 | crate-architecture §8-7 | ✅（2026-09-08，M6-18）：`core/config.ts` `loadConfig()` 分层校验 + 特性开关，Provider 密钥仅经配置/环境注入 |
 | D 远期 | D3 | 参考文档机制采纳（codex / deepseek harness） | codex/deepseek 参考文档 | ☐（远期） |
 
 > 建议顺序：**C 决策先行 → A1~A4 验收收口 → B 拆包**；C1 决定 B2/B3 是否可拆干净，应在拆包动工前落定。

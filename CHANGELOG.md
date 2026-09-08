@@ -26,6 +26,19 @@
 
 **验收**：`npm run e2e` 两形态全流程通过（14 步全绿）；`npm run ci` 全绿；`npm run coverage:gate` 通过；`check:api` 0 差异。
 
+**M6-17 加固 · E2E artifact 强断言 + 退出清理**（2026-09-08）：
+
+- **artifact 覆盖盲点修复**：`examples/cli.ts` 与 `examples/web/server.ts` 的 `demo_write_file` 在写文件落盘后调用 `manager.artifacts.save` 登记 `file` 产物。此前运行时不会自动登记工具结果，artifacts 恒为空，M4 能力在端到端从未被真正覆盖
+- **E2E 强断言**：`scripts/e2e/cli.mjs` / `scripts/e2e/web.mjs` 的 artifact 步骤由「仅判数组 / 含文本」升级为「非空 + 含写文件登记的 `file` 产物 + 内容可读」；CLI 经 `/artifact <id>` 校验 `hello cli`，Web 经 `/api/artifact/<id>` 校验 `hello e2e`
+- **CLI 退出清理**：`scripts/e2e/cli.mjs` 收尾由 `send("exit")`（被当成对话）改为 `proc.child.stdin.end()` 触发 readline `close` → `doExit` 正常退出
+- **Desktop 注释**：`scripts/e2e/desktop.mjs` 补本地启用命令 `E2E_DESKTOP=1 npm run e2e:desktop`
+
+### Fixed（M6-17 加固）
+- `examples/cli.ts`、`examples/web/server.ts`：写文件后登记 `file` artifact（修复 M4 端到端覆盖盲点）
+
+### Changed（M6-17 加固）
+- `scripts/e2e/cli.mjs`、`scripts/e2e/web.mjs`、`scripts/e2e/desktop.mjs`
+
 ---
 
 **M6-16 · 覆盖率门禁（P2.3）**（2026-09-08）：

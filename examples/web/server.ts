@@ -58,6 +58,10 @@ function pickProvider(): ModelProvider {
 }
 
 const provider = pickProvider();
+
+// 延迟引用：demo 写文件工具需把落盘结果登记为 artifact，但会话上下文在
+// 运行时（请求级）才确定，故用模块级变量记录当前活跃 session。
+let activeSession = "default";
 const runtime = new AgentRuntime({
   provider,
   logger: (line) => console.log(line),
@@ -83,6 +87,17 @@ const demoWriteTool = defineTool({
     await mkdir(dirname(full), { recursive: true });
     const text = String(args.content ?? "");
     await writeFile(full, text, "utf8");
+    // M6 P2.4 加固：写文件落盘后登记为可引用 artifact（见 cli.ts 同款）。
+    try {
+      await manager.artifacts.save({
+        sessionId: activeSession,
+        kind: "file",
+        name: args.path,
+        content: text,
+      });
+    } catch {
+      /* artifact 登记失败不应影响写文件主流程 */
+    }
     return { ok: true, path: full, bytes: Buffer.byteLength(text) };
   },
 });
@@ -170,6 +185,7 @@ const server = createServer(async (req, res) => {
     if (url.pathname === "/api/chat") {
       const input = (url.searchParams.get("input") ?? "").trim();
       const sessionId = (url.searchParams.get("session") ?? "default").trim();
+      activeSession = sessionId;
       if (!input) {
         res.writeHead(400, { "content-type": "application/json" });
         res.end(JSON.stringify({ error: "input 不能为空" }));

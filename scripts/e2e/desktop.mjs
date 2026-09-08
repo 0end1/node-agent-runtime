@@ -3,6 +3,7 @@
 // Desktop（Tauri v2）需要 Rust + WebKit 等系统依赖，CI 与多数本机环境不具备，
 // 故默认跳过；设置 `E2E_DESKTOP=1` 后以 dev 模式拉起（会顺带启动 Web server），
 // 探测壳内控制台 API 是否可用。
+// 本地手动启用：E2E_DESKTOP=1 npm run e2e:desktop（需先满足 Tauri 工具链依赖）。
 import { join } from "node:path";
 
 import { REPO_ROOT, removeDir, startProcess, waitForHttp } from "./lib.mjs";

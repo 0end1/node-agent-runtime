@@ -124,9 +124,28 @@ const demoWriteTool = defineTool({
     await mkdir(dirname(full), { recursive: true });
     const text = String(args.content ?? "");
     await writeFile(full, text, "utf8");
+    // M6 P2.4 加固：写文件落盘后登记为可引用 artifact，使 M4 artifact 能力
+    // 在 demo 与 E2E 中真正被覆盖（此前从未登记，artifacts 恒为空）。
+    try {
+      if (managerRef && currentSessionId) {
+        await managerRef.artifacts.save({
+          sessionId: currentSessionId,
+          kind: "file",
+          name: args.path,
+          content: text,
+        });
+      }
+    } catch {
+      /* artifact 登记失败不应影响写文件主流程 */
+    }
     return { ok: true, path: full, bytes: Buffer.byteLength(text) };
   },
 });
+
+// 延迟引用：demo 工具需会话/管理器上下文，而它们在 main() 内创建，
+// 故用模块级引用在运行时（而非定义时）读取最新值。
+let managerRef: SessionManager | undefined;
+let currentSessionId: string | undefined;
 
 const argv = process.argv.slice(2);
 const wantsOpenAI = argv.includes("--provider=openai") || argv.includes("--openai");
@@ -228,6 +247,7 @@ async function main() {
     storage,
     agents: [agent],
   });
+  managerRef = manager;
   const rl = readline.createInterface({ input, output });
 
   // Resume the most recent open session if one exists.
@@ -294,6 +314,7 @@ async function main() {
 
   async function handleLine(raw: string): Promise<void> {
     const text = raw.trim();
+    currentSessionId = current?.id;
     if (!text) {
       if (!busy) rl.prompt();
       return;

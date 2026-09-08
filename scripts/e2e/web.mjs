@@ -110,11 +110,18 @@ export async function runWeb({ port = 8791 } = {}) {
       assertIncludes(readFileSync(file, "utf8"), "hello e2e", "写入内容");
     });
 
-    await report.step("artifact 接口可用（/api/artifacts）", async () => {
+    await report.step("artifact 强校验：写文件登记 file 产物 + 内容可读", async () => {
       const res = await fetch(`${base}/api/artifacts?session=${encodeURIComponent(sessionId)}`);
       if (!res.ok) throw new Error(`artifacts 请求失败：${res.status}`);
       const list = await res.json();
       if (!Array.isArray(list)) throw new Error("artifacts 返回非数组");
+      // 写文件步骤应已登记一个 file artifact（M4 在端到端真正生效）。
+      const hit = list.find((a) => a.kind === "file" && String(a.name).includes("e2e.txt"));
+      if (!hit) throw new Error(`未找到写文件登记的 artifact（list=${JSON.stringify(list)}）`);
+      const art = await (await fetch(`${base}/api/artifact/${hit.id}`)).json();
+      if (!art.text || !art.text.includes("hello e2e")) {
+        throw new Error(`artifact 内容校验失败：${JSON.stringify(art)}`);
+      }
     });
 
     await report.step("checkpoint → 续跑（/api/checkpoints + /api/resume）", async () => {

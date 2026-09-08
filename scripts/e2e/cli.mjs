@@ -94,17 +94,27 @@ export async function runCli() {
       });
     });
 
-    await report.step("artifact 列表（/artifacts）", async () => {
+    await report.step("artifact 强校验：写文件登记 file 产物 + 内容可读", async () => {
       const before = mark();
       proc.send("/artifacts");
-      await proc.waitFor((text) => text.slice(before).includes("artifact"), {
-        timeoutMs: 20000,
-        label: "artifacts 输出",
-      });
+      const m = await proc.waitFor(
+        (text) => /(artifact_\S+)\s+file/.exec(text.slice(before)),
+        { timeoutMs: 20000, label: "artifact 行" },
+      );
+      const artifactId = m[1];
+      const beforeArt = mark();
+      proc.send(`/artifact ${artifactId}`);
+      const content = await proc.waitFor(
+        (text) => (/hello cli/.test(text.slice(beforeArt)) ? text.slice(beforeArt) : null),
+        { timeoutMs: 20000, label: "artifact 内容" },
+      );
+      assertIncludes(content, "hello cli", "artifact 内容");
     });
   } finally {
+    // 关闭 stdin 触发 readline close → doExit 正常退出（exit 非 cli 命令，
+    // 直接 send("exit") 会被当成对话，故改用 stdin.end）。
     try {
-      proc.send("exit");
+      proc.child.stdin.end();
     } catch {
       /* ignore */
     }

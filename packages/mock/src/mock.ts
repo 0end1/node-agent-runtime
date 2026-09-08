@@ -59,6 +59,24 @@ export class MockProvider implements ModelProvider {
     const text = content.trim();
     const has = (name: string) => request.tools?.some((t) => t.name === name);
 
+    // 写文件意图（M6-16）：此前规则模型不会调用 `demo_write_file`，导致
+    // 「ask 审批 → approve → 沙箱写入」链路在演示与 E2E 中不可达。
+    if (
+      has("demo_write_file") &&
+      /(写文件|写入文件|保存文件|写到|记下来|write\s+file|save\s+file)/i.test(text)
+    ) {
+      const pathMatch = text.match(/[\w./-]+\.(?:txt|md|json|log)/i);
+      const quoted = text.match(/["'“”‘’]([^"'“”‘’]{1,80})["'“”‘’]/);
+      return this.toolCallStep(
+        "demo_write_file",
+        {
+          path: pathMatch ? pathMatch[0] : ".demo-out/note.txt",
+          content: quoted ? quoted[1]! : "由 MockProvider 写入的演示内容",
+        },
+        "我来把这段内容写入工作区文件（需要授权）。",
+      );
+    }
+
     const mathExpr = has("calculator") ? detectMath(text) : null;
     if (mathExpr) {
       return this.toolCallStep(
@@ -170,6 +188,11 @@ export class MockProvider implements ModelProvider {
           { lat, lon, city },
           `已定位“${city}”（${lat}, ${lon}），接下来查询当地天气。`,
         );
+      }
+      case "demo_write_file": {
+        const v = safeParse(content) as { ok?: boolean; path?: string; bytes?: number } | null;
+        if (!v?.ok) return this.final(`写入失败：${content}`);
+        return this.final(`已写入 ${v.path ?? "文件"}（${v.bytes ?? 0} 字节）。`);
       }
       case "weather": {
         const v = safeParse(content) as Record<string, unknown> | null;

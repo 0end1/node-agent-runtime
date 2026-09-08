@@ -72,3 +72,19 @@ jobs:
       - run: npm ci
       - name: audit (production deps, high+ blocks)
         run: npm audit --omit=dev --audit-level=high
+
+  # P2.4 跨形态 E2E（吸收 A2）：CLI → Web 全流程（ask 审批 → approve 落盘 → artifact → 续跑）。
+  # Desktop 形态需 Tauri/Rust 环境，CI 上默认跳过（见 scripts/e2e/desktop.mjs，仅 E2E_DESKTOP=1 启用）。
+  e2e:
+    name: cross-form E2E (P2.4)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.x"
+          cache: npm
+      - run: npm ci
+      - name: e2e (CLI + Web; 自动 prebuild)
+        run: npm run e2e

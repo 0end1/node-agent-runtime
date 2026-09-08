@@ -50,12 +50,12 @@
 | P2.1 | GitHub Actions CI 主流程 | `.github/workflows/ci.yml`：PR/推送触发，job=typecheck→lint→test→build（matrix Node 覆盖支持区间） | 每个 PR 全绿才可合并 | ✅（2026-09-08）：`.github/workflows/ci.yml` 三个 job —— `quality`（typecheck→lint→test→build→`check:api`，Node 22.x）、`coverage`（报告，不设门槛）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3） |
 | P2.2 | Lint/Format 基线 | ESLint + Prettier 配置 + `lint`/`format` 脚本入根与各包 | CI 含 lint job；`npm run lint` 0 error | ✅（2026-09-08）：`eslint.config.js`（ESLint 9 flat config + typescript-eslint）+ `.prettierrc`/`.prettierignore`；脚本 `lint`/`lint:fix`/`format`/`format:check` 入根（一次跑全仓，避免 12 包重复配置）；首次全仓格式化已执行，`npm run lint` 0 error 0 warning |
 | P2.3 | 覆盖率门禁 | 每包 `node --experimental-test-coverage`（或 c8）阈值 ≥ 80%（语句/分支），低水位区经评审豁免 | CI 覆盖 job 全绿 | ✅（2026-09-08，M6-16）：① 统计口径修正为**只统计本包**（`--test-coverage-include=src/**\|dist/**`，消除依赖包 dist 拉低）；② 补齐 `types`（util/tools 纯函数）与 `tools-basic`（now/geocode/weather/exchange）测试；③ 阈值定档 —— 逐包 行≥80 / 分支≥60 / 函数≥55，全仓均值 行≥90 / 分支≥78 / 函数≥85；④ `npm run coverage:gate` 阻断，已接入 `npm run ci` 与 CI `coverage` job（纯报告仍用 `npm run coverage`） |
-| P2.4 | 跨形态自动化 E2E（吸收 A2） | `scripts/e2e/`：CLI → Web → Desktop 全流程脚本化（新会话→对话→ask 审批→approve 落盘→artifact→续跑）；作为 CI 独立 job（Desktop 用 headless/受控启动） | CI E2E job 通过；本机脚本 `npm run e2e` 可跑 | ☐ |
+| P2.4 | 跨形态自动化 E2E（吸收 A2） | `scripts/e2e/`：CLI → Web → Desktop 全流程脚本化（新会话→对话→ask 审批→approve 落盘→artifact→续跑）；作为 CI 独立 job（Desktop 用 headless/受控启动） | CI E2E job 通过；本机脚本 `npm run e2e` 可跑 | ✅（2026-09-08，M6-17）：`scripts/e2e/`（lib + cli/web/desktop + run-all）；CLI + Web 两形态全流程验证通过（14 步），`npm run e2e` 可跑并接入 CI `e2e` job；Desktop 形态默认跳过（需 Tauri/Rust 环境，设 `E2E_DESKTOP=1` 启用，见 `scripts/e2e/desktop.mjs`） |
 | P2.5 | 依赖审计门 | CI job `npm audit --omit=dev`；`package-lock.json` 提交并校验 | 高危 0 阻断；变更记录在案 | ✅（2026-09-08）：CI `audit` job 已配 `npm audit --omit=dev --audit-level=high`；`package-lock.json` 在库，当前 0 vulnerabilities |
 | P2.6 | 质量门总闸固化（吸收 A3） | 上述脚本集合为 `npm run ci`（typecheck+lint+test+coverage+build） | `npm run ci` 一键全绿 | ✅（2026-09-08）：`npm run ci` = `typecheck && lint && test && coverage && check:api`（`test` 的 `pretest` 已含 build），本地一键全绿 |
 | P2.7 | API 表面复核（P1 审查建议，防公共面漂移） | `scripts/check-api-surface.ts` 以冻结口径提取各包 `dist/index.d.ts` 导出面，与基线 `scripts/api-surface.baseline.json` 比对；脚本 `npm run check:api` | CI job `api-surface`（build 后运行）全绿；变更按 `docs/api-surface.md` §13 评审 | ✅ 脚本 + 基线已落地（M6-11），已随 P2.6 接入 `npm run ci` 与 CI `quality` job |
 
-> **进度（2026-09-08，M6-16）**：P2.1 / P2.2 / P2.3 / P2.5 / P2.6 已完成，P2.7 随总闸接入 CI；P2.4（跨形态 E2E）仍 ☐。
+> **进度（2026-09-08，M6-17）**：P2.1 / P2.2 / P2.3 / P2.4 / P2.5 / P2.6 已完成，P2.7 随总闸接入 CI；**Gate 2 关闭**。P2.4 跨形态 E2E 已落地（CLI + Web 全流程验证通过、CI `e2e` job 接入；Desktop 形态默认跳过，需 Tauri/Rust 环境）。
 >
 > **覆盖率水位（口径修正后 + 补测后，2026-09-08）**：11 个包有测试（`@agent-runtime/mock` 无 `test/*.test.ts`，跳过）；列顺序为 Node 22 内置输出的行 / 分支 / 函数；统计范围为**本包** `src` 与 `dist`。
 >

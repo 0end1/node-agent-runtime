@@ -8,6 +8,26 @@
 
 ## [Unreleased]
 
+**M6-17 · 跨形态自动化 E2E（P2.4）**（2026-09-08）：
+
+- **E2E 脚本**：新增 `scripts/e2e/`（lib 公共库 + cli/web/desktop 三形态 + run-all 调度）；`npm run e2e` 默认跑 CLI + Web，`--only=<形态>` 单选，`--with-desktop` / `e2e:desktop` 追加 Desktop（需 Tauri/Rust，默认跳过）
+- **CLI 形态**：stdin 驱动 `examples/cli.ts` REPL 走通「对话（calculator 单步 / geocode→weather 多步）→ 写文件触发 ask → `/approve` 授权 → 沙箱落盘 → `/checkpoints` → `/resume` → `/artifacts`」
+- **Web 形态**：HTTP + SSE 驱动 `examples/web/server.ts` 走通「新建会话 / 对话单步+多步工具 / ask→`/api/approve`→沙箱落盘 / `/api/artifacts` / `/api/checkpoints`+`/api/resume`」
+- **CI 接入**：`.github/workflows/ci.yml` 新增 `e2e` job（`needs: quality`，跑 `npm run e2e`，自带 prebuild）；Desktop 形态 CI 默认跳过
+- **MockProvider 写文件意图（配套）**：`packages/mock/src/mock.ts` 新增「写文件」意图，使 demo/Mock 可触发 `demo_write_file` 的 ask→approve→沙箱写入链路（此前规则模型从不调用该工具，演示能力实际不可达）
+
+### Added（M6-17）
+- `scripts/e2e/lib.mjs`、`scripts/e2e/cli.mjs`、`scripts/e2e/web.mjs`、`scripts/e2e/desktop.mjs`、`scripts/e2e/run-all.mjs`
+- 根脚本：`e2e`、`e2e:cli`、`e2e:web`、`e2e:desktop`、`pree2e`（自动 build）
+
+### Changed（M6-17）
+- `.github/workflows/ci.yml`：新增 `e2e` job
+- `packages/mock/src/mock.ts`：新增写文件意图（让 ask 审批链路在 Mock 下可达）
+
+**验收**：`npm run e2e` 两形态全流程通过（14 步全绿）；`npm run ci` 全绿；`npm run coverage:gate` 通过；`check:api` 0 差异。
+
+---
+
 **M6-16 · 覆盖率门禁（P2.3）**（2026-09-08）：
 
 - **口径修正**：`scripts/coverage.mjs` 增加 `--test-coverage-include=src/**|dist/**`，覆盖率**只统计本包**。首测（M6-14）把依赖包的 `dist` 计入本包，导致数值严重失真——`policy/permission.js` 实际 98.17% 却被 `types/dist/*.js` 拉低到 34.65%，`artifact/artifact.js` 实际 100% 被拉低到 35.18%

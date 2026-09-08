@@ -1,7 +1,7 @@
 {
   "name": "@agent-runtime/core",
   "version": "0.2.0",
-  "description": "C2 engine package of the Agent runtime: run loop, agent, context, tools, events, session, store and providers. Depends only on @agent-runtime/types.",
+  "description": "C2 engine package of the Agent runtime: AgentRuntime run loop, agent recipe, run context, EventBus, tool/model contracts and the zero-dependency MemoryStorage/FileStorage, plus a facade re-exporting types/memory/artifact/sandbox/policy. Session & provider backends live in sibling packages. Depends only on @agent-runtime/types.",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",

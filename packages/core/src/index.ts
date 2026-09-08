@@ -50,9 +50,10 @@ export type {
 // ---- Facade re-exports (M6 批次 B4) ----
 // core 收窄为聚合出口：以下能力已外置为独立包，此处统一 re-export；宿主既可
 // 从 `@agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。
-//   · C3 @agent-runtime/memory  —— SessionMemory / ArtifactManager
-//   · C4 @agent-runtime/sandbox —— LocalSandbox / classifyToolName / isPathAllowed
-//   · C5 @agent-runtime/policy  —— PermissionManager / DefaultPermissionPolicy
+//   · C3 @agent-runtime/memory   —— SessionMemory / Checkpoint（ToolSurface 契约）
+//   ·    @agent-runtime/artifact —— ArtifactManager（自 memory 拆出，M6 P1 审查 P1）
+//   · C4 @agent-runtime/sandbox  —— LocalSandbox / classifyToolName / isPathAllowed
+//   · C5 @agent-runtime/policy   —— PermissionManager / DefaultPermissionPolicy
 // 注：C6 mcp 不在此 re-export —— 其依赖方向为 mcp → core，core 反向引用会形成
 // 循环，请直接 `import { McpRegistry } from "@agent-runtime/mcp"`。
 export * from "@agent-runtime/memory";

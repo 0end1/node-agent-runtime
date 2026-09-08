@@ -8,6 +8,16 @@
 
 ## [Unreleased]
 
+**M6-12 · 包元数据名实对齐**（2026-09-08，split 分支）：修正拆包（M6-9 / M6-10）后残留的过时描述——`@agent-runtime/memory` 的产物职责已归 `@agent-runtime/artifact`、`@agent-runtime/core` 已不含 session 与 provider 实现，两个包的 `description` 与 core facade 注释块同步至真实构成（memory = SessionMemory + Checkpoint/ToolSurface 契约；artifact 独立一行；core = 引擎 + 聚合出口）。
+**验收**：纯描述/注释变更，无代码与公共 API 变化；`npm run typecheck` 绿，`npm run check:api` 0 差异。
+
+### Changed（M6-12）
+- `packages/memory/package.json`：description 去掉 ArtifactManager，改为 SessionMemory + checkpoint 设施，并注明产物归属 `@agent-runtime/artifact`
+- `packages/core/package.json`：description 改为引擎真实构成（run loop / agent / context / EventBus / tool-model 契约 / 零依赖默认存储 / facade），去掉 session、providers
+- `packages/core/src/index.ts`：facade 注释块对齐实际转发——memory 行改为 SessionMemory / Checkpoint（ToolSurface 契约），新增 `@agent-runtime/artifact` 独立行
+
+---
+
 **M6 · P1 审查归档（Docs，2026-09-08，split 分支）**：将 `docs/p1-review.md` 的 7+1 主题审查结论与 M6-9~M6-11 整改事实回填至架构决策文档，形成发布（Gate 4）前置的单一核对入口，并补齐审查中要求的防腐明示。
 **交付**：`docs/architecture.md` v1.9 修订——§10 现状注记更新为 12 个 workspace 包视图（依赖方向、core 1005 行、事件可注入），§11 M6 行补 Gate 1 关闭与审查整改闭环，§13 追加 v1.9 行；`docs/api-surface.md` §1 补 types 防腐红线（只许契约声明 + 零 IO 纯函数）；新增 `docs/final-review.md`（最终审查与封板核对总表：7 项主题 + MCP-as-Tools，含决策证据出处与复核命令）。
 **验收**：纯文档变更，无代码 / 公共 API 变化，`npm run check:api` 不受影响。

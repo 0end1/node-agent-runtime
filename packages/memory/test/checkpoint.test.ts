@@ -4,16 +4,18 @@ import { describe, it } from "node:test";
 import {
   Agent,
   AgentRuntime,
-  CheckpointMismatchError,
-  CheckpointStore,
   MemoryStorage,
-  computeToolsHash,
   defineTool,
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
 } from "@agent-runtime/core";
+import {
+  CheckpointMismatchError,
+  CheckpointStore,
+  computeToolsHash,
+} from "@agent-runtime/memory";
 import { SessionError, SessionManager } from "@agent-runtime/host";
 import { builtinTools } from "@agent-runtime/tools-basic";
 

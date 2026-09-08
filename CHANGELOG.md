@@ -8,6 +8,27 @@
 
 ## [Unreleased]
 
+**M6-10 · P1 审查整改（P2）**（2026-09-08，split 分支）：收尾 `docs/p1-review.md` 的 P2 级建议。
+**P2-a checkpoint 归位**：`checkpoint.ts` 解耦 `Agent` 类——新增结构化契约 `ToolSurface { name, tools }` 取代 `computeToolsHash(agent: Agent)` / `assertResumable(ckpt, agent)` 对引擎类的依赖（`Agent` 结构上兼容，现有调用点无需改写）；随后迁入 C3 `@agent-runtime/memory`，测试随迁。core 由 1146 → **1005 行**，且因 facade 转发 memory，**从 core 导入 Checkpoint 符号仍可用（非破坏性）**。
+**P2-b 事件总线可注入**：`AgentRuntimeOptions.events?` 与 `SessionManagerOptions.events?` 支持宿主创建并注入 `EventBus`（默认仍自建/复用 runtime 总线）；host 内部统一改用 `this.events`，不再借用 `runtime.events` 内部构件。
+**P2-c 快照复核脚本化**：⏸ 未实施，随 P2（工程护栏）的 CI 作业落地。
+**验收**：`npm run typecheck` 绿；全仓 `npm test` 0 fail（types 4 / memory 19 / artifact 8 / sandbox 13 / policy 13 / core 21+1skip / tools-basic 2 / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+
+### Added（M6-10）
+- `AgentRuntimeOptions.events` / `SessionManagerOptions.events` / `SessionManager.events`：宿主可注入并持有事件总线
+- `@agent-runtime/memory`：`CheckpointStore` 等 9 个 Checkpoint 符号 + `ToolSurface` 契约
+
+### Changed（M6-10）
+- `packages/core/src/checkpoint.ts` → `packages/memory/src/checkpoint.ts`（解耦 `Agent` 后归位 C3）
+- `packages/core/src/index.ts`：移除自身 Checkpoint 导出（改由 facade 转发 memory）
+- `packages/host/src/session.ts`：11 处事件发布改用 `this.events`；Checkpoint 导入改从 memory
+
+### Docs（M6-10）
+- `docs/api-surface.md`：按 12 包重新冻结（memory 14 / core 49 + 5 转发 / core 1005 行）
+- `docs/p1-review.md`：P2 项状态更新
+
+---
+
 **M6-9 · P1 审查整改（P0 + P1）**（2026-09-08，split 分支）：依据 `docs/p1-review.md` 执行架构整改，解决「core 过重」「为拆包而人为分层」两类问题。
 **P0 演示资产外置**：`MockProvider` → 新包 `@agent-runtime/mock`；`builtinTools` / `calculator` / `CURRENCY_ALIASES` / `CurrencyCode` / `evaluate` → 新包 `@agent-runtime/tools-basic`；core 移除对应实现与导出（公共面 -5、**1804 → 1146 行，-36%**）。
 **P1-a 工具分类下沉**：`classifyToolName` / `toolKind` 由 sandbox 下沉 C1（`types/src/tools.ts`，属工具元数据推断而非执行域），sandbox 以 re-export 保持 API 不变；`mcp` 因此去掉对 sandbox 的依赖（现只依赖 core + types）。

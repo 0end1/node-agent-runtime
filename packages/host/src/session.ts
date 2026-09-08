@@ -1,15 +1,19 @@
 // C8 host：只依赖 core 的引擎 API 与外置能力包（方向单向，core 不反向依赖 host）。
 import {
   AgentRuntime,
+  EventBus,
+  defineAgent,
+  type Agent,
+  type RunResult,
+  type RuntimeEvent,
+  type StepSnapshot,
+} from "@agent-runtime/core";
+import {
   CheckpointStore,
   assertResumable,
   computeToolsHash,
-  defineAgent,
-  type Agent,
   type Checkpoint,
-  type RunResult,
-  type StepSnapshot,
-} from "@agent-runtime/core";
+} from "@agent-runtime/memory";
 import {
   classifyToolName,
   toolKind as kindOfTool,
@@ -117,6 +121,12 @@ export interface SessionManagerOptions {
   sandboxMode?: SandboxMode;
   /** M3: declared write/network domain (defaults to cwd, no network). */
   scope?: SandboxScope;
+  /**
+   * Event bus the session publishes lifecycle events to. Defaults to the
+   * runtime's bus; inject one (and pass the same bus to `AgentRuntime`) to let
+   * the host own the bus — M6 P1 review, P2.
+   */
+  events?: EventBus<RuntimeEvent>;
 }
 
 /** Thrown when an operation targets a session in a state that forbids it. */
@@ -132,6 +142,7 @@ export class SessionManager {
   private readonly storage: Storage;
   private readonly agents = new Map<string, Agent>();
   private readonly now: () => number;
+  readonly events: EventBus<RuntimeEvent>;
   /** M2: step snapshots backing `resume()`. */
   readonly checkpoints: CheckpointStore;
   /** M3: governance — authorization decisions for tool calls. */
@@ -148,13 +159,14 @@ export class SessionManager {
     this.runtime = options.runtime;
     this.storage = options.storage;
     this.now = options.now ?? (() => Date.now());
+    this.events = options.events ?? options.runtime.events;
     this.checkpoints =
       options.checkpoints ?? new CheckpointStore({ storage: this.storage, now: this.now });
     this.sandbox =
       options.sandbox ??
       new LocalSandbox({
         onWrite: (info) =>
-          this.runtime.events.emit({
+          this.events.emit({
             type: "sandbox:write",
             runId: info.runId ?? "",
             ...(info.sessionId ? { sessionId: info.sessionId } : {}),
@@ -165,7 +177,7 @@ export class SessionManager {
             ok: info.ok,
           }),
       });
-    this.permission = options.permission ?? new PermissionManager({ events: this.runtime.events });
+    this.permission = options.permission ?? new PermissionManager({ events: this.events });
     this.artifacts =
       options.artifacts ?? new ArtifactManager({ storage: this.storage, now: this.now });
     this.sandboxMode = options.sandboxMode ?? "workspace-write";
@@ -207,7 +219,7 @@ export class SessionManager {
       updatedAt: t,
     };
     await this.storage.saveDoc("session", session.id, session);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "session:created",
       sessionId: session.id,
       agentId: session.agentId,
@@ -230,12 +242,12 @@ export class SessionManager {
     if (session.status === "closed") return session;
     const updated: Session = { ...session, status: "closed", updatedAt: this.now() };
     await this.storage.saveDoc("session", id, updated);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "session:updated",
       sessionId: id,
       status: updated.status,
     });
-    this.runtime.events.emit({ type: "session:closed", sessionId: id });
+    this.events.emit({ type: "session:closed", sessionId: id });
     return updated;
   }
 
@@ -307,7 +319,7 @@ export class SessionManager {
       updatedAt: t,
     };
     await this.storage.saveDoc("task", task.id, task);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "task:created",
       taskId: task.id,
       sessionId,
@@ -412,7 +424,7 @@ export class SessionManager {
       appendUserMessage: Boolean(continuation?.trim()),
       signal: options.signal,
       onRunStart: (runId) =>
-        this.runtime.events.emit({
+        this.events.emit({
           type: "checkpoint:restored",
           checkpointId: checkpoint.id,
           runId,
@@ -523,7 +535,7 @@ export class SessionManager {
         agentSnapshot: { agentId: agent.name, toolsHash },
       });
       checkpointId = checkpoint.id;
-      this.runtime.events.emit({
+      this.events.emit({
         type: "checkpoint:saved",
         checkpointId: checkpoint.id,
         runId,
@@ -656,7 +668,7 @@ export class SessionManager {
     const relaxed: Session = { ...session, status: "idle", updatedAt: finishedAt };
     await this.storage.saveDoc("session", session.id, relaxed);
     this.busy.delete(session.id);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "session:updated",
       sessionId: session.id,
       status: "idle",
@@ -689,7 +701,7 @@ export class SessionManager {
   private async setSessionStatus(session: Session, status: SessionStatus): Promise<void> {
     const updated: Session = { ...session, status, updatedAt: this.now() };
     await this.storage.saveDoc("session", session.id, updated);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "session:updated",
       sessionId: session.id,
       status,
@@ -700,7 +712,7 @@ export class SessionManager {
     const clean = title.length > 24 ? title.slice(0, 24) + "…" : title;
     const updated: Session = { ...session, title: clean, updatedAt: this.now() };
     await this.storage.saveDoc("session", session.id, updated);
-    this.runtime.events.emit({
+    this.events.emit({
       type: "session:updated",
       sessionId: session.id,
       title: clean,
@@ -716,7 +728,7 @@ export class SessionManager {
   }
 
   private emitTaskStatus(task: Task): void {
-    this.runtime.events.emit({
+    this.events.emit({
       type: "task:status",
       taskId: task.id,
       sessionId: task.sessionId,

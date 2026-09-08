@@ -11,7 +11,7 @@
 | 审查项 | 判定 | 一句话结论 |
 |---|---|---|
 | 包间反向依赖 | ✅ 通过 | 依赖图无环；core 内部模块**只依赖 types**（子包引用仅出现在 `index.ts` 的 facade 转发与注释） |
-| core 是否过重 | ⚠️ **偏重** | 1804 行中 **656 行（36%）是演示资产**（MockProvider 306 + builtin/calculator 350），引擎本体仅约 1150 行 |
+| core 是否过重 | ✅ **已整改** | 原 1804 行（其中 656 行演示资产）→ 整改后 **1005 行（累计 -44%）**：演示资产外置（mock / tools-basic）+ checkpoint 归位 C3 |
 | host 是否越界 | ✅ 基本合理 | 纯编排（会话/任务 + 能力装配 + 审批/产物/记忆编排），**唯一越界点：直接借用 `runtime.events` 发会话事件** |
 | memory / sandbox / policy 解耦 | ✅ 真实解耦 | 三者均只依赖 types（policy→sandbox 为 **type-only**）；但存在职责外溢（见下） |
 | MCP 是 Runtime 还是扩展 | ⚠️ **扩展能力，但依赖偏重** | 依赖 core（`defineTool`）+ sandbox（`classifyToolName`），后者是"工具分类"而非"执行域"，属多余耦合 |
@@ -101,12 +101,14 @@ core 导出 61 项并 facade 转发 4 包，其中含 4 个演示资产符号（
 | P0 外置演示资产 | ✅ | 新增 `@agent-runtime/mock`、`@agent-runtime/tools-basic`；**core 1804 → 1146 行（-36%）**，公共面去掉 5 个演示符号 |
 | P1 `classifyToolName` 下沉 | ✅ | 下沉至 C1 `types/src/tools.ts`；sandbox re-export 保持 API 不变；**mcp 去掉 sandbox 依赖**（现只依赖 core + types） |
 | P1 memory/artifact 名实不符 | ✅ | 拆出独立包 `@agent-runtime/artifact`；memory 导出 13 → 5，一包一职责 |
-| P2 checkpoint 解耦 `Agent` | ⏸ 未做 | 留待后续窗口（需 checkpoint API 形态调整） |
-| P2 事件总线反转注入 | ⏸ 未做 | 同上（runtime/host 构造参数变更） |
-| P2 快照复核脚本化 | ⏸ 未做 | 随 P2 的 CI 作业落地 |
+| P2 checkpoint 解耦 `Agent` | ✅ 已完成 | 新增 `ToolSurface { name, tools }` 结构化契约取代 `Agent` 类依赖；`checkpoint.ts` 迁入 C3 memory（测试随迁）。core 1146 → **1005 行**；因 facade 转发 memory，从 core 导入 Checkpoint 符号仍可用（非破坏性） |
+| P2 事件总线反转注入 | ✅ 已完成 | `AgentRuntimeOptions.events?` + `SessionManagerOptions.events?` 支持宿主注入总线；host 内部 11 处改用 `this.events`，不再借用 `runtime.events` |
+| P2 快照复核脚本化 | ⏸ 未做 | 随 P2（工程护栏）的 CI 作业 `api-surface` 落地 |
 
 **整改后依赖方向**：`types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, host, mcp, provider-openai, store-sqlite}`（12 个 workspace 包，单向无环）。
-**验收**：typecheck 绿；全仓 `npm test` 0 fail。`docs/api-surface.md` 已按整改后状态**重新冻结**。
+**P2 追加结果（2026-09-08）**：checkpoint 解耦 `Agent`（新增 `ToolSurface` 结构化契约）后归位 C3 memory，事件总线改为可注入 —— core 进一步由 1146 → **1005 行**（相对整改前 1804 行累计 **-44%**）。
+
+**验收**：typecheck 绿；全仓 `npm test` 0 fail（types 4 / memory 19 / artifact 8 / sandbox 13 / policy 13 / core 21+1skip / tools-basic 2 / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。`docs/api-surface.md` 已按整改后状态**重新冻结**（12 包）。
 
 ---
 

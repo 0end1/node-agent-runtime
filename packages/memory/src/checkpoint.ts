@@ -1,5 +1,4 @@
-import type { Agent } from "./agent.js";
-import type { Storage } from "@agent-runtime/types";
+import type { AnyTool, Storage } from "@agent-runtime/types";
 import type { ChatMessage, RunUsage } from "@agent-runtime/types";
 import { newId } from "@agent-runtime/types";
 
@@ -15,6 +14,16 @@ import { newId } from "@agent-runtime/types";
  * The engine stays checkpoint-agnostic: it only exposes a per-step snapshot
  * hook (`RunOptions.onStepEnd`); everything here is host-side persistence.
  */
+
+/**
+ * Minimal structural view of an agent recipe used for checkpoint fingerprinting.
+ * Structured typing (not the `Agent` class) keeps this module independent of the
+ * engine, so it can live outside the core (M6 P1 review, P2).
+ */
+export interface ToolSurface {
+  name: string;
+  tools: readonly AnyTool[];
+}
 
 export interface AgentSnapshot {
   agentId: string;
@@ -105,7 +114,7 @@ export class CheckpointStore {
  * independent). A resume refuses to replay a checkpoint whose tools have
  * changed, because the transcript would no longer match the recipe.
  */
-export function computeToolsHash(agent: Agent): string {
+export function computeToolsHash(agent: ToolSurface): string {
   const canonical = JSON.stringify({
     tools: [...agent.tools]
       .map((tool) => ({ name: tool.name, parameters: tool.parameters ?? null }))
@@ -115,7 +124,7 @@ export function computeToolsHash(agent: Agent): string {
 }
 
 /** Guard a resume: the recipe that produced the checkpoint must still match. */
-export function assertResumable(checkpoint: Checkpoint, agent: Agent): void {
+export function assertResumable(checkpoint: Checkpoint, agent: ToolSurface): void {
   const hash = computeToolsHash(agent);
   if (hash !== checkpoint.agentSnapshot.toolsHash) {
     throw new CheckpointMismatchError(

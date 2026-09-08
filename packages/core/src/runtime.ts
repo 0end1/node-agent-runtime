@@ -26,6 +26,11 @@ export interface AgentRuntimeOptions {
   provider: ModelProvider;
   /** Optional console logger for server-side traces. */
   logger?: (line: string) => void;
+  /**
+   * Optional event bus to publish to. Injecting one lets the host own the bus
+   * (instead of the runtime creating it internally) — M6 P1 review, P2.
+   */
+  events?: EventBus<RuntimeEvent>;
 }
 
 /**
@@ -124,12 +129,13 @@ const DEFAULT_CONVERSATION = "default";
  */
 export class AgentRuntime {
   readonly provider: ModelProvider;
-  readonly events = new EventBus<RuntimeEvent>();
+  readonly events: EventBus<RuntimeEvent>;
   private readonly logger?: (line: string) => void;
 
   constructor(options: AgentRuntimeOptions) {
     this.provider = options.provider;
     this.logger = options.logger;
+    this.events = options.events ?? new EventBus<RuntimeEvent>();
   }
 
   /** Subscribe to all runtime lifecycle events. */

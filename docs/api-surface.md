@@ -1,20 +1,20 @@
 # 公共 API 冻结快照（M6 · P1.6 + 审查整改）
 
-> 记录时间：2026-09-08（split 分支；P1 审查整改后重新冻结）
+> 记录时间：2026-09-08（split 分支；P1 审查整改 P0/P1/P2 后重新冻结）
 > 定位：M6 **P1 的 Gate 1 退出项** —— 冻结各 workspace 包的对外导出面，作为后续兼容性评审基线。
 > 提取方式：TypeScript 编译器解析各包 `dist/index.d.ts`（`npm run build` 后）与 `packages/types/dist/*.d.ts`，符号按字母序排列。
-> 修订：2026-09-08 依 `docs/p1-review.md` 完成 P0/P1 整改后刷新（core 1804 → 1146 行、演示资产外置、artifact 独立、工具分类下沉 C1）。
+> 修订轨迹：2026-09-08 依 `docs/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）。
 
 ## 0. 总览
 
 | 包 | 版本 | 导出符号数 | 角色 |
 |---|---|---|---|
 | `@agent-runtime/types` | 0.2.0 | 7 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
-| `@agent-runtime/memory` | 0.2.0 | 5 | C3 会话记忆（已剥离产物） |
-| `@agent-runtime/artifact` | 0.2.0 | 8 | 产物管理（M6 审查后独立） |
+| `@agent-runtime/memory` | 0.2.0 | 14 | C3 会话记忆 + Checkpoint（步级快照/续跑校验） |
+| `@agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@agent-runtime/policy` | 0.2.0 | 15 | C5 授权决策 |
-| `@agent-runtime/core` | 0.2.0 | 56（+ 5 个 `export *` 转发） | C2 引擎（1146 行）+ facade |
+| `@agent-runtime/core` | 0.2.0 | 49（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
 | `@agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
@@ -29,11 +29,11 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 ```
 
 > `core` 以 facade 方式 `export *` 转发 types / memory / artifact / sandbox / policy；**host 与 mcp 不被 core 反向 re-export**（二者依赖 core，反向会成环），宿主须直接从对应包导入。
-> `tools-basic` / `mock` 为**演示资产**（依赖 core，不被 core 依赖），已从 core 移出以收窄引擎与公共面。
+> `tools-basic` / `mock` 为**演示资产**（依赖 core，不被 core 依赖），已移出 core 以收窄引擎与公共面。
 
 ---
 
-## 1. `@agent-runtime/types`（C1 · 契约）
+## 1. `@agent-runtime/types`（C1 · 契约，零依赖）
 
 | 子模块 | 导出 |
 |---|---|
@@ -47,23 +47,26 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
 
-## 2. `@agent-runtime/core`（C2 · 引擎 + facade，1146 行）
+## 2. `@agent-runtime/core`（C2 · 引擎 + facade，1005 行）
 
-**引擎与运行时**：`AgentRuntime`、`RunAbortedError`、`AgentRuntimeOptions`、`RunOptions`、`RunResult`、`StepSnapshot`、`EventBus`
-**Agent**：`Agent`、`defineAgent`、`DEFAULT_AGENT_INSTRUCTIONS`、`AgentOptions`
+**引擎与运行时**：`AgentRuntime`、`AgentRuntimeOptions`、`RunAbortedError`、`RunOptions`、`RunResult`、`StepSnapshot`、`EventBus`
+**Agent**：`Agent`、`AgentOptions`、`defineAgent`、`DEFAULT_AGENT_INSTRUCTIONS`
 **Context**：`buildRunContext`、`RunContext`、`RunContextSeed`
-**Checkpoint**：`CheckpointStore`、`CheckpointMismatchError`、`computeToolsHash`、`assertResumable`、`Checkpoint`、`AgentSnapshot`、`CheckpointSeed`
 **Storage 实现**：`MemoryStorage`、`FileStorage`
 **工具契约**：`defineTool`、`findDuplicateToolNames`、`ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`
 **模型**：`ModelProvider`、`ModelRequest`、`ModelResponse`、`RawToolCall`、`FinishReason`、`ModelRequestError`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
-**facade 转发**：`export *` → `@agent-runtime/types`、`@agent-runtime/memory`、`@agent-runtime/artifact`、`@agent-runtime/sandbox`、`@agent-runtime/policy`
+**facade 转发**：`export *` → `@agent-runtime/types`、`@agent-runtime/memory`（含 Checkpoint）、`@agent-runtime/artifact`、`@agent-runtime/sandbox`、`@agent-runtime/policy`
 
-> 已移出（破坏性变更）：`SessionManager` / `SessionError` / Session·Task 类型 → `host`；MCP 全部 → `mcp`；`MockProvider` → `mock`；`builtinTools` / `evaluate` / `CURRENCY_ALIASES` / `CurrencyCode` → `tools-basic`。
+> **事件总线可注入（2026-09-08）**：`AgentRuntimeOptions.events?: EventBus<RuntimeEvent>` —— 宿主可创建并注入总线（默认仍自建）。配合 `SessionManagerOptions.events`，host 不再需要借用 `runtime.events` 内部构件。
+> 已移出：`SessionManager` / `SessionError` / Session·Task 类型 → `host`；MCP 全部 → `mcp`；`MockProvider` → `mock`；`builtinTools` / `evaluate` / `CURRENCY_ALIASES` / `CurrencyCode` → `tools-basic`；Checkpoint 全部 → `memory`（经 facade 转发，从 core 导入仍可用）。
 
-## 3. `@agent-runtime/memory`（C3）
+## 3. `@agent-runtime/memory`（C3 · 记忆 + Checkpoint）
 
-`SessionMemory`、`Memory`、`MemoryFact`、`MemoryRecall`、`SessionMemoryOptions`
+**会话记忆**：`SessionMemory`、`Memory`、`MemoryFact`、`MemoryRecall`、`SessionMemoryOptions`
+**Checkpoint（M2）**：`CheckpointStore`、`CheckpointStoreOptions`、`CheckpointMismatchError`、`computeToolsHash`、`assertResumable`、`Checkpoint`、`CheckpointSeed`、`AgentSnapshot`、`ToolSurface`
+
+> `ToolSurface`（`{ name, tools }` 结构化契约）取代原先对 `Agent` 类的依赖，使本包仅依赖 types。
 
 ## 4. `@agent-runtime/artifact`
 
@@ -88,6 +91,8 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 ## 9. `@agent-runtime/host`（C8）
 
 `SessionManager`、`SessionManagerOptions`、`SessionError`、`Session`、`SessionStatus`、`Task`、`TaskStatus`、`RunRecord`、`RunStatus`、`ChatOutcome`
+
+> `SessionManager.events` 为公开只读字段（宿主注入或复用 runtime 总线）。
 
 ## 10. `@agent-runtime/mcp`（C6）
 
@@ -114,4 +119,4 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 **评审流程**：提出变更 → 在 PR 中标注 `BREAKING` 并说明影响面与迁移方式 → 更新本表对应行 + `CHANGELOG.md` → 合并。
 
-**快照复核**：每次发布前用同一提取方式重新生成并与本表比对（差异即为待评审项）；建议脚本化后纳入 P2 的 CI 作业 `api-surface`。
+**快照复核**：每次发布前用同一提取方式重新生成并与本表比对（差异即为待评审项）；建议脚本化后纳入 P2 的 CI 作业 `api-surface`（尚未实施）。

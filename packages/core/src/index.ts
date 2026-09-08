@@ -43,14 +43,9 @@ export type {
 // 反向 re-export（会成环），请改从新包导入：
 //   import { SessionManager } from "@agent-runtime/host";
 
-// ---- Memory & checkpoint (M2) ----
-export {
-  CheckpointStore,
-  CheckpointMismatchError,
-  computeToolsHash,
-  assertResumable,
-} from "./checkpoint.js";
-export type { Checkpoint, AgentSnapshot, CheckpointSeed } from "./checkpoint.js";
+// ---- Checkpoint (M2) ----
+// 已随 C3 归位到 `@agent-runtime/memory`（M6 P1 审查 P2：解耦 `Agent` 类后不再依赖引擎）；
+// 经 facade `export * from "@agent-runtime/memory"` 转发，从 core 导入仍然可用。
 
 // ---- Facade re-exports (M6 批次 B4) ----
 // core 收窄为聚合出口：以下能力已外置为独立包，此处统一 re-export；宿主既可

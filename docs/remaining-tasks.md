@@ -3,16 +3,16 @@
 > 记录时间：2026-09-07（M5 产品化阶段收尾）
 > 定位：**总池索引**，汇总现阶段全部遗留/未决任务，供下一开发阶段取用。
 > 事实源：执行级细节仍以各自清单文档为准——`docs/m5-productization.md`（#5 验收移交）、`docs/crate-split-todo.md`（拆包批次与验收标准）、`docs/crate-architecture.md` §8（待决清单）、`docs/architecture.md` §11（路线图 M5 行待标 ✅）。任务完成时：**勾选源清单 + 回填本文状态行，双处同步**。
-> **决策与执行状态（截至 M6-14，2026-09-08）**：C1~C4 四项开放决策已全部落定（见 §3「决策结论」列）；C1 经重评由「不拆」**修订为「拆 host」**，B1~B4 拆包批次全部完成（M6-7）。M6-9~11 自查整改进一步将 C3 的 Artifact 实现拆为独立包 `@agent-runtime/artifact`、把 B3 暂留 core 的 checkpoint 归位 memory、外置 mock/tools-basic，形成 **12 包终局**。本池去向：A1→P5 / A2→P2.4 / A3→P2 / A4→P6；B1~B4→P1（✅）；D2→P3.8；D1/D3 维持远期。**A3（质量门总闸）已于 M6-14 由 P2.6 吸收完成**（`npm run ci` = typecheck+lint+test+coverage+`check:api`，并固化进 `.github/workflows/ci.yml`）；**A2（跨形态 E2E）已于 M6-17 完成**（CLI + Web 全流程脚本化并接入 CI `e2e` job）；余 A1 / A4 仍 ☐。
+> **决策与执行状态（截至 M6-14，2026-09-08）**：C1~C4 四项开放决策已全部落定（见 §3「决策结论」列）；C1 经重评由「不拆」**修订为「拆 host」**，B1~B4 拆包批次全部完成（M6-7）。M6-9~11 自查整改进一步将 C3 的 Artifact 实现拆为独立包 `@agent-runtime/artifact`、把 B3 暂留 core 的 checkpoint 归位 memory、外置 mock/tools-basic，形成 **12 包终局**。本池去向：A1→P5 / A2→P2.4 / A3→P2 / A4→P6；B1~B4→P1（✅）；D2→P3.8；D1/D3 维持远期。**A3（质量门总闸）已于 M6-14 由 P2.6 吸收完成**（`npm run ci` = typecheck+lint+test+coverage+`check:api`，并固化进 `.github/workflows/ci.yml`）；**A2（跨形态 E2E）已于 M6-17 完成**（CLI + Web 全流程脚本化并接入 CI `e2e` job）；**A1→P5.1 ⏳**（验收脚本就绪，待签名后实机复验，M6-25）；**A4→P6.3 ✅**（2026-09-09，`architecture.md` §11 M6 行更新 + §13 v1.10）；D2 已由 P3.8 拉近完成；D1/D3 维持远期（D3 中"可采纳"机制已在参考文档标注，见 P6.6）。
 
 ## 0. 总览
 
 | 组 | 编号 | 任务 | 来源 | 状态 |
 |---|---|---|---|---|
-| A 验收收口 | A1 | 安装/分发实机验证（.app 双击、dmg 安装） | m5 #5 | ☐ |
+| A 验收收口 | A1 | 安装/分发实机验证（.app 双击、dmg 安装） | m5 #5 | ⏳（2026-09-09，M6-25 → P5.1）：`npm run verify:desktop` 已脚本化（结构 / Resources 三件套 / `codesign` / `spctl` / dmg 挂载 / 可选 `--launch` 探活）；现产物缺 sidecar `node-<triple>` 需重打，`spctl` rejected，待 P5.2 签名后完成实机复验 |
 | A 验收收口 | A2 | 自动化 E2E（桌面 demo 全流程脚本化） | m5 #5 / architecture §11 M5 验收 | ✅（2026-09-08，M6-17）：跨形态 E2E 落地——`scripts/e2e/`（CLI + Web 验证通过、CI `e2e` job 接入；Desktop 默认跳过）；流程含 新建会话→对话→审批 ask→approve 落盘→artifact→续跑 |
 | A 验收收口 | A3 | 质量门总闸：`npm run typecheck` + `npm test` 全绿 | m5 §6 | ✅（2026-09-08，M6-14）：由 M6 P2.6 吸收完成——`npm run ci`（typecheck + lint + test + coverage + `check:api`，12 包）一键全绿，并纳入 `.github/workflows/ci.yml` |
-| A 验收收口 | A4 | `architecture.md` §11 M5 行补 ✅（含修订记录 v1.7） | architecture §11 | ☐ |
+| A 验收收口 | A4 | `architecture.md` §11 M5/M6 行补 ✅（含修订记录） | architecture §11 | ✅（2026-09-09，M6-26 → P6.3）：§11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」，§13 新增 v1.10（M6-P2~P6 收尾） |
 | B 拆包批次 | B1 | 批次 1：C6 `@agent-runtime/mcp` | crate-split-todo §3/§4 | ✅ |
 | B 拆包批次 | B2 | 批次 2：C8 `@agent-runtime/host`（先决 C4） | crate-split-todo §3/§4 | ✅（C1 决策重评为「拆」，2026-09-07 完成） |
 | B 拆包批次 | B3 | 批次 3：C3 memory；C4 sandbox + C5 policy（视 C2 分/合） | crate-split-todo §3/§4 | ✅ |
@@ -26,7 +26,7 @@
 | D 远期 | D3 | 参考文档机制采纳（codex / deepseek harness） | codex/deepseek 参考文档 | ☐（远期） |
 
 > 建议顺序：**C 决策先行 → A1~A4 验收收口 → B 拆包**；C1 决定 B2/B3 是否可拆干净，应在拆包动工前落定。
-> 当前状态：C1~C4 已定、B1~B4 已全部完成（M6-7），M6-9~11 自查整改闭环（12 包终局，见 `crate-split-todo.md` 归档注记）；**A3 质量门总闸已于 M6-14 完成**（P2.6 `npm run ci` + CI 编排）；**A2 跨形态 E2E 已于 M6-17 完成**（P2.4 `scripts/e2e/` + CI `e2e` job）；余下 A1→P5、A4→P6 仍 ☐。
+> 当前状态：C1~C4 已定、B1~B4 已全部完成（M6-7），M6-9~11 自查整改闭环（12 包终局，见 `crate-split-todo.md` 归档注记）；**A3 质量门总闸已于 M6-14 完成**（P2.6 `npm run ci` + CI 编排）；**A2 跨形态 E2E 已于 M6-17 完成**（P2.4 `scripts/e2e/` + CI `e2e` job）；A1→P5.1 ⏳（验收脚本就绪，待签名后实机复验）；A4→P6.3 ✅（2026-09-09 完成）。
 
 ---
 
@@ -34,10 +34,10 @@
 
 | # | 任务 | 说明 | 验收口径 |
 |---|---|---|---|
-| A1 | 安装/分发实机验证 | 双击 `target/release/bundle/macos/Agent Runtime Console.app` 确认窗口渲染 + 控制台全流程可用；`dmg` 安装到 `/Applications` 后再次验证。产物在本地（gitignore，不入库）；打包所需 `src-tauri/binaries/` 已在收尾时清理，重打前由 `npm run tauri build`（`beforeBuildCommand` 走 `build-server.mjs`）自动重建 | m5 §6 Desktop 验收 |
+| A1 | 安装/分发实机验证 | 双击 `target/release/bundle/macos/Agent Runtime Console.app` 确认窗口渲染 + 控制台全流程可用；`dmg` 安装到 `/Applications` 后再次验证。产物在本地（gitignore，不入库）；打包所需 `src-tauri/binaries/` 已在收尾时清理，重打前由 `npm run tauri build`（`beforeBuildCommand` 走 `build-server.mjs`）自动重建 | m5 §6 Desktop 验收 · ⏳ **2026-09-09 部分完成（M6-25 → P5.1）**：`npm run verify:desktop` 已脚本化（结构 / Resources 三件套 / `codesign -dv` / `spctl --assess` / dmg 挂载 / 可选 `--launch` 对 :8787 探活）；实跑发现现产物缺 sidecar `node-<triple>`（需重打）且未签名（`spctl` rejected），签名与公证（P5.2）待证书后完成双击与 /Applications 复验 |
 | A2 | 自动化 E2E | 桌面 demo 全流程（新建会话 → 对话 → 审批 ask → approve 落盘 + `sandbox:write` diff → artifact → 续跑）脚本化。M2/M3/M4 核心验收已自动化于包测试，本项补**跨形态（CLI/Web/Desktop）端到端**走查 | architecture §11 M5 验收 · ✅ **2026-09-08 完成（M6-17）**：`scripts/e2e/`（CLI + Web 全流程 + CI `e2e` job；Desktop 需 Tauri/Rust，默认跳过） |
 | A3 | 质量门总闸 | 全量 `npm run typecheck` + `npm test`（types + core + provider-openai + store-sqlite）跑绿一次，作为阶段完成基线 | m5 §6 · ✅ **2026-09-08 完成（M6-14）**：升级为 `npm run ci`（typecheck + lint + test + coverage + `check:api`，12 包全覆盖）并纳入 CI，`npm run ci` 本地一键全绿 |
-| A4 | 路线图回填 | A1~A3 通过后：`architecture.md` §11 M5 行标 ✅、§13 修订记录新增 v1.7；`CHANGELOG.md` 追加条目（同一 commit） | architecture §11/§13 约定 |
+| A4 | 路线图回填 | A1~A3 通过后：`architecture.md` §11 M5 行标 ✅、§13 修订记录新增 v1.7；`CHANGELOG.md` 追加条目（同一 commit） | architecture §11/§13 约定 · ✅ **2026-09-09 完成（M6-26 → P6.3）**：§11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」，§13 新增 v1.10（M6-P2~P6 收尾），与 `docs/m6-productionization.md` 状态一致 |
 
 ---
 

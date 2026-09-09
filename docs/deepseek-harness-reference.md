@@ -3,6 +3,11 @@
 > 入库日期：2026-09-06（来源为官方 GitHub 仓库主页/README + 官方文档站 `deepseek-harness.github.io/deepseek-harness/` 的 reference 子系统页；个别二手综述仅作线索并已显式标注，**实现时一律以官方仓库源码与文档为准**）
 > 范围：**仅作参考文档入库**（`docs/deepseek-harness-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
 > 开源对象：`deepseek-ai/deepseek-harness`（MIT）。DeepSeek 于 2026-08-13 随 V4 Pro 同日发布 **v0.1 developer preview**（Technical Preview）——开源的正是 **Agent 运行层（harness/runtime）**，不是模型。
+>
+> **采纳复核（P6.6，2026-09-09）**：
+> - **已采纳**：「沙箱 × 审批预设 + 可持久化切档」→ P3.7 默认安全策略包与 P3.3 `always` 白名单持久化；「能力即插件子系统」→ 插件化包边界（tools-basic / mock / mcp / provider-openai / store-sqlite）与 P4.5 的 `core`/`types` peer 边界；配置分层诉求 → P3.8 `loadConfig()`（env > 默认 + 特性开关）。
+> - **可采纳（列入 next）**：① Cordis 式插件生命周期与依赖注入（**轻量采纳**：只用于宿主装配层，不引入框架）；② UI 插件化 —— Web 控制台按工具 `kind` 定制渲染卡片（当前为通用 JSON 视图）；③ 配置 schema 校验与类型推导（现为手写校验，可生成 schema）。
+> - **不采纳**：整体迁移 Cordis 插件模型 —— 生态绑定成本高，与本项目"零运行时依赖"取舍冲突。
 
 ---
 

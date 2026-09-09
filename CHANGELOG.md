@@ -8,6 +8,13 @@
 
 ## [Unreleased]
 
+**M6-26 · 路线图回填与文档收敛（P6.3~P6.6）**（2026-09-09）：
+
+- **P6.3 路线图回填**：`docs/architecture.md` §11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」（附各 Gate 完成批次与 P5 受阻说明）；§13 修订记录新增 v1.10（M6-P2~P6 收尾：质量门 / 可观测与安全 / 发布工程 / 分发部署 / 治理文档）
+- **P6.4 文档收敛**：`docs/remaining-tasks.md` 双处同步 —— A1 ⏳（由 P5.1 承接：验收脚本就绪、待签名后实机复验）、A4 ✅（由 P6.3 完成）、D2 ✅ 已拉近、D1/D3 维持远期
+- **P6.5 CHANGELOG**：M6 各批次条目随 commit 追加（M6-18 … M6-26）
+- **P6.6 参考机制复核**：`docs/codex-reference.md` 与 `docs/deepseek-harness-reference.md` 各加「采纳复核」注记 —— 已采纳 / 可采纳（列入 next）/ 不采纳三分类
+
 **M6-25 · 桌面形态发布工程（P5.1~P5.4，部分受阻）**（2026-09-09）：
 
 - **Fixed（硬阻塞）**：`examples/desktop-tauri/src-tauri/build-server.mjs` 缺失，而 `tauri.conf.json` 的 `beforeBuildCommand` 指向它（打包必然失败）—— 补齐：esbuild bundle `examples/web/server.ts` → `binaries/agent-server.js`（ESM，附 `package.json` 声明 `type: module`，不依赖 Node 模块语法探测）、复制 `public/`、准备 sidecar `node-<target-triple>`（支持 `NODE_BIN` 交叉编译）；新增 `npm run build:sidecar` 与 esbuild devDependency；实测 bundle 启动后 `/healthz` 返回 200

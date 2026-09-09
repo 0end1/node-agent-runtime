@@ -138,12 +138,14 @@
 |---|---|---|---|---|
 | P6.1 | 治理文件 | `CONTRIBUTING.md`（PR/分支/质量门约定）、`SECURITY.md`（漏洞报告渠道） | 文件入库，README 链接 | ✅（2026-09-09，M6-23）：`CONTRIBUTING.md`（质量门/分支/changeset/API 面冻结/PR 清单）+ `SECURITY.md`（私密报告渠道、响应目标、范围与排除项、部署安全默认值）；README「参与贡献」已链接 |
 | P6.2 | README 生产用法 | 安装/升级/配置/观测/发布指引节 + badges（CI/coverage/version/license） | 新用户按 README 可完成接入 | ✅（2026-09-09，M6-23）：badges（CI/Release/coverage/node/license）+「安装（作为依赖消费）」+「生产用法（配置 · 观测 · 安全）」三节；环境变量表、观测与安全默认、发布升级流程齐备 |
-| P6.3 | 路线图回填（吸收 A4） | `architecture.md` §11 新增 M6 行并标 ✅；§13 修订记录 v1.8 | 与本文状态一致 | ☐ |
-| P6.4 | 文档收敛 | 用本文更新 `remaining-tasks.md` 状态（A/B/C 收口，D2 已拉近，D1/D3 留远期） | 双源无漂移 | ☐ |
-| P6.5 | CHANGELOG 阶段条目 | Unreleased 记 **M6 生产级改造** 段落（分批随 commit 追加） | 代码与条目同 commit | ☐ |
-| P6.6 | 参考机制复核（吸收 D3 部分） | codex/deepseek-harness 参考中与可观测/成本/UI 相关的机制标注"可采纳"，列入 next | 参考文档加采纳注记 | ☐ |
+| P6.3 | 路线图回填（吸收 A4） | `architecture.md` §11 新增 M6 行并标 ✅；§13 修订记录 v1.8 | 与本文状态一致 | ✅（2026-09-09，M6-26）：`docs/architecture.md` §11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」，§13 修订记录新增 v1.10 |
+| P6.4 | 文档收敛 | 用本文更新 `remaining-tasks.md` 状态（A/B/C 收口，D2 已拉近，D1/D3 留远期） | 双源无漂移 | ✅（2026-09-09，M6-26）：`docs/remaining-tasks.md` 同步 —— A1 ⏳（→P5.1，验收脚本就绪待签名）、A4 ✅（→P6.3）、D2 ✅、D1/D3 维持远期；顶部决策段与 §1 明细双处更新 |
+| P6.5 | CHANGELOG 阶段条目 | Unreleased 记 **M6 生产级改造** 段落（分批随 commit 追加） | 代码与条目同 commit | ✅（持续，M6-18~M6-26）：`CHANGELOG.md` `[Unreleased]` 按批次（M6-18 … M6-26）随 commit 追加，本批即 M6-26 条目 |
+| P6.6 | 参考机制复核（吸收 D3 部分） | codex/deepseek-harness 参考中与可观测/成本/UI 相关的机制标注"可采纳"，列入 next | 参考文档加采纳注记 | ✅（2026-09-09，M6-26）：`codex-reference.md` 与 `deepseek-harness-reference.md` 各加「采纳复核（P6.6）」——已采纳（执行边界/审批预设/会话持久化/插件化包边界/配置分层）、可采纳列入 next（token 计量与上下文压缩、traceId/OTEL、CLI TUI 审批、宿主装配轻量 DI、UI 按工具 kind 渲染）、不采纳（整体迁移 Cordis、绑 OpenAI 模型面） |
 
 **Gate 6 退出标准**：仓库从"clone → npm ci → npm run ci → npm run demo:xxx"全链路有据可查；治理与文档齐备；可对外开源发布。
+
+> **进度（2026-09-09，M6-26）**：P6.1~P6.6 全部完成，**Gate 6 关闭**。治理文件（`CONTRIBUTING.md` / `SECURITY.md`）与 README 生产用法（badges、安装、配置/观测/安全、发布升级、贡献入口）齐备；路线图与遗留清单双源已回填一致（`architecture.md` §11/§13 v1.10、`remaining-tasks.md`）；CHANGELOG 随批 commit（M6-18~M6-26）；参考机制完成采纳复核。全链路可复现：`npm ci` → `npm run ci`（typecheck/lint/test/coverage:gate/check:api/size）→ `npm run demo:cli|web` → `npm run smoke:web` / `npm run verify:desktop`。
 
 ---
 

@@ -3,6 +3,11 @@
 > 入库日期：2026-09-05（来源为 codex-rs 结构解析文章 + 官方 README/文档，均为二手整理，实现时以仓库源码为准）
 > 范围：**仅作参考文档入库**（`docs/codex-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
 > 开源对象：`openai/codex`（Apache-2.0），`codex-rs/` 下约 136 个 crate。开源的是**本地 harness**（Agent 循环、本地沙箱、审批、会话持久化）；codex-1 模型 / 云端并行 Agent / 云托管沙箱不在其中。
+>
+> **采纳复核（P6.6，2026-09-09）**：
+> - **已采纳**：执行边界（命令/网络/路径 + 三档模式）→ M3 `LocalSandbox` + P3.7 生产预设 `createProductionDefaults`；审批预设与超时即拒 → M3 `PermissionManager` + P3.3 审批审计与 `always` 白名单持久化；会话持久化与续跑 → M1 `Storage` + M2 `Checkpoint`/`resume`。
+> - **可采纳（列入 next）**：① token/成本计量与上下文压缩（`maxCostUsd` 现依赖宿主 cost 钩子，可内置 token 计量 + 自动 compact）；② 可观测追踪（事件总线 + 结构化日志已落地，可加 `traceId`/span 与 OTEL 导出）；③ CLI 侧 TUI 审批交互（Web 审批卡片已覆盖，CLI 仍是文本提示）。
+> - **不采纳**：模型面绑 OpenAI、云端并行 Agent、Rust 巨石 crate 结构 —— 与本项目"可切模型 / 产品解耦"目标相反。
 
 ---
 

@@ -123,10 +123,10 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P5.1 | 桌面实机验证（吸收 A1） | 双击 `.app` 验证 + `dmg` 安装到 /Applications 复验全流程 | 验收报告入库（勾选 m5 §6） | ☐ |
-| P5.2 | macOS 签名 + 公证 | Developer ID 签名 + notarization 接入 `tauri build` | `spctl --assess` 通过、Gatekeeper 无告警 | ☐ |
-| P5.3 | 三平台构建矩阵 | CI 出 `.app`/`.dmg` + `.msi`/`.exe` + `.AppImage`/`.deb`（Linux 与 Windows 首次打通，含 sidecar node 三平台三元组） | 每平台产物可装可跑 | ☐ |
-| P5.4 | 自动更新（可选门） | Tauri updater 签名密钥 + 更新端点（GitHub Release） | 旧版→新版升级链路验证 | ☐ |
+| P5.1 | 桌面实机验证（吸收 A1） | 双击 `.app` 验证 + `dmg` 安装到 /Applications 复验全流程 | 验收报告入库（勾选 m5 §6） | ⏳ 部分（2026-09-09，M6-25）：`npm run verify:desktop`（`scripts/verify-desktop.mjs`）已能给出结构/签名/Gatekeeper/dmg 结论；实跑发现旧产物缺 sidecar `node-<triple>` 且未签名，需重打并经 P5.2 签名后完成双击与 /Applications 复验 |
+| P5.2 | macOS 签名 + 公证 | Developer ID 签名 + notarization 接入 `tauri build` | `spctl --assess` 通过、Gatekeeper 无告警 | ⏳ 待证书（2026-09-09，M6-25）：`desktop.yml` 已接入 `APPLE_*` 签名与公证变量，README 给出 `codesign`/`spctl` 验收命令；需提供 Developer ID 证书与 Apple 账号 secrets 后实跑 |
+| P5.3 | 三平台构建矩阵 | CI 出 `.app`/`.dmg` + `.msi`/`.exe` + `.AppImage`/`.deb`（Linux 与 Windows 首次打通，含 sidecar node 三平台三元组） | 每平台产物可装可跑 | ⏳ 配置就绪（2026-09-09，M6-25）：三平台矩阵 workflow 已入库（macOS/Linux/Windows，含 sidecar 三元组与交叉编译 `NODE_BIN` 说明）；首次 CI 实跑与"可装可跑"复验待执行 |
+| P5.4 | 自动更新（可选门） | Tauri updater 签名密钥 + 更新端点（GitHub Release） | 旧版→新版升级链路验证 | ⏳ 待做（2026-09-09，M6-25）：CI 侧更新包签名（`TAURI_SIGNING_PRIVATE_KEY`）已就位；Rust 侧 `tauri-plugin-updater` 接入、updater 配置与前端入口待下一步（可选门） |
 | P5.5 | store-sqlite 生产基线 | schema 版本/迁移、WAL、索引（按 session/task 查询路径）；备份与恢复说明 | 大会话量查询耗时达标；迁移脚本可重复 | ✅（2026-09-09，M6-24）：`SCHEMA_VERSION`=2 存于 `PRAGMA user_version`，前向迁移幂等可重复（版本过高直接报错）；v2 表达式索引覆盖 session/task/run 与 `decidedAt`，`listDocs` 索引字段下推 SQL；`backup()` 走 `VACUUM INTO`；测试含 1k 记录规模查询耗时断言 |
 | P5.6 | Web 部署形态样例 | Dockerfile / systemd + 反代示例；环境分层（dev/staging/prod）配置样例 | 容器内启动 → :8787 服务探活通过 | ✅（2026-09-09，M6-24）：`deploy/` 提供 Dockerfile（非 root + HEALTHCHECK）、compose（含 nginx edge profile）、systemd、nginx（SSE `proxy_buffering off`）、dev/staging/prod 环境分层与部署说明；新增 `GET /healthz` 与 `npm run smoke:web`（本地等价验证已通过，容器内 healthcheck 复用同一端点） |
 

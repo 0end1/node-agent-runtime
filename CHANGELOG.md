@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+**M6-25 · 桌面形态发布工程（P5.1~P5.4，部分受阻）**（2026-09-09）：
+
+- **Fixed（硬阻塞）**：`examples/desktop-tauri/src-tauri/build-server.mjs` 缺失，而 `tauri.conf.json` 的 `beforeBuildCommand` 指向它（打包必然失败）—— 补齐：esbuild bundle `examples/web/server.ts` → `binaries/agent-server.js`（ESM，附 `package.json` 声明 `type: module`，不依赖 Node 模块语法探测）、复制 `public/`、准备 sidecar `node-<target-triple>`（支持 `NODE_BIN` 交叉编译）；新增 `npm run build:sidecar` 与 esbuild devDependency；实测 bundle 启动后 `/healthz` 返回 200
+- **P5.1（⏳ 部分）**：新增 `scripts/verify-desktop.mjs` 与 `npm run verify:desktop`（产物结构 / Resources 三件套 / `codesign -dv` / `spctl --assess` / dmg 挂载 / 可选 `--launch` 探活）；实跑结论：现有 `.app`/`.dmg` 是脚本缺失期间的旧产物，`Resources/` 缺 sidecar node 且未签名（`spctl` rejected），需重打并经 P5.2 签名后完成实机验收
+- **P5.2（⏳ 待证书）**：`.github/workflows/desktop.yml` 接入 Apple 签名与公证环境变量（证书不入库）；README 补签名公证步骤与 `spctl` 验收命令
+- **P5.3（⏳ 待首次 CI）**：新增三平台构建矩阵 workflow（macOS `.app`/`.dmg`、Linux `.AppImage`/`.deb`、Windows `.msi`/`.exe`；tag `v*` 或手动触发，上传 artifact + draft Release）；README 说明 sidecar 三元组与交叉编译 `NODE_BIN`
+- **P5.4（可选门，待做）**：CI 侧 `TAURI_SIGNING_PRIVATE_KEY` 更新包签名已就位；Rust 侧 `tauri-plugin-updater` 接入、updater 配置与前端入口待下一步
+
 **M6-24 · 生产存储基线与 Web 部署形态（P5.5 / P5.6）**（2026-09-09）：
 
 - **P5.5 store-sqlite 生产基线**：schema 版本化（导出 `SCHEMA_VERSION` = 2，存于 `PRAGMA user_version`），`MIGRATIONS` 前向迁移幂等可重复（数据库版本高于程序支持时直接报错）；v2 新增表达式索引（session/task/run 查询路径 + 审计 `decidedAt` 排序），`listDocs` 把索引字段下推到 SQL（白名单字段 + 预编译语句缓存），其余走内存过滤；新增 `backup()`（`VACUUM INTO` 在线快照，拒绝覆盖）；开启 WAL 与 `synchronous=NORMAL`

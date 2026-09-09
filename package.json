@@ -45,6 +45,7 @@
     "e2e:web": "node scripts/e2e/run-all.mjs --only=web",
     "e2e:desktop": "E2E_DESKTOP=1 node scripts/e2e/run-all.mjs --only=desktop",
     "smoke:web": "node scripts/smoke-web.mjs",
+    "verify:desktop": "node scripts/verify-desktop.mjs",
     "check:api": "tsx scripts/check-api-surface.ts",
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
     "size": "node scripts/size-report.mjs",

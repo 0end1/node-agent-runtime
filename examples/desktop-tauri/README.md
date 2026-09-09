@@ -56,7 +56,7 @@ npm run build          # = tauri build
 ```
 
 `beforeBuildCommand`（`build-server.mjs`）在打包前生成三样产物到 `src-tauri/binaries/`：
-- `agent-server.js` —— `examples/web/server.ts` 经 esbuild 打成的自包含 CJS 单文件
+- `agent-server.js` —— `examples/web/server.ts` 经 esbuild 打成的自包含 ESM 单文件（同目录 `package.json` 声明 `type: module`，不依赖 Node 的模块语法探测）
 - `node-<triple>` —— 当前 Node 运行时副本（**app 自带，不依赖目标机安装 Node**）
 - `public/` —— 控制台静态资源
 
@@ -78,6 +78,59 @@ release 构建时 `lib.rs` 的 `spawn_server` 通过 `tauri-plugin-shell` 的 si
 已验证：用 app 自带 `node` + bundle 实跑，`GET :8787 → 200`。
 
 > `src-tauri/binaries/` 已被 `.gitignore` 忽略（含 ~110MB Node 副本，不入库）。
+
+## 发布工程（P5）
+
+### 产物验收（P5.1）
+
+`npm run verify:desktop` 把"双击 .app / dmg 安装复验"变成可复跑的检查（macOS）：
+
+```bash
+node scripts/verify-desktop.mjs            # 结构 + 签名 + Gatekeeper + dmg 挂载
+node scripts/verify-desktop.mjs --launch   # 额外拉起 .app 并对 :8787 探活
+node scripts/verify-desktop.mjs --json     # 机器可读输出
+```
+
+检查项：`.app` 与可执行文件、`Resources/` 含 sidecar 三件套（`agent-server.js`、`public/`、`node-<triple>`）、`Info.plist`、`codesign -dv` 签名状态、`spctl --assess` Gatekeeper 结论、dmg 可挂载且内含 `.app` 与 `Applications`。
+
+> 现状（2026-09-09）：仓库里的 `.app`/`.dmg` 是在 `build-server.mjs` 缺失期间打出的旧产物——`Resources/` 缺 sidecar `node-<triple>`，且未签名（`spctl` rejected）。补齐脚本后需重新 `npm run build` 才能得到真正可跑的产物；完整实机验收（双击无 Gatekeeper 告警）依赖下节签名与公证。
+
+### 签名与公证（P5.2）
+
+`tauri build` 经环境变量启用，证书与账号信息一律不入库：
+
+| 变量 | 用途 |
+| --- | --- |
+| `APPLE_CERTIFICATE` / `APPLE_CERTIFICATE_PASSWORD` | Developer ID Application 证书（base64 后的 `.p12`） |
+| `APPLE_SIGNING_IDENTITY` | 签名身份，如 `Developer ID Application: Name (TEAMID)` |
+| `APPLE_ID` / `APPLE_PASSWORD` / `APPLE_TEAM_ID` | 公证提交账号（密码用 App 专用密码） |
+
+本地验收：
+
+```bash
+codesign -dv --verbose=4 "target/release/bundle/macos/Agent Runtime Console.app"
+spctl --assess --type execute --verbose=2 "target/release/bundle/macos/Agent Runtime Console.app"  # 期望 accepted
+```
+
+CI：`.github/workflows/desktop.yml` 读取同名 secrets；未配置时 tauri-action 跳过签名（产物仍会 rejected）。
+
+### 三平台构建矩阵（P5.3）
+
+`.github/workflows/desktop.yml` 在 push tag `v*` 或手动触发时构建三平台产物并上传 artifact（draft Release）：
+
+| 平台 | 产物 |
+| --- | --- |
+| macOS | `.app` / `.dmg` |
+| Linux | `.AppImage` / `.deb` |
+| Windows | `.msi` / `.exe` |
+
+sidecar Node 由 `build-server.mjs` 准备：同 OS 构建同平台产物时复用当前解释器；**交叉编译必须**用 `NODE_BIN` 指向目标平台的 node 二进制（如 macOS 上出 x64 包需 `NODE_BIN=<x64 node>` + `--target x86_64-apple-darwin`）。
+
+### 自动更新（P5.4，可选门）
+
+CI 已就位：`TAURI_SIGNING_PRIVATE_KEY`（+ 可选密码）用于为更新包签名，产物随 GitHub Release 发布，可作为 updater 的更新端点。
+
+剩余步骤（待做）：Cargo 侧接入 `tauri-plugin-updater`、在 `tauri.conf.json` 配 `plugins.updater.endpoints/pubkey`、`capabilities` 放行 `updater:default`，并在前端加"检查更新"入口。
 
 ## 与拆包（C8 host）的关系
 

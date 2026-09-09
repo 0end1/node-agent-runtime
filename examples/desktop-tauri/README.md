@@ -128,9 +128,41 @@ sidecar Node 由 `build-server.mjs` 准备：同 OS 构建同平台产物时复�
 
 ### 自动更新（P5.4，可选门）
 
-CI 已就位：`TAURI_SIGNING_PRIVATE_KEY`（+ 可选密码）用于为更新包签名，产物随 GitHub Release 发布，可作为 updater 的更新端点。
+链路已接齐：`examples/web` 控制台仅以 HTTP 交互，因此更新能力不引前端 npm 依赖，而是
+由 Rust 侧自定义命令（`lib.rs` 的 `check_update` / `install_update`）暴露，前端通过
+Tauri 注入的 IPC 调用。
 
-剩余步骤（待做）：Cargo 侧接入 `tauri-plugin-updater`、在 `tauri.conf.json` 配 `plugins.updater.endpoints/pubkey`、`capabilities` 放行 `updater:default`，并在前端加"检查更新"入口。
+- `src-tauri/Cargo.toml`：`tauri-plugin-updater`
+- `tauri.conf.json`：`plugins.updater`（`endpoints` 指向 GitHub Release 的
+  `latest/download/latest.json`，`pubkey` 来自本仓库生成的签名密钥对）；
+  `bundle.createUpdaterArtifacts: true`（构建即产出可发布的更新包）
+- `src-tauri/capabilities/default.json`：控制台以 `http://localhost:8787` 的 remote
+  origin 加载，此处放行该 origin 的 IPC
+- `examples/web/public/index.html`：标题栏「检查更新 → 下载并安装」入口，点击后
+  依次调用 `check_update` / `install_update`（应用安装完成后自动重启）；
+  仅 Tauri 壳内显示（检测 `window.__TAURI_INTERNALS__`），浏览器直开无该入口
+
+本地签名密钥对在 `src-tauri/.tauri/`（该目录被根 `.gitignore` 忽略，私钥绝不入库）：
+
+| 文件 | 用途 |
+| --- | --- |
+| `.tauri/console.key` | 私钥 —— 构建更新包时经 `TAURI_SIGNING_PRIVATE_KEY` 提供 |
+| `.tauri/console.key.pub` | 公钥 —— 内容已填入 `tauri.conf.json` 的 `plugins.updater.pubkey` |
+
+`createUpdaterArtifacts: true` 意味着**打包时即需签名**，本地构建与 CI 的 tag 发布都必须注入私钥（可为私钥文件路径或内容）：
+
+```bash
+cd examples/desktop-tauri
+export TAURI_SIGNING_PRIVATE_KEY="$PWD/.tauri/console.key"   # 或直接写私钥内容
+# export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="..."            # 生成密钥时若设置过密码
+npm run build
+```
+
+> - 换机/换 CI 后需把私钥导入仓库 Secrets（`TAURI_SIGNING_PRIVATE_KEY`），否则
+>   `tauri build` 会在 updater 签名阶段失败。
+> - macOS 自动更新同时依赖 P5.2 的 Developer ID 签名与公证；未签名产物无法完成更新安装。
+> - 首次发 tag（`v*`，触发 `.github/workflows/desktop.yml`）把更新包连同 `latest.json`
+>   发布到 GitHub Release 后，即可在旧版本应用中点「检查更新」走通「旧版 → 新版」链路。
 
 ## 与拆包（C8 host）的关系
 

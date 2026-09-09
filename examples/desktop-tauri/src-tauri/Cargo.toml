@@ -15,5 +15,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+# P5.4 自动更新（可选门）：Rust 侧以自定义命令暴露 check/install，前端无需额外 npm 包
+tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

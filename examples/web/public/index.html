@@ -57,6 +57,15 @@
     padding: 4px 10px; border-radius: 999px;
     font-family: var(--mono);
   }
+  /* P5.4 自动更新入口（仅 Tauri 桌面壳显示） */
+  .badge.upd {
+    cursor: pointer; color: #9fd8f5; border-color: #24425f;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .badge.upd:hover { border-color: #3b6a97; background: #16283f; }
+  .badge.upd[data-state="busy"] { color: var(--warn); border-color: #7c5a1c; }
+  .badge.upd[data-state="ok"] { color: var(--ok); border-color: #1c3a31; }
+  .badge.upd[data-state="err"] { color: var(--err); border-color: #4a2326; }
   .status {
     display: flex; align-items: center; gap: 7px;
     font-size: 12px; color: var(--muted);
@@ -296,6 +305,7 @@
   </div>
   <div class="status-wrap">
     <span class="badge" id="provider">connecting…</span>
+    <span class="badge upd" id="updater" hidden>检查更新</span>
     <span class="status" id="status"><span class="dot"></span><span id="statusText">就绪</span></span>
   </div>
 </header>
@@ -757,6 +767,70 @@ function setBusy(v) {
   input.disabled = v;
   if (v) { input.placeholder = "Agent 正在思考…"; }
   else { input.placeholder = "输入消息，Enter 发送，Shift+Enter 换行"; input.focus(); }
+}
+
+// ---- P5.4 自动更新入口（仅桌面壳） -----------------------------------------
+// Web 控制台本身是纯 HTTP 应用，浏览器直开时没有 Tauri IPC；仅当运行在
+// desktop-tauri 壳内（window.__TAURI_INTERNALS__ 由 Tauri 注入）时显示入口。
+// 复用 Rust 侧自定义命令（lib.rs 的 check_update / install_update），
+// 因此前端无需引入 @tauri-apps/plugin-updater 依赖。
+const updEl = $("updater");
+const inTauri = !!(window.__TAURI_INTERNALS__ && window.__TAURI_INTERNALS__.invoke);
+let updBusy = false;
+let updInstalled = false;
+let updPending = null; // check_update 返回 { available, currentVersion, version, notes }
+
+function updView(state, text, title) {
+  updEl.dataset.state = state;
+  updEl.textContent = text;
+  updEl.title = title || "";
+}
+
+async function checkUpdates() {
+  if (updBusy || updInstalled) return;
+  updBusy = true;
+  updView("busy", "检查更新…");
+  try {
+    const info = await window.__TAURI_INTERNALS__.invoke("check_update");
+    updPending = info.available ? info : null;
+    if (info.available) {
+      updView("", "发现新版本 v" + info.version,
+        "点击下载并安装 v" + info.version + "，完成后应用自动重启");
+    } else {
+      updView("ok", "已是最新 v" + info.currentVersion, "再次点击可重新检查");
+    }
+  } catch (err) {
+    updPending = null;
+    updView("err", "更新检查失败", "原因：" + String((err && err.message) || err));
+  } finally {
+    updBusy = false;
+  }
+}
+
+async function installUpdates() {
+  if (updBusy || !updPending || updInstalled) return;
+  const v = updPending.version;
+  if (!window.confirm("将下载并安装 Agent Runtime Console v" + v + "，完成后应用会自动重启以生效。是否继续？")) return;
+  updBusy = true;
+  updInstalled = true;
+  updView("busy", "正在下载并安装 v" + v + " …");
+  try {
+    await window.__TAURI_INTERNALS__.invoke("install_update"); // 成功后进程重启，一般不会返回
+  } catch (err) {
+    updInstalled = false;
+    updView("err", "安装失败", "原因：" + String((err && err.message) || err));
+  } finally {
+    updBusy = false;
+  }
+}
+
+if (inTauri) {
+  updEl.hidden = false;
+  updEl.title = "检查是否有新版本";
+  updEl.addEventListener("click", () => {
+    if (updPending) installUpdates();
+    else checkUpdates();
+  });
 }
 
 // ---- wiring --------------------------------------------------------------

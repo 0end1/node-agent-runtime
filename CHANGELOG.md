@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+**M6-27 · 桌面自动更新接入（P5.4，可选门）**（2026-09-09）：
+
+- **P5.4 自动更新链路接齐**：Rust 侧接入 `tauri-plugin-updater`（`examples/desktop-tauri/src-tauri/Cargo.toml`），以自定义命令暴露 `check_update` / `install_update`（`lib.rs`，前端无需引入 `@tauri-apps/plugin-updater`）；`tauri.conf.json` 配 `plugins.updater`（endpoints → GitHub Release `latest/download/latest.json`、pubkey）与 `bundle.createUpdaterArtifacts`
+- **capabilities**：新增 `src-tauri/capabilities/default.json`，放行控制台 remote origin（`http://localhost:8787`）的 IPC（应用自定义命令无需额外 permission）
+- **控制台入口**：`examples/web/public/index.html` 标题栏新增「检查更新 → 下载并安装」徽标入口（`data-state` busy/ok/err 反馈、安装前二次确认、成功后应用自动重启）；仅 Tauri 壳内显示（检测 `window.__TAURI_INTERNALS__`），浏览器直开不可见
+- **密钥与文档**：签名密钥对已生成于 `examples/desktop-tauri/.tauri/`（根 `.gitignore` 新增 `.tauri/`，私钥绝不入库；公钥已写入 conf）；desktop-tauri README 记录本地签名密钥与「构建/发布必须注入 `TAURI_SIGNING_PRIVATE_KEY`」要求；`docs/m6-productionization.md` P5.4 状态更新为「代码与配置就绪」
+- **测试/验证**：`cargo check` 通过（修复 updater API 字段 `notes`→`body`、`restart()` 后的不可达代码）；`tauri.conf.json` 与 capabilities JSON 语法校验通过；旧版→新版实机链路待首次 tag 发布（依赖 P5.2 签名与公证）后验证
+
 **M6-26 · 路线图回填与文档收敛（P6.3~P6.6）**（2026-09-09）：
 
 - **P6.3 路线图回填**：`docs/architecture.md` §11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」（附各 Gate 完成批次与 P5 受阻说明）；§13 修订记录新增 v1.10（M6-P2~P6 收尾：质量门 / 可观测与安全 / 发布工程 / 分发部署 / 治理文档）

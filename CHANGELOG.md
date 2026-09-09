@@ -8,6 +8,12 @@
 
 ## [Unreleased]
 
+**M6-23 · 治理文件与 README 生产用法（P6.1 / P6.2）**（2026-09-09）：
+
+- **P6.1 治理文件**：新增 `CONTRIBUTING.md`（环境与 `npm run ci` 收口、仓库结构与包职责、分支 `main`/`dev`/`apps` 与 Conventional Commits、changeset 要求、质量门六项口径、API 面冻结与体积基线流程、PR 清单、维护者发版命令）与 `SECURITY.md`（支持版本、GitHub Security Advisories / 邮件私密渠道、响应目标、安全范围与排除项、生产部署安全默认值清单）
+- **P6.2 README 生产用法**：新增 CI / Release / coverage / node / license badges；新增「安装（作为依赖消费）」节（包组合、Node `>=22.13`、core 与 types 的 peer 边界、产物自带 `.d.ts`、统一版本升级）；新增「生产用法（配置 · 观测 · 安全）」节（`loadConfig` 与环境变量表、结构化日志 / 稳定错误码 / 事件流观测、安全默认 `createProductionDefaults` 与 Web/MCP/审批加固点、维护者发布升级流程）；新增「参与贡献」入口（CONTRIBUTING / SECURITY / LICENSE）；修正"12 包均 private"的过期表述
+- **Docs**：`docs/m6-productionization.md` P6.1 / P6.2 勾选
+
 **M6-22 · SDK 发布工程（P4.1~P4.6，Gate 4）**（2026-09-08）：
 
 - **P4.1 LICENSE**：新增根 `LICENSE`（MIT，Copyright (c) 2026 wangzhiyong）并分发至 12 个包；各包 `license: "MIT"`

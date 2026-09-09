@@ -136,8 +136,8 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P6.1 | 治理文件 | `CONTRIBUTING.md`（PR/分支/质量门约定）、`SECURITY.md`（漏洞报告渠道） | 文件入库，README 链接 | ☐ |
-| P6.2 | README 生产用法 | 安装/升级/配置/观测/发布指引节 + badges（CI/coverage/version/license） | 新用户按 README 可完成接入 | ☐ |
+| P6.1 | 治理文件 | `CONTRIBUTING.md`（PR/分支/质量门约定）、`SECURITY.md`（漏洞报告渠道） | 文件入库，README 链接 | ✅（2026-09-09，M6-23）：`CONTRIBUTING.md`（质量门/分支/changeset/API 面冻结/PR 清单）+ `SECURITY.md`（私密报告渠道、响应目标、范围与排除项、部署安全默认值）；README「参与贡献」已链接 |
+| P6.2 | README 生产用法 | 安装/升级/配置/观测/发布指引节 + badges（CI/coverage/version/license） | 新用户按 README 可完成接入 | ✅（2026-09-09，M6-23）：badges（CI/Release/coverage/node/license）+「安装（作为依赖消费）」+「生产用法（配置 · 观测 · 安全）」三节；环境变量表、观测与安全默认、发布升级流程齐备 |
 | P6.3 | 路线图回填（吸收 A4） | `architecture.md` §11 新增 M6 行并标 ✅；§13 修订记录 v1.8 | 与本文状态一致 | ☐ |
 | P6.4 | 文档收敛 | 用本文更新 `remaining-tasks.md` 状态（A/B/C 收口，D2 已拉近，D1/D3 留远期） | 双源无漂移 | ☐ |
 | P6.5 | CHANGELOG 阶段条目 | Unreleased 记 **M6 生产级改造** 段落（分批随 commit 追加） | 代码与条目同 commit | ☐ |

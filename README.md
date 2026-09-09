@@ -1,5 +1,11 @@
 # Agent Runtime
 
+[![CI](https://github.com/0end1/nodeRuntime/actions/workflows/ci.yml/badge.svg)](https://github.com/0end1/nodeRuntime/actions/workflows/ci.yml)
+[![Release](https://github.com/0end1/nodeRuntime/actions/workflows/release.yml/badge.svg)](https://github.com/0end1/nodeRuntime/actions/workflows/release.yml)
+![coverage](https://img.shields.io/badge/coverage-92%25-brightgreen)
+![node](https://img.shields.io/badge/node-%3E%3D22.13.0-brightgreen)
+![license](https://img.shields.io/badge/license-MIT-blue)
+
 **文档作者：wangzhiyong** · GitHub：[0end1](https://github.com/0end1) · 联系邮箱：[y1378379002@gmail.com](mailto:y1378379002@gmail.com)
 
 一个**零第三方运行时依赖**的 TypeScript/Node.js Agent 运行时：提供模型接入层、工具系统、事件总线与**多步推理（ReAct 式）事件循环**。同一套核心即可对接任意 OpenAI 兼容模型服务，也可使用内置的免密钥 Mock Provider 在离线环境完整演示「模型决策 → 工具调用 → 结果回填 → 继续推理 → 最终回答」闭环。
@@ -18,6 +24,25 @@ npm run demo:web     # Web 控制台（SSE 实时流），然后打开 http://12
 OPENAI_API_KEY=sk-xxx npm run demo:web                    # OpenAI
 OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=deepseek-chat npm run demo:web
 ```
+
+## 安装（作为依赖消费）
+
+12 个包以 `@agent-runtime/*` 发布（P4，ESM-only）：
+
+```bash
+npm i @agent-runtime/core @agent-runtime/types     # 引擎 + 契约（core 依赖 types）
+npm i @agent-runtime/host                          # 可选：SessionManager 会话编排
+npm i @agent-runtime/provider-openai @agent-runtime/mock  # 可选：真实模型 / 免密钥 Mock
+npm i @agent-runtime/tools-basic @agent-runtime/store-sqlite  # 可选：内置工具、SQLite 存储
+```
+
+- **运行环境**：Node `>=22.13.0`（`node:sqlite` 需要），`"type": "module"`。
+- **peer 边界**：`@agent-runtime/core` 与 `@agent-runtime/types` 是插件包的 `peerDependencies`，npm 7+ 会自动安装；显式安装可锁定版本。
+- **类型**：产物自带 `.d.ts`，无需安装 `@types/node` 也能 typecheck。
+- **升级**：所有包统一版本号（changesets `fixed`），升级时保持版本一致：
+  ```bash
+  npm i @agent-runtime/core@latest @agent-runtime/host@latest   # 逐包对齐同一版本
+  ```
 
 ## 核心概念
 
@@ -114,7 +139,7 @@ const out2 = await manager.chat(s.id, "那 4 + 5 呢？");
 npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
 
 ```
-packages/                   # 12 个 npm workspace 包（均 private）；目录名即 scoped 包名，如 core → @agent-runtime/core
+packages/                   # 12 个 npm workspace 包（P4 起均可发布）；目录名即 scoped 包名，如 core → @agent-runtime/core
 ├── types/                  # C1 共享叶子包 @agent-runtime/types（零依赖）：消息/工具/事件/Storage/Artifact 契约 + schema 校验器 + 零 IO 纯函数
 │                           #   src/: artifacts · events · schema · storage · tools · types · util
 ├── memory/                 # C3 @agent-runtime/memory（依赖 types）：SessionMemory 会话记忆 + Checkpoint 步级快照（M6 外置；checkpoint M6-10 归位）
@@ -185,6 +210,70 @@ npm run build       # 逐包产出 dist/（npm test 会自动先执行它）
 npm test            # node:test（types + memory + artifact + sandbox + policy + core + tools-basic + mock + host + mcp + provider-openai + store-sqlite 逐包，覆盖事件循环/工具安全/Storage/Session/治理/产物/MCP/schema）
 ```
 
+## 生产用法（配置 · 观测 · 安全）
+
+### 配置：`loadConfig`
+
+密钥与运行参数统一由 `loadConfig()` 解析（分层：overrides > env > 默认），业务代码里不要散落 `process.env` 读取：
+
+```ts
+import { loadConfig } from "@agent-runtime/core";
+
+const cfg = loadConfig();                 // 或 loadConfig({ env, overrides })
+// cfg.provider.kind / cfg.sandbox.network / cfg.limits / cfg.mcp / cfg.features
+// 非法配置抛 ConfigError（code: config_invalid），不静默降级
+```
+
+| 环境变量 | 说明 |
+| --- | --- |
+| `OPENAI_API_KEY` / `OPENAI_BASE_URL` / `OPENAI_MODEL` | 模型端点；空串按配置错误处理，不静默回退 mock |
+| `AGENT_LOG_LEVEL` | `debug` / `info` / `warn` / `error` |
+| `AGENT_SANDBOX_NETWORK`（`deny`｜`allowlist`）+ `AGENT_SANDBOX_NETWORK_ALLOWLIST` | 沙箱网络开关与白名单 |
+| `AGENT_LIMIT_MAX_STEPS` / `MAX_DURATION_MS` / `MAX_COST_USD` / `MAX_*_TOKENS` | 运行预算，超限产 `run:error`（P3.4） |
+| `AGENT_RATE_TOOL_MAX_CALLS` + `AGENT_RATE_TOOL_WINDOW_MS` | 工具调用速率（滑动窗口） |
+| `AGENT_MCP_HTTP_ALLOWLIST` / `AGENT_MCP_STDIO_TIMEOUT_MS` / `AGENT_MCP_ENV_<NAME>` | MCP 供应链防护（防 SSRF、启动超时、凭据注入，P3.6） |
+| `AGENT_FEATURE_MCP` / `AGENT_FEATURE_SQLITE` / `AGENT_FEATURE_ARTIFACTS` | 特性开关 |
+| `AGENT_API_TOKEN` / `AGENT_CORS_ALLOW_ORIGINS` | Web 控制台鉴权与跨站白名单（P3.5） |
+
+### 观测：结构化日志 + 错误码 + 事件
+
+```ts
+import { AgentRuntime, ConsoleLogger } from "@agent-runtime/core";
+
+const runtime = new AgentRuntime({
+  provider,
+  logger: new ConsoleLogger({ level: "info" }),   // 或注入自定义 Logger
+});
+runtime.subscribe((e) => { /* run:start / tool:end / run:error … */ });
+```
+
+- 日志与事件载荷统一经 `redact()` 脱敏，密钥永不进日志与事件流（P3.2）。
+- 错误带稳定 `code`（`run_aborted`、`sandbox_violation`、`limit_exceeded`、`config_invalid`…），HTTP/CLI 用 `errorPayload(err)` 输出 `{ error: { code, message } }`（P3.1）。
+- 预算越界抛 `LimitExceededError` 并发 `run:error`（`code: limit_exceeded`），不会静默收敛（P3.4）。
+
+### 安全默认
+
+```ts
+import { createProductionDefaults } from "@agent-runtime/policy";
+
+const { policy, sandboxMode, scope } = createProductionDefaults(process.cwd());
+// 最小权限矩阵（写/exec 走 ask、credential 全域 deny）+ 锁域（禁网、仅工作区内可写）
+```
+
+- **Web 控制台**：非 loopback 监听且未设 `AGENT_API_TOKEN` 直接拒绝启动；跨站请求按白名单拦截（P3.5）。
+- **MCP**：端点须在 `AGENT_MCP_HTTP_ALLOWLIST` 内并逐跳校验重定向（防 SSRF）；子进程默认不继承宿主 env（P3.6）。
+- **审批留痕**：审批记录只存参数指纹，不复制原文；`always` 白名单可持久化（P3.3）。
+
+### 发布与升级（维护者）
+
+版本由 changesets 管理，所有包统一版本号：
+
+```bash
+npm run changeset           # 记录一次用户可见改动
+npm run version-packages    # bump 版本 + 生成 CHANGELOG
+npm run release             # 构建并发布（CI 由 release.yml 执行；tag v* 触发 provenance 发布）
+```
+
 ## 目录结构 & 设计取舍
 
 - **零运行时依赖**：HTTP 全部走 Node 18+ 全局 fetch；解析器/校验器自研，无 eval。
@@ -193,3 +282,9 @@ npm test            # node:test（types + memory + artifact + sandbox + policy +
 - **健壮性**：工具参数本地校验失败会回填错误让模型自纠；未知工具 / 工具抛异常 / 模型调用中止均有明确事件与错误传播；`maxSteps` 上限防止死循环。
 
 > 提示（M1）：CLI 与 Web demo 的会话记录持久化在 `.runtime-data/`（可经 `RUNTIME_DATA` 环境变量重定向）；Web 端浏览器固定会话 id 存于 localStorage，服务重启后同一浏览器刷新即可续聊。多端隔离可传不同 `session` 参数。
+
+## 参与贡献
+
+- 贡献指南：[CONTRIBUTING.md](CONTRIBUTING.md) —— 分支与提交约定、质量门口径、changeset 与 API 面冻结流程。
+- 安全漏洞：[SECURITY.md](SECURITY.md) —— 请走 GitHub Security Advisories 或邮件等私密渠道，勿开公开 issue。
+- 许可证：[MIT](LICENSE)

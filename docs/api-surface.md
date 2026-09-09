@@ -20,7 +20,7 @@
 | `@agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
 | `@agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
 | `@agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
-| `@agent-runtime/store-sqlite` | 0.2.0 | 2 | C9 存储后端 |
+| `@agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
 
 **依赖方向（单向无环）**：
 
@@ -110,7 +110,9 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 ## 12. `@agent-runtime/store-sqlite`（C9）
 
-`SQLiteStorage`、`SQLiteStorageOptions`
+`SQLiteStorage`、`SQLiteStorageOptions`、`SCHEMA_VERSION`
+
+> `SCHEMA_VERSION`（P5.5）随 schema 版本化一起导出：数据库版本存于 `PRAGMA user_version`，启动时自动应用缺失迁移（幂等可重复），并新增 session/task/run 与审计排序的表达式索引。
 
 ---
 

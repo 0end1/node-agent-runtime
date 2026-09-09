@@ -5,18 +5,18 @@
     "entryCount": 10
   },
   "@agent-runtime/core": {
-    "packageSize": 97707,
-    "unpackedSize": 387290,
+    "packageSize": 97696,
+    "unpackedSize": 387291,
     "entryCount": 110
   },
   "@agent-runtime/host": {
-    "packageSize": 17326,
-    "unpackedSize": 68107,
+    "packageSize": 17254,
+    "unpackedSize": 67837,
     "entryCount": 14
   },
   "@agent-runtime/mcp": {
-    "packageSize": 26116,
-    "unpackedSize": 90463,
+    "packageSize": 26119,
+    "unpackedSize": 90545,
     "entryCount": 26
   },
   "@agent-runtime/memory": {
@@ -45,8 +45,8 @@
     "entryCount": 10
   },
   "@agent-runtime/store-sqlite": {
-    "packageSize": 4664,
-    "unpackedSize": 14536,
+    "packageSize": 7289,
+    "unpackedSize": 23299,
     "entryCount": 10
   },
   "@agent-runtime/tools-basic": {
@@ -55,8 +55,8 @@
     "entryCount": 14
   },
   "@agent-runtime/types": {
-    "packageSize": 18874,
-    "unpackedSize": 58974,
+    "packageSize": 19031,
+    "unpackedSize": 59387,
     "entryCount": 46
   }
 }

@@ -127,8 +127,8 @@
 | P5.2 | macOS 签名 + 公证 | Developer ID 签名 + notarization 接入 `tauri build` | `spctl --assess` 通过、Gatekeeper 无告警 | ☐ |
 | P5.3 | 三平台构建矩阵 | CI 出 `.app`/`.dmg` + `.msi`/`.exe` + `.AppImage`/`.deb`（Linux 与 Windows 首次打通，含 sidecar node 三平台三元组） | 每平台产物可装可跑 | ☐ |
 | P5.4 | 自动更新（可选门） | Tauri updater 签名密钥 + 更新端点（GitHub Release） | 旧版→新版升级链路验证 | ☐ |
-| P5.5 | store-sqlite 生产基线 | schema 版本/迁移、WAL、索引（按 session/task 查询路径）；备份与恢复说明 | 大会话量查询耗时达标；迁移脚本可重复 | ☐ |
-| P5.6 | Web 部署形态样例 | Dockerfile / systemd + 反代示例；环境分层（dev/staging/prod）配置样例 | 容器内启动 → :8787 服务探活通过 | ☐ |
+| P5.5 | store-sqlite 生产基线 | schema 版本/迁移、WAL、索引（按 session/task 查询路径）；备份与恢复说明 | 大会话量查询耗时达标；迁移脚本可重复 | ✅（2026-09-09，M6-24）：`SCHEMA_VERSION`=2 存于 `PRAGMA user_version`，前向迁移幂等可重复（版本过高直接报错）；v2 表达式索引覆盖 session/task/run 与 `decidedAt`，`listDocs` 索引字段下推 SQL；`backup()` 走 `VACUUM INTO`；测试含 1k 记录规模查询耗时断言 |
+| P5.6 | Web 部署形态样例 | Dockerfile / systemd + 反代示例；环境分层（dev/staging/prod）配置样例 | 容器内启动 → :8787 服务探活通过 | ✅（2026-09-09，M6-24）：`deploy/` 提供 Dockerfile（非 root + HEALTHCHECK）、compose（含 nginx edge profile）、systemd、nginx（SSE `proxy_buffering off`）、dev/staging/prod 环境分层与部署说明；新增 `GET /healthz` 与 `npm run smoke:web`（本地等价验证已通过，容器内 healthcheck 复用同一端点） |
 
 **Gate 5 退出标准**：三平台 CI 产物 + 签名/公证后的 macOS 安装验证完成；生产存储与部署样例在干净环境复现成功。
 

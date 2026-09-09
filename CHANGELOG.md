@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+**M6-24 · 生产存储基线与 Web 部署形态（P5.5 / P5.6）**（2026-09-09）：
+
+- **P5.5 store-sqlite 生产基线**：schema 版本化（导出 `SCHEMA_VERSION` = 2，存于 `PRAGMA user_version`），`MIGRATIONS` 前向迁移幂等可重复（数据库版本高于程序支持时直接报错）；v2 新增表达式索引（session/task/run 查询路径 + 审计 `decidedAt` 排序），`listDocs` 把索引字段下推到 SQL（白名单字段 + 预编译语句缓存），其余走内存过滤；新增 `backup()`（`VACUUM INTO` 在线快照，拒绝覆盖）；开启 WAL 与 `synchronous=NORMAL`
+- **测试**：新增 `packages/store-sqlite/test/sqlite-baseline.test.ts` —— 迁移可重复、v2 索引存在、索引与非索引字段组合过滤结果一致、1k 记录下按 run 查询 20 次 < 500ms、备份可恢复且拒绝覆盖
+- **P5.6 Web 部署形态样例**：新增 `deploy/` —— 多阶段 `Dockerfile`（非 root + `HEALTHCHECK` 探 `/healthz`）、`docker-compose.yml`（含可选 nginx `edge` profile）、`systemd/agent-runtime.service`（最小权限）、`nginx/agent-runtime.conf`（SSE 必需的 `proxy_buffering off` 与放宽读超时）、`env/{dev,staging,prod}.env.example`、`README.md`（三种形态、环境分层表、备份恢复、生产检查清单）；控制台新增 `GET /healthz`（不经鉴权、不暴露运行时信息）；新增 `scripts/smoke-web.mjs` 与 `npm run smoke:web`（启动 → 轮询探活 → 关闭）
+- **体积基线**：`@agent-runtime/store-sqlite` 4.6 → 7.1 kB（+56.3%，P5.5 新增迁移/索引/备份代码所致，已重新冻结）
+- **Docs**：`docs/api-surface.md` 补 `SCHEMA_VERSION` 快照；`docs/m6-productionization.md` P5.5 / P5.6 勾选
+
 **M6-23 · 治理文件与 README 生产用法（P6.1 / P6.2）**（2026-09-09）：
 
 - **P6.1 治理文件**：新增 `CONTRIBUTING.md`（环境与 `npm run ci` 收口、仓库结构与包职责、分支 `main`/`dev`/`apps` 与 Conventional Commits、changeset 要求、质量门六项口径、API 面冻结与体积基线流程、PR 清单、维护者发版命令）与 `SECURITY.md`（支持版本、GitHub Security Advisories / 邮件私密渠道、响应目标、安全范围与排除项、生产部署安全默认值清单）

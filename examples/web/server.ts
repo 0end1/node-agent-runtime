@@ -285,6 +285,14 @@ function pacing(type: RuntimeEvent["type"]): number {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
+  // P5.6: 部署探活（容器 healthcheck / 负载均衡）。只回存活状态，不经鉴权，
+  // 也不暴露任何运行时信息。
+  if (url.pathname === "/healthz") {
+    res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   // P3.5: 防跨站 + 鉴权（demo 默认开放，设 AGENT_API_TOKEN / AGENT_CORS_ALLOW_ORIGINS 即收紧）。
   if (!corsGuard(req, res)) return;
   if (!csrfGuard(req, res)) return;

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-08T13:05:02.183Z",
+  "generatedAt": "2026-09-09T05:39:17.912Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@agent-runtime/types": {
@@ -293,6 +293,7 @@
     },
     "@agent-runtime/store-sqlite": {
       "symbols": [
+        "SCHEMA_VERSION",
         "SQLiteStorage",
         "SQLiteStorageOptions"
       ],

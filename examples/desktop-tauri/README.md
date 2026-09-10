@@ -1,5 +1,9 @@
 # Agent Runtime Console — Desktop (Tauri v2)
 
+> **【移出至产品侧 HANDOFF · 2026-09-10，底座收敛】** 本目录**已整体移出底座范围**：底座收敛取消桌面端，投入分层为「底座（`packages/*` 12 包）→ 验证载体（`examples/cli.ts` · `examples/web/` · `deploy/`）」，**桌面端不再属于底座的任何分类**。本目录与 P5.1~P5.4（实机验证 / 签名公证 / 三平台 CI / 自动更新）**方向与投入归产品侧**：底座侧不再新增功能、不升级 Tauri 与插件链，也不对其立项与否作判定。保留原因：作为产品侧形态候选的现成资产与回归资产。产品侧承接：`docs/product-direction.md` §4 / `docs/product-build-paths.md`；判定见 `docs/base-convergence.md` §2.3，M6 回填见 `docs/m6-productionization.md` §5。
+>
+> 以下说明为移出底座前状态，内容仍然有效，但不再随底座主线更新（由产品侧按需维护）。
+
 将 `examples/web` 控制台装入桌面窗口，作为 M5「Desktop 壳」交付物。
 技术栈：**Tauri v2**，仅依赖 `@agent-runtime/core` 公共 API（与 CLI/Web 演示同源）。
 

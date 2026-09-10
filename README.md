@@ -10,7 +10,11 @@
 
 一个**零第三方运行时依赖**的 TypeScript/Node.js Agent 运行时：提供模型接入层、工具系统、事件总线与**多步推理（ReAct 式）事件循环**。同一套核心即可对接任意 OpenAI 兼容模型服务，也可使用内置的免密钥 Mock Provider 在离线环境完整演示「模型决策 → 工具调用 → 结果回填 → 继续推理 → 最终回答」闭环。
 
+> **项目定位（2026-09-10 底座收敛）**：本项目的交付物是 `packages/*` 下的 **12 个 `@agent-runtime/*` 包**（每个都可单独 `npm i` 消费）；`examples/`（CLI · Web）与 `deploy/` 是**验证载体**——用于演示治理链路与回归验证，不承诺接口稳定；桌面壳 `examples/desktop-tauri/` 与 P5.1~P5.4 已**整体移出底座、方向归产品侧**（底座不再投入与判定）。边界、纪律与立项口径见 `docs/base-convergence.md` §2.3，产品侧承接见 `docs/product-direction.md` §4。
+
 ## 快速开始
+
+底座本身是**库**（见下节「安装」）；仓库内的 CLI 与 Web 是**验证载体**，用于最快看到治理链路（审批 → 沙箱 diff → 续跑 → artifact）：
 
 ```bash
 npm install
@@ -155,11 +159,14 @@ packages/                   # 12 个 npm workspace 包（P4 起均可发布）�
 ├── mcp/                    # C6 @agent-runtime/mcp（MCP 适配：client/jsonrpc/registry/transport/types，M6 外置）
 ├── provider-openai/        # C7 @agent-runtime/provider-openai（OpenAI 兼容 fetch 模型后端）
 └── store-sqlite/           # C9 @agent-runtime/store-sqlite（SQLiteStorage 可选存储后端，node:sqlite）
-examples/
-├── cli.ts                  # 终端交互演示（会话持久化到 .runtime-data/，M1）
-└── web/
-    ├── server.ts           # SSE 服务器（会话持久化，跨重启恢复，M1）
-    └── public/index.html   # 流式控制台前端
+examples/                   # 验证载体（不随 npm 发布，接口不承诺稳定）
+├── cli.ts                  # 最小消费者：终端交互（会话持久化到 .runtime-data/，M1）
+├── web/                    # 可视化验收面：SSE 事件流 + 审批卡片 + sandbox diff + artifact
+│   ├── server.ts           #   SSE 服务器（含鉴权/CORS/CSRF，跨重启恢复会话）
+│   └── public/index.html   #   控制台前端
+└── desktop-tauri/          # 【移出至产品侧 HANDOFF · 2026-09-10】桌面壳（P5.1~P5.4 随其移出底座，方向归产品侧）
+
+deploy/                     # 验证载体：容器化交付样例（Dockerfile · compose · systemd · nginx · env 分层）
 ```
 
 > 兼容：`@agent-runtime/core` 聚合 re-export `types` / `memory` / `artifact` / `sandbox` / `policy`，从 core 单点可拿到与拆包前一致的公共导入面；推荐新代码按需直连子包。公共导出面以 `docs/api-surface.md` 冻结快照 + `npm run check:api` 为唯一事实源。
@@ -192,7 +199,7 @@ examples/
 - **M3 治理**：`DefaultPermissionPolicy`（`ToolKind × SandboxMode` 决策矩阵）+ `PermissionManager.gate/approve/deny`（`approve({ always })` 沉淀白名单、超时即拒）；`Sandbox`（`LocalSandbox`：三档模式 + 声明域 + 网络开关 + 每调用超时 + `sandbox:write` 写可见）。宿主订阅 `permission:request` 弹审批、监听 `sandbox:write` 看变更。详见 §6.1 / §6.2。
 - **M4 外部能力**：`McpClient`（stdio / streamable HTTP）+ `McpRegistry`（远端工具物化为 `mcp__server__tool`，与本地工具同路径过校验/审批/沙箱）；`ArtifactManager`（按 session/run 存文本/文件/图表/url，随会话级联清理）。详见 §5.3 / §8.1。
 
-`examples/` 已把这些能力暴露为操作面：`examples/cli.ts`（续跑 / 审批 / artifact / MCP 注册 + 演示写工具触发 M3）与 `examples/web/`（审批卡片、artifact 面板、续跑入口、会话切换，全部经 SSE 事件流）。
+`examples/`（**验证载体**，非产品线）把这些能力暴露为操作面：`examples/cli.ts`（最小消费者：续跑 / 审批 / artifact / MCP 注册 + 演示写工具触发 M3）与 `examples/web/`（可视化验收面：审批卡片、artifact 面板、续跑入口、会话切换，全部经 SSE 事件流）。
 
 ## 内置工具
 

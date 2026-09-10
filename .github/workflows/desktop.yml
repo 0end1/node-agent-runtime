@@ -1,5 +1,10 @@
 name: Desktop
 
+# 【移出至产品侧 HANDOFF（2026-09-10，底座收敛）】本工作流已随桌面端整体移出底座范围：
+# 底座侧不再新增功能、不升级 Tauri 与插件链，也不维护其触发策略（现为 tag v* / 手动，不进常规 CI 前置）。
+# 方向与投入归产品侧（承接：docs/product-direction.md §4 / docs/product-build-paths.md）；判定见
+# docs/base-convergence.md §2.3，M6 回填见 docs/m6-productionization.md §5。
+#
 # P5.3 三平台构建矩阵（含 sidecar node 三平台三元组）
 # P5.2 macOS 签名 + 公证（证书与账号信息走仓库 secrets）
 # P5.4 自动更新：TAURI_SIGNING_PRIVATE_KEY 为更新包签名，产物随 Release 发布

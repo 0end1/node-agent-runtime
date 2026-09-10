@@ -46,6 +46,8 @@
 
 ### #3 Desktop（`examples/desktop-tauri/`，Tauri v2）
 
+> **追注（2026-09-10，底座收敛 · 桌面端移出）**：本节为 M5 历史交付记录，内容仍然有效；但桌面端已**整体移出底座范围、方向与投入归产品侧**（取代原「冻结为保留项」口径），底座侧不再投入、也不再判定其立项与否。承接与回填见 `docs/base-convergence.md` §2.3 · `docs/product-direction.md` §4 · `docs/m6-productionization.md` §5。
+
 - 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm --prefix ../../ run demo:web` 启动 Node server 提供 API + 静态，见 M5-4 Fixed）。
 - 仅依赖引擎公共 API（与 #1/#2 同源）；M6 起 C8 host 已拆为 `@agent-runtime/host`，示例改从子包导入，前置工作不白做。
 - **生产 sidecar 已接入并验证**：release 构建时 `lib.rs::spawn_server` 以 `tauri-plugin-shell` sidecar 拉起 app 自带 Node 运行时执行打包好的 server bundle（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`build-server.mjs` 在打包前生成 bundle + node 运行时副本 + 静态资源（`src-tauri/binaries/`，gitignore 忽略）；`tauri build` 产出 .app/.dmg，实跑 :8787 → 200（M5-6）。

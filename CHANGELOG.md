@@ -8,6 +8,38 @@
 
 ## [Unreleased]
 
+**产品落地路径评估与 ACP 路径（docs）**（2026-09-10）：
+
+- **新增 `docs/product-build-paths.md`（产品落地路径评估，对照 6 个同类产品）**：以 AionUi / DeepChat / opencode / Codex / MonkeyCode / CodeBuddy 为参照归纳四种原型，回答「用底座的哪个子集、以什么产品形态、需要补什么，才能做出一个完整产品」。结论：能做且底座复用率很高，但**缺的是工具面与交互面，不是引擎**——差异不在引擎（审批 / 沙箱 / 续跑在同类产品里已是"已解决的问题"），治理能力是唯一可做深的卖点
+- **v2 新增 ACP 路径（结论相比 v1 有实质变化）**：**做 ACP Agent Server、接入已存在的壳**（DeepChat / Zed / JetBrains）为最短路径，一次适配即获得桌面与编辑器形态；论证 `@agent-runtime/acp` 协议适配包满足 `base-convergence.md` §2.1 四条底座判定，**可立项而不触碰 §2.4「应用层出局」**；并指出 ACP 只定义"能请求权限"，**未定义**审计留痕与参数指纹、步级快照与指纹校验续跑、三档沙箱强制语义、密钥脱敏——空白处正是现有资产
+- **缺口与动作**：G1 编码工具集 / G2 流式 / G3 交互层 / G9 无 ACP 适配等缺口表 + 路径排序（v2：G9 成本最低且收益最大，G1 在 ACP 路径下非必需、G3 完全免做）；P0 动作为 `@agent-runtime/acp`（`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译）与权限桥接（`session/request_permission` ↔ `PermissionManager`、`session/set_mode` ↔ `SandboxMode`）
+- **性质与待决**：本文为**待拍板评估**，不单方面改变现有口径（与 §2.4 的冲突范围与解法见 §7）；待核对 ACP 传输方式与 `session/update` 是否要求 token 级分块（决定 G2 是否为前置），待决策是否先走路径 D 与 `tools-code` 优先级
+- **索引同步**：`docs/base-convergence.md`（§2.3 移出说明与文末相关文档增链）、`docs/product-direction.md`（§3-D / §4 产品侧形态候选 / §7 风险 / §8-3 决策项 / §9 增链）
+- **范围**：本次仅新增文档与索引链接，未触碰 `packages/*`、测试与脚本逻辑
+
+**桌面端移出底座 · 方向归产品侧（docs/config）**（2026-09-10）：
+
+- **决策**：底座收敛**取消桌面端** —— `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 **P5.1~P5.4 整体移出底座范围**，方向与投入归产品侧；底座侧不再投入，也不再判定其立项与否。原「桌面端冻结（保留项）」口径与「消费级桌面助手 → 不立项」条目一并撤销
+- **事实源回填**：`docs/base-convergence.md` 由「三分类 + 出局」改为「**二分类 + 移出 + 出局**」（§2.3 改为「移出至产品侧（HANDOFF）」，含移出对象 / 移出含义 / 产品侧承接位置；§2.4 撤销消费级桌面条目并注明）；`docs/m6-productionization.md` §5「挂起决定」回填为「**移出决定**」（P5.1~P5.4 状态改 ⏸、Gate 5 退出标准修订为仅 Web 形态与生产存储、P5.3 风险项转出）
+- **产品侧承接**：`docs/product-direction.md` 承接桌面端方向（§0 形态定位、§3-D 改为「桌面形态」候选、§4 新增「产品侧形态候选」分层与说明、§6 分发、§7 风险、§8-3 决策项改为「自建壳 vs ACP 接入已有客户端」）；`docs/m5-productization.md` §#3 Desktop 增追注
+- **口径同步**：`docs/architecture.md` §1 注记 + §13 v1.12、`docs/development-checklist.md`（一句话现状 / §0 M6 行 / §3.1 P5 行 / §3.3 M7 注记 / §5）、`docs/remaining-tasks.md`（顶部追注 + A1 行）、`README.md`（定位注记 + 结构树）、`examples/desktop-tauri/README.md` 与 `.github/workflows/desktop.yml` 顶部注记（冻结 → 移出至产品侧）
+- **范围**：本次仅文档与注释改动，未触碰 `packages/*`、测试与脚本逻辑
+
+**底座收敛（口径与边界，docs/config）**（2026-09-10）：
+
+- **新增 `docs/base-convergence.md`（收敛决策事实源）**：确立「**底座 = `packages/*` 12 包**」为唯一一等公民；`examples/cli.ts` / `examples/web/` / `deploy/` / `scripts/e2e/` / `scripts/smoke-web.mjs` 降级为**验证载体**（只验证底座、不演进产品）；`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 P5.1~P5.4 标注**冻结**（保留代码与恢复条件）；垂直行业应用 / 消费级桌面 / Rust 移植 / 多 Agent 协同**明确不立项**；给出「三问准入规则」与「运行时分层 ≠ 投入分层」口径，并重定 M7 立项口径（只对底座立项）
+- **架构叙事改口径**：`docs/architecture.md` §1 增补口径注记（Desktop 不再是顶层投入对象，仅作可选展示面）、§11 新增 M7 行（底座收敛与治理交付，首批 M7-1/2/3/6）、§13 新增 v1.11 修订记录
+- **方向文档对齐**：`docs/product-direction.md` §0「产品形态定位」改为底座 SDK 唯一一等公民、§4 分层图「控制台升级为治理工作台」路径**撤销**（改验证载体）、§5 按立项口径重归类（M7-4 与 M7-7 的 UI 部分降级、首批改为 M7-1/2/3/6）、§9 增链
+- **入口与索引对齐**：`README.md`（项目定位注记 + 快速开始口径 + 结构树标注 desktop-tauri 冻结与 deploy）、`docs/development-checklist.md`（一句话现状 / §0 新增「M7 · 底座收敛」行 / §3.3 立项口径）、`docs/remaining-tasks.md`（顶部底座收敛追注）
+- **冻结标注**：`examples/desktop-tauri/README.md` 顶部冻结声明、`.github/workflows/desktop.yml` 顶部冻结注释（不进常规 CI 前置；恢复条件=需要桌面形态对外交付且凭证到位）
+- **范围**：本次仅文档与注释改动，未触碰 `packages/*`、测试与脚本逻辑
+
+**M7 方向规划与 P5 挂起登记（docs）**（2026-09-10）：
+
+- **新增 `docs/product-direction.md`（产品方向规划 M7+）**：资产盘点（治理纵深强 / 应用表层弱）、方向候选与评估矩阵（A 开源底座 + 企业治理增值〔推荐〕/ B 企业私有化运行时平台 / C 垂直应用 / D 消费级桌面）、推荐主线分层（L0 MIT SDK → L1 企业治理增值 → L2 托管，控制台升级为治理工作台）、M7 里程碑草案（M7-1 成本与上下文治理 / M7-2 可观测与合规导出 / M7-3 策略工程化 / M7-4 审批体验 / M7-5 编排能力 / M7-6 工具规模治理 / M7-7 生态入口）、分发与商业化路径、风险与待决策项
+- **P5 挂起为保留项**：`docs/m6-productionization.md` §5 新增挂起决定 —— P5.1 实机验证 / P5.2 签名+公证 / P5.3 三平台矩阵 / P5.4 自动更新链路因缺 Apple Developer 证书与仓库 secrets 挂起（代码、脚本、CI 配置均已就绪），恢复顺序 P5.2 → P5.1 → P5.3 → P5.4，不纳入 M7 关键路径
+- **双源同步**：`docs/development-checklist.md`（一句话现状 / §0 M6 行 / §3.1 P5 行 / §3.3 M7 注记 / §5 链接）与 `docs/remaining-tasks.md`（顶部决策段追注 + A1 行）同步为「挂起为保留项」
+
 **M6-27 · 桌面自动更新接入（P5.4，可选门）**（2026-09-09）：
 
 - **P5.4 自动更新链路接齐**：Rust 侧接入 `tauri-plugin-updater`（`examples/desktop-tauri/src-tauri/Cargo.toml`），以自定义命令暴露 `check_update` / `install_update`（`lib.rs`，前端无需引入 `@tauri-apps/plugin-updater`）；`tauri.conf.json` 配 `plugins.updater`（endpoints → GitHub Release `latest/download/latest.json`、pubkey）与 `bundle.createUpdaterArtifacts`

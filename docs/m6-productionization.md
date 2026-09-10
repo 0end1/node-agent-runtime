@@ -3,6 +3,7 @@
 > 记录时间：2026-09-07
 > 定位：**阶段执行清单**。前置 demo 阶段（M1~M5：生命周期引擎 → 记忆/续跑 → 审批/沙箱治理 → MCP/Artifact → CLI/Web/Desktop 产品化与打包验证）已全部完成，本清单承接"**demo → 可用于生产的项目**"改造，分 6 批（P1~P6）逐项可勾选。
 > 事实源与同步：本计划**吸收并重排** `docs/remaining-tasks.md` 的 A（验收收口）/B（拆包批次）/C（开放决策）/D（远期）——C 决策提前到 P1 冻结、B 拆包作为发布前置在 P1 收口、A1/A2/A3 分别落入 P5/P2/P2、A4 落入 P6、D2 config/features **拉近**至 P3、D1/D3 维持远期。执行级细节仍以各自源清单为准（`crate-split-todo.md`、`crate-architecture.md` §8）；完成时**回填本文 + 源清单 + CHANGELOG 同一 commit**（延续维护约定）。
+> **回填（2026-09-10）——桌面端移出底座**：底座收敛**取消桌面端**，`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 **P5.1~P5.4 整体移出底座范围，方向与投入归产品侧**（判定见 `docs/base-convergence.md` §2.3；产品侧承接见 `docs/product-direction.md` §4）。本文 §5 的「挂起决定」据此**修订为「移出决定」**：P5.1~P5.4 不再是底座的保留项，Gate 5 的底座交付物仅剩 P5.5 / P5.6（均已完成）；P5.5（`store-sqlite` 生产基线）与 P5.6（Web 容器交付）属底座，不受移出影响。
 
 ---
 
@@ -119,18 +120,20 @@
 
 ## 5. P5 · 分发与部署矩阵（Gate 5）
 
-目标：桌面与 Web 形态在真实目标机与 CI 上可重复构建、签名分发、稳定运行。
+目标：**Web 形态与生产存储**在真实目标机与 CI 上可重复构建、部署、稳定运行。（原含桌面形态与签名分发；桌面项已于 2026-09-10 移出至产品侧，见本 §末「移出决定」。）
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P5.1 | 桌面实机验证（吸收 A1） | 双击 `.app` 验证 + `dmg` 安装到 /Applications 复验全流程 | 验收报告入库（勾选 m5 §6） | ⏳ 部分（2026-09-09，M6-25）：`npm run verify:desktop`（`scripts/verify-desktop.mjs`）已能给出结构/签名/Gatekeeper/dmg 结论；实跑发现旧产物缺 sidecar `node-<triple>` 且未签名，需重打并经 P5.2 签名后完成双击与 /Applications 复验 |
-| P5.2 | macOS 签名 + 公证 | Developer ID 签名 + notarization 接入 `tauri build` | `spctl --assess` 通过、Gatekeeper 无告警 | ⏳ 待证书（2026-09-09，M6-25）：`desktop.yml` 已接入 `APPLE_*` 签名与公证变量，README 给出 `codesign`/`spctl` 验收命令；需提供 Developer ID 证书与 Apple 账号 secrets 后实跑 |
-| P5.3 | 三平台构建矩阵 | CI 出 `.app`/`.dmg` + `.msi`/`.exe` + `.AppImage`/`.deb`（Linux 与 Windows 首次打通，含 sidecar node 三平台三元组） | 每平台产物可装可跑 | ⏳ 配置就绪（2026-09-09，M6-25）：三平台矩阵 workflow 已入库（macOS/Linux/Windows，含 sidecar 三元组与交叉编译 `NODE_BIN` 说明）；首次 CI 实跑与"可装可跑"复验待执行 |
-| P5.4 | 自动更新（可选门） | Tauri updater 签名密钥 + 更新端点（GitHub Release） | 旧版→新版升级链路验证 | ⏳ 代码与配置就绪（2026-09-09，M6-27）：Rust 侧接入 `tauri-plugin-updater`（`check_update`/`install_update` 命令），`tauri.conf.json` 配 `plugins.updater`（endpoints → GitHub Release `latest.json`、pubkey）+ `createUpdaterArtifacts`，capabilities 放行 console 的 localhost origin IPC；控制台标题栏「检查更新→下载安装」入口（仅 Tauri 壳显示）；签名密钥对已生成（`src-tauri/.tauri/`，私钥不入库）；旧版→新版实机链路待首次 tag 发布验证（依赖 P5.2 签名/公证） |
+| P5.1 | 桌面实机验证（吸收 A1） | 双击 `.app` 验证 + `dmg` 安装到 /Applications 复验全流程 | 验收报告入库（勾选 m5 §6） | ⏸ **已移出至产品侧（2026-09-10）**；移出前状态——部分完成（2026-09-09，M6-25）：`npm run verify:desktop`（`scripts/verify-desktop.mjs`）已能给出结构/签名/Gatekeeper/dmg 结论；实跑发现旧产物缺 sidecar `node-<triple>` 且未签名，需重打并经 P5.2 签名后完成双击与 /Applications 复验 |
+| P5.2 | macOS 签名 + 公证 | Developer ID 签名 + notarization 接入 `tauri build` | `spctl --assess` 通过、Gatekeeper 无告警 | ⏸ **已移出至产品侧（2026-09-10）**；移出前状态——待证书（2026-09-09，M6-25）：`desktop.yml` 已接入 `APPLE_*` 签名与公证变量，README 给出 `codesign`/`spctl` 验收命令；需提供 Developer ID 证书与 Apple 账号 secrets 后实跑 |
+| P5.3 | 三平台构建矩阵 | CI 出 `.app`/`.dmg` + `.msi`/`.exe` + `.AppImage`/`.deb`（Linux 与 Windows 首次打通，含 sidecar node 三平台三元组） | 每平台产物可装可跑 | ⏸ **已移出至产品侧（2026-09-10）**；移出前状态——配置就绪（2026-09-09，M6-25）：三平台矩阵 workflow 已入库（macOS/Linux/Windows，含 sidecar 三元组与交叉编译 `NODE_BIN` 说明）；首次 CI 实跑与"可装可跑"复验待执行 |
+| P5.4 | 自动更新（可选门） | Tauri updater 签名密钥 + 更新端点（GitHub Release） | 旧版→新版升级链路验证 | ⏸ **已移出至产品侧（2026-09-10）**；移出前状态——代码与配置就绪（2026-09-09，M6-27）：Rust 侧接入 `tauri-plugin-updater`（`check_update`/`install_update` 命令），`tauri.conf.json` 配 `plugins.updater`（endpoints → GitHub Release `latest.json`、pubkey）+ `createUpdaterArtifacts`，capabilities 放行 console 的 localhost origin IPC；控制台标题栏「检查更新→下载安装」入口（仅 Tauri 壳显示）；签名密钥对已生成（`src-tauri/.tauri/`，私钥不入库）；旧版→新版实机链路待首次 tag 发布验证（依赖 P5.2 签名/公证） |
 | P5.5 | store-sqlite 生产基线 | schema 版本/迁移、WAL、索引（按 session/task 查询路径）；备份与恢复说明 | 大会话量查询耗时达标；迁移脚本可重复 | ✅（2026-09-09，M6-24）：`SCHEMA_VERSION`=2 存于 `PRAGMA user_version`，前向迁移幂等可重复（版本过高直接报错）；v2 表达式索引覆盖 session/task/run 与 `decidedAt`，`listDocs` 索引字段下推 SQL；`backup()` 走 `VACUUM INTO`；测试含 1k 记录规模查询耗时断言 |
 | P5.6 | Web 部署形态样例 | Dockerfile / systemd + 反代示例；环境分层（dev/staging/prod）配置样例 | 容器内启动 → :8787 服务探活通过 | ✅（2026-09-09，M6-24）：`deploy/` 提供 Dockerfile（非 root + HEALTHCHECK）、compose（含 nginx edge profile）、systemd、nginx（SSE `proxy_buffering off`）、dev/staging/prod 环境分层与部署说明；新增 `GET /healthz` 与 `npm run smoke:web`（本地等价验证已通过，容器内 healthcheck 复用同一端点） |
 
-**Gate 5 退出标准**：三平台 CI 产物 + 签名/公证后的 macOS 安装验证完成；生产存储与部署样例在干净环境复现成功。
+**Gate 5 退出标准（2026-09-10 修订）**：生产存储与部署样例在干净环境复现成功（**P5.5 / P5.6，已完成**）。原「三平台 CI 产物 + 签名/公证后的 macOS 安装验证」随桌面端移出至产品侧，**不再是底座的 Gate 5 条件**；桌面形态的分发验收（若产品侧立项）按产品侧里程碑执行。
+
+> **移出决定（2026-09-10）——桌面项移出至产品侧**（修订原「挂起为保留项」口径）：P5.1 桌面实机验证 / P5.2 签名 + 公证 / P5.3 三平台构建矩阵 / P5.4 自动更新链路**整体移出底座范围**，方向与投入归产品侧（判定见 `docs/base-convergence.md` §2.3；承接见 `docs/product-direction.md` §4）。四项的代码、脚本与 CI 配置均已就绪（P5.1~P5.3 @ M6-25，P5.4 @ M6-27），作为**产品侧资产**保留；前置条件不变（Apple Developer ID 证书、Apple 账号 secrets、`NPM_TOKEN`），由产品侧在自身里程碑中按 **P5.2 → P5.1 → P5.3 → P5.4** 顺序复验。**底座侧结论：Gate 5 不再包含桌面验收**，仅以 P5.5 / P5.6（已完成）为交付物；桌面端既不纳入 M7 关键路径，也不再作为底座的保留项/待办跟踪。
 
 ## 6. P6 · 治理 · 文档 · 社区（Gate 6）
 
@@ -161,9 +164,9 @@ P6 治理/文档（全程并行，P6.5 CHANGELOG 随批 commit）
 
 - **严格前置**：P1 必须先于 P4（发布即冻结边界）；P2 先于 P3/P5（护栏保护后续改动）。
 - **可并行**：P3 与 P5 相互独立，可在 P2 后分头推进；P6 全期并行。
-- **风险项**：P1.3 C8 host 拆包上次试行回滚，务必先落定 C1、先搬迁后拆依赖；P5.3 三平台为首度打通（sidecar 需 node 三平台三元组 + CI runner），预留排障余量。
+- **风险项**：P1.3 C8 host 拆包上次试行回滚，务必先落定 C1、先搬迁后拆依赖；（原 P5.3 三平台首度打通风险已随桌面端移出至产品侧转出，见 §5 移出决定。）
 
 ## 8. 维护约定与相关文档
 
 - 每项完成：**回填本文状态 + 源清单状态 + CHANGELOG 条目，同一 commit**；涉及公共 API 变更做全仓回归。
-- 事实源：`docs/remaining-tasks.md`（A~D 池）、`docs/crate-split-todo.md`（拆包执行级与验收）、`docs/crate-architecture.md` §8（模块边界/决策）、`docs/m5-productization.md`（M5 验收依据）、`docs/architecture.md` §11/§13（路线图与修订）。
+- 事实源：`docs/remaining-tasks.md`（A~D 池）、`docs/crate-split-todo.md`（拆包执行级与验收）、`docs/crate-architecture.md` §8（模块边界/决策）、`docs/m5-productization.md`（M5 验收�

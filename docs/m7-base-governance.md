@@ -304,6 +304,8 @@ git add -A && git commit -m "chore: version packages"
 
 > **provenance 结论（修订下方第 301 行的推断）**：首发**可以**带 provenance。npm 的真实门槛是「云托管 runner + `id-token: write` + npm CLI ≥ 9.5.0 + `access=public` + `repository` 字段匹配」，本仓 `release.yml:16-19`、`runs-on: ubuntu-latest`、`.changeset/config.json` 的 `access: "public"` 与 12 包 `repository.url`（2026-09-10 已核实一致）**全部满足**；只有 `access` 未设 public 才会触发 `Can't generate provenance for new or private package`（npm/cli#7706），本仓不受影响。**最终以首次发布日志是否出现 `Attestation` 为准。**
 
+> **⚠️ 发布阻塞（2026-09-15 复核发现，push 前必须解除）**：13 份 `package.json` 的 `repository.url` 指向 `node-agent-runtime`，而 `git remote` 实际是 `nodeRuntime` —— 2026-09-12 全量改名时改了包内引用，配套的「GitHub 侧仓库改名 + 本地 `git remote set-url`」未执行。provenance 校验会因此以 **422 失败、12 包全部发不出去**。解除步骤：① GitHub 将仓库 `nodeRuntime` 改名为 `node-agent-runtime`；② 本地 `git remote set-url origin https://github.com/0end1/node-agent-runtime.git`；③ 再 push。
+
 **前置条件（两项，缺一不可）**：
 
 1. **发布凭据**（原写作「仓库 secret `NPM_TOKEN`」，**已按 npm 新规更正**）：本机 `npm whoami` 当前返回 `E401`（未登录）。
@@ -317,7 +319,7 @@ git add -A && git commit -m "chore: version packages"
      - 免费组织**只能发公开包**，与 Apache-2.0 口径一致；`--access public` 已就位（`.changeset/config.json` 的 `"access": "public"`、`release.yml:64` 的 `--access public`），无需改动。
      - **scope 名全局唯一且排他**：建成即永久独占 `@node-agent-runtime`。**这也是许可边界的最后一道闸**（见前置条件 2）—— 组织建成 + 实发之后，Apache-2.0 **不可回收**。
    - **首发后转为免 token**：12 包上架后为每包配置 Trusted Publisher（Organization or user = `0end1`、Repository = `node-agent-runtime`、Workflow filename = `release.yml`；字段区分大小写且须与 npmjs.com 完全一致），之后发布全靠 OIDC（要求 npm CLI ≥ 11.5.1、Node ≥ 22.14.0、云托管 runner —— 本仓 `engines` 为 Node ≥ 22.13.0，`.nvmrc` 需不低于 22.14.0 才满足）。**同时须确保各包 `package.json` 的 `repository.url` 与仓库完全一致**，否则 provenance 校验会以 422 失败。
-   - **已核实（2026-09-10）**：12 包 `repository.url` 均为 `https://github.com/0end1/node-agent-runtime.git` 且各带 `directory` 字段，**上条 422 风险实际不存在**；12 包版本亦统一为 `0.2.0`，无版本漂移。`.nvmrc` = `22.22.1` ✅ 满足 OIDC 的 Node ≥ 22.14.0（`engines` 写的是 ≥ 22.13.0，略低于要求，但 CI 走 `.nvmrc` 故无影响）。
+   - **已核实（2026-09-10）／2026-09-15 修正**：12 包 `repository.url` **包间一致**且各带 `directory` 字段 —— 但 15 日复核发现**该核实只比对了包间一致性、未与 `git remote` 对齐**：远端实际仍是 `https://github.com/0end1/nodeRuntime.git`。2026-09-12 全量改名时已把 13 份 `package.json` 的 `repository`/`homepage`/`bugs` 改指 `node-agent-runtime`，但配套的「GitHub 侧仓库改名 + 本地 `git remote set-url`」**至今未完成**（`CHANGELOG.md` 将其列为「需你操作」的待办）。→ **上条 422 风险并未解除**：npm 会拿 OIDC token 里的仓库名去比 `repository.url`，不匹配即以 422 失败。**push 前必须先完成 GitHub 仓库改名**（详见 §6 顶部的 2026-09-15 核验表）；12 包版本亦统一为 `0.2.0`，无版本漂移。`.nvmrc` = `22.22.1` ✅ 满足 OIDC 的 Node ≥ 22.14.0（`engines` 写的是 ≥ 22.13.0，略低于要求，但 CI 走 `.nvmrc` 故无影响）。
    - **本机 npm 版本不足，是走 OIDC 的额外前置**：本机 npm 为 `10.9.4`（根 `package.json` 的 `packageManager` 也写死 `npm@10.9.4`），**低于 OIDC 要求的 11.5.1** → 转 OIDC 前须 `npm i -g npm@latest`（当前最新 **12.0.2**）并同步改 `packageManager` 字段。旧认证端点 `/-/user/org.couchdb.user:` 探测仍返回 **401**（存活而非 404），故 `npm login` 在 npm 10 上大概率可用，但该端点属 2025-12 公告中的**过渡措施、随时移除**，不宜长期依赖。
 2. **许可边界先定**：`product-direction.md` §7 明确「**在实发 npm 与对外宣传前先定边界**（§8-2）」。12 包一旦以 Apache-2.0 实发即**不可回收**；若后续要转 open-core（核心 Apache-2.0 + 治理增值闭源），必须**在本次实发前**确认「闭源部分落在 12 包之外（独立仓库 / 独立包）」，否则边界会被这次实发锁死。**这是本次发布唯一的非技术闸门。**
 

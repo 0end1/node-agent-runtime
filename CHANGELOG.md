@@ -89,6 +89,7 @@
 - **测试**：新增 `packages/mcp/test/m7-6b.test.ts`（13 例：声明域列取、物化与固定 URI、命名确定性与字符白名单、越权 URI 被拒且不转发、sandbox 禁网拒绝 / 放行后成功、`resourceTools: false` 仍可读、`maxResourceTools` 上限、注销清理、`searchTools` 排序与空查询）；`mcp.test.ts` 增 4 例（HTTP mock 的 `resources/list`·`read`、远端未知 URI → `McpError{remote:true}`、无 `resources` 能力的 server 降级为无资源、真实子进程读取）
 - **门禁**：`npm run ci` 六门全绿；`check:api` / `size` 已重冻（mcp 符号 29→40；tarball +8KB / **+28%** 触发 +25% 阈值 —— 基线文件本身不带说明字段，理由记录于此：新增资源模块（协议类型 + 客户端 2 方法 + registry 物化/声明域/检索 + `resourceText`）的固有增量，非无用膨胀，取舍见 `m7-base-governance.md` §8-8）
 - **索引同步**：`docs/api-surface.md` §0 + §10、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §0 / §5 / §8-8、`docs/architecture.md` §5.3
+- **口径收口（同日补）**：`docs/product-direction.md` §5（M7-6 行与执行清单注记）与 `docs/m7-base-governance.md` 内 6 处「6b 延后」残留表述统一更正为「已交付」（§0 六角说明、§4 批次图与拆分理由、§5 拆分注记、§8-7 标题）；两处决策项计数 7 → 8
 
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 

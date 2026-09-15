@@ -5,8 +5,8 @@
     "entryCount": 10
   },
   "@node-agent-runtime/core": {
-    "packageSize": 102642,
-    "unpackedSize": 403923,
+    "packageSize": 105268,
+    "unpackedSize": 416057,
     "entryCount": 110
   },
   "@node-agent-runtime/host": {
@@ -20,9 +20,9 @@
     "entryCount": 26
   },
   "@node-agent-runtime/memory": {
-    "packageSize": 14982,
-    "unpackedSize": 48665,
-    "entryCount": 18
+    "packageSize": 18126,
+    "unpackedSize": 58849,
+    "entryCount": 22
   },
   "@node-agent-runtime/mock": {
     "packageSize": 12873,
@@ -30,13 +30,13 @@
     "entryCount": 10
   },
   "@node-agent-runtime/policy": {
-    "packageSize": 14946,
-    "unpackedSize": 55568,
-    "entryCount": 14
+    "packageSize": 21009,
+    "unpackedSize": 80068,
+    "entryCount": 18
   },
   "@node-agent-runtime/provider-openai": {
-    "packageSize": 8981,
-    "unpackedSize": 27467,
+    "packageSize": 9059,
+    "unpackedSize": 27846,
     "entryCount": 10
   },
   "@node-agent-runtime/sandbox": {
@@ -55,8 +55,8 @@
     "entryCount": 14
   },
   "@node-agent-runtime/types": {
-    "packageSize": 22282,
-    "unpackedSize": 70949,
-    "entryCount": 46
+    "packageSize": 23666,
+    "unpackedSize": 75743,
+    "entryCount": 50
   }
 }

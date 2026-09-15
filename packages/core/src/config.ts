@@ -1,5 +1,12 @@
+import { readFileSync } from "node:fs";
 import type { SandboxMode } from "@node-agent-runtime/sandbox";
 import type { ContextBudget } from "@node-agent-runtime/memory";
+import {
+  compilePolicy,
+  validatePolicyDocument,
+  PRESETS,
+} from "@node-agent-runtime/policy";
+import type { PermissionPolicy } from "@node-agent-runtime/policy";
 import { ErrorCode } from "@node-agent-runtime/types";
 import type { PriceTable, ProcessEnv, RunLimits } from "@node-agent-runtime/types";
 import type { LogLevel } from "./log.js";
@@ -36,6 +43,12 @@ export interface RuntimeConfig {
   permission: {
     allow?: string[];
     deny?: string[];
+    /** M7-3: preset name from `PRESETS` (e.g. "prod-strict"). */
+    preset?: string;
+    /** M7-3: path to an external `PolicyDocument` JSON (validated then compiled). */
+    documentPath?: string;
+    /** M7-3: compiled policy (set by `loadConfig` when `preset`/`documentPath` given). */
+    policy?: PermissionPolicy;
   };
   /** P3.4: budget guardrails derived from env / overrides (unset = no cap). */
   limits?: RunLimits;
@@ -166,6 +179,42 @@ function buildMcpConfig(
   return Object.keys(mcp).length === 0 ? undefined : mcp;
 }
 
+/** M7-3: assemble `permission` from `AGENT_POLICY_*` env + overrides. */
+function buildPermission(
+  env: ProcessEnv,
+  overrides: Partial<RuntimeConfig["permission"]> | undefined,
+): RuntimeConfig["permission"] {
+  const perm: RuntimeConfig["permission"] = { ...(overrides ?? {}) };
+  if (env.AGENT_POLICY_PRESET) perm.preset = env.AGENT_POLICY_PRESET;
+  if (env.AGENT_POLICY_FILE) perm.documentPath = env.AGENT_POLICY_FILE;
+
+  // M7-3: 外部策略文件必须先校验再编译（P3.8 口径），非法即抛 ConfigError。
+  if (perm.documentPath) {
+    let raw: string;
+    try {
+      raw = readFileSync(perm.documentPath, "utf8");
+    } catch {
+      throw new ConfigError(`AGENT_POLICY_FILE 指向的文件不可读：${perm.documentPath}`);
+    }
+    let doc: unknown;
+    try {
+      doc = JSON.parse(raw);
+    } catch {
+      throw new ConfigError(`AGENT_POLICY_FILE 不是合法 JSON：${perm.documentPath}`);
+    }
+    perm.policy = compilePolicy(validatePolicyDocument(doc));
+  } else if (perm.preset) {
+    const preset = PRESETS[perm.preset];
+    if (!preset) {
+      throw new ConfigError(
+        `AGENT_POLICY_PRESET 未知预设：${perm.preset}（可用：${Object.keys(PRESETS).join(", ")}）`,
+      );
+    }
+    perm.policy = compilePolicy(preset);
+  }
+  return perm;
+}
+
 function parseList(value: string | undefined): string[] | undefined {
   if (!value) return undefined;
   const items = value
@@ -248,7 +297,7 @@ export function loadConfig(options: LoadConfigOptions = {}): RuntimeConfig {
           }
         : {}),
     },
-    permission: { ...(ov.permission ?? {}) },
+    permission: buildPermission(env, ov.permission),
     limits: buildLimits(env, ov.limits),
     context: buildContext(env, ov.context),
     pricing: ov.pricing,

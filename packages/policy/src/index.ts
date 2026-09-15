@@ -14,6 +14,19 @@ export {
   createProductionDefaults,
   PRODUCTION_MATRIX,
 } from "./secure.js";
+export {
+  compilePolicy,
+  testPolicy,
+  validatePolicyDocument,
+  PRESETS,
+} from "./document.js";
+export type {
+  PolicyDocument,
+  PolicyRule,
+  PolicyMatch,
+  PolicyTestCase,
+  PolicyTestResult,
+} from "./document.js";
 export type {
   Verdict,
   Decision,

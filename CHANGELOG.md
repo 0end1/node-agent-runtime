@@ -43,6 +43,18 @@
 - **门禁**：`npm run ci` 六门全绿；体积 memory +21.0%（阈值 +25%）/ types +6.2% / core +1.7%；已 `check:api:update` 重冻基线
 - **索引同步**：`docs/api-surface.md` §0（memory 符号数 14→19）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §2
 
+**M7-3 策略工程化（feat）**（2026-09-15）：
+
+- **声明式策略契约**：`policy` 新增 `PolicyDocument` / `PolicyRule` / `PolicyTestCase` / `PolicyTestResult`（`match` 支持 `tool` / `toolPattern`（glob 自实现）/ `kind` / `mode` / `pathGlob`）；`validatePolicyDocument` 复用 `types` 的 `validate` + 结构检查（未知 verdict / 缺 `id` / `version` 非 1 / `kind`·`mode` 非法直接报错）
+- **编译与测试**：`compilePolicy(doc)` 将规则编译为 `PermissionPolicy`，命中多条按 `combinePolicies` **最严语义**求交（`allow < ask < deny`，不新造语义），与 `DefaultPermissionPolicy` 逐格等价（5 `ToolKind` × 3 `SandboxMode` 共 15 组合断言通过）；`testPolicy` 运行文档内联用例，返回逐条 pass/fail 与差异说明
+- **组织预设**：`PRESETS` 提供 `prod-strict`（凭证三档全 `deny`，与 `PRODUCTION_MATRIX` 一致）/ `dev-open`（全放开）/ `readonly-audit`（只读偏置）三套，各带内联测试
+- **配置接入**：`core` 的 `RuntimeConfig.permission` 增 `preset?` / `documentPath?`，env `AGENT_POLICY_PRESET` / `AGENT_POLICY_FILE`；外部策略文件先校验后编译，`documentPath` 非法时 `loadConfig()` 抛 `ConfigError`
+- **CI 门禁**：新增 `npm run policy:test`（跑内置预设内联测试）并纳入 `npm run ci`
+- **架构取舍**：spec 草案写「契约落 `types/src/policy.ts`」，但 `PermissionContext` / `PolicyRule.match.mode` 依赖 `SandboxMode`（在 `sandbox`），而 `sandbox` 已依赖 `types`——若 `types` 反向引入 `sandbox` 会破坏 `types ← sandbox` 的 DAG，故声明式契约随 `policy` 包落地（纯契约、零第三方依赖）
+- **测试**：新增 `packages/policy/test/document.test.ts`（33 例，覆盖校验拒绝、最严语义、与 `DefaultPermissionPolicy` 逐格等价、预设全绿/故意失败、glob、prod-strict 凭证全拒、`extends` 合并）
+- **门禁**：`npm run ci` 六门全绿；体积 policy +40.6%（阈值 +25%，有意增长，`npm run size:update` 重冻基线）；已 `check:api:update` 重冻基线
+- **索引同步**：`docs/api-surface.md` §0（policy 符号数 19→28）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §4
+
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 
 - **13 份 LICENSE 换正本**：根 `LICENSE` 与 12 个包的 `LICENSE` 替换为 Apache License 2.0 官方文本（含 `Copyright 2026 wangzhiyong` 附录）

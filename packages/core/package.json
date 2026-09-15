@@ -46,7 +46,8 @@
   },
   "dependencies": {
     "@node-agent-runtime/types": "^0.3.0",
-    "@node-agent-runtime/memory": "^0.3.0"
+    "@node-agent-runtime/memory": "^0.3.0",
+    "@node-agent-runtime/policy": "^0.3.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

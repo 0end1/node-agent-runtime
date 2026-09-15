@@ -185,6 +185,9 @@
 - 策略文件是**外部输入**，必须先在配置层校验再编译，否则会把非法规则带进运行时（release 前不能改回）。
 - `pathGlob` 依赖调用方传入的参数形态；`pathArgs` 只在工具声明了 `meta.pathArgs` 时可靠（`packages/types/src/tools.ts:40`），需要在验收里明确「仅在声明了 pathArgs 时生效」。
 
+> **落地状态（2026-09-15）**：**M7-3 已交付** —— `packages/policy/src/document.ts` 新增 `PolicyDocument` / `PolicyRule` / `PolicyTestCase` / `PolicyTestResult`、`validatePolicyDocument`（复用 `types` 的 `validate` + 结构检查）、`compilePolicy`（命中多条按 `combinePolicies` 最严语义求交，与 `DefaultPermissionPolicy` 逐格等价）、`testPolicy`（内联测试运行器）、`PRESETS`（`prod-strict` / `dev-open` / `readonly-audit` 三套，各带内联测试）；`core` 配置接入 `preset?` / `documentPath?` + `AGENT_POLICY_PRESET` / `AGENT_POLICY_FILE`（外部文件先校验后编译，非法即抛 `ConfigError`）；新增 `npm run policy:test` 并纳入 `npm run ci`。
+> **架构取舍**：spec 草案写「契约落 `types/src/policy.ts`」不可行——`PermissionContext` / `PolicyRule.match.mode` 依赖 `SandboxMode`（在 `sandbox`），而 `sandbox` 已依赖 `types`，若 `types` 反向引入 `sandbox` 会破坏 `types ← sandbox` 的 DAG。故声明式契约随 `policy` 包落地（与既有 `PermissionPolicy` / `combinePolicies` 同处），仍是纯契约、零第三方依赖。`npm run ci` 六门全绿；测试见 `packages/policy/test/document.test.ts`（33 例）。
+
 ---
 
 ## 5. M7-6 · 工具规模治理

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T02:40:34.356Z",
+  "generatedAt": "2026-09-15T05:18:22.193Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -138,6 +138,7 @@
         "DefaultPermissionPolicy",
         "DefaultPermissionPolicyOptions",
         "GateResult",
+        "PRESETS",
         "PRODUCTION_MATRIX",
         "PendingDecision",
         "PermissionCall",
@@ -145,13 +146,21 @@
         "PermissionManager",
         "PermissionManagerOptions",
         "PermissionPolicy",
+        "PolicyDocument",
+        "PolicyMatch",
+        "PolicyRule",
+        "PolicyTestCase",
+        "PolicyTestResult",
         "StaticPolicy",
         "Verdict",
         "combinePolicies",
+        "compilePolicy",
         "createProductionDefaults",
         "createProductionPolicy",
         "secureScope",
-        "toolListPolicy"
+        "testPolicy",
+        "toolListPolicy",
+        "validatePolicyDocument"
       ],
       "forwards": []
     },

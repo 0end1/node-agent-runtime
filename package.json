@@ -31,6 +31,7 @@
     "pretest": "npm run build",
     "test": "npm run test -w @node-agent-runtime/types && npm run test -w @node-agent-runtime/memory && npm run test -w @node-agent-runtime/artifact && npm run test -w @node-agent-runtime/sandbox && npm run test -w @node-agent-runtime/policy && npm run test -w @node-agent-runtime/core && npm run test -w @node-agent-runtime/tools-basic && npm run test -w @node-agent-runtime/mock && npm run test -w @node-agent-runtime/host && npm run test -w @node-agent-runtime/mcp && npm run test -w @node-agent-runtime/provider-openai && npm run test -w @node-agent-runtime/store-sqlite && npm run test:web-security",
     "test:web-security": "tsx --test examples/web/security.test.ts",
+    "policy:test": "tsx scripts/policy-test.ts",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
     "lint": "eslint .",
@@ -53,7 +54,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "npm run build && changeset publish",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run coverage:gate && npm run check:api && npm run size",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run policy:test && npm run coverage:gate && npm run check:api && npm run size",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {

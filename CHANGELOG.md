@@ -91,6 +91,19 @@
 - **索引同步**：`docs/api-surface.md` §0 + §10、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §0 / §5 / §8-8、`docs/architecture.md` §5.3
 - **口径收口（同日补）**：`docs/product-direction.md` §5（M7-6 行与执行清单注记）与 `docs/m7-base-governance.md` 内 6 处「6b 延后」残留表述统一更正为「已交付」（§0 六角说明、§4 批次图与拆分理由、§5 拆分注记、§8-7 标题）；两处决策项计数 7 → 8
 
+**M7-5（底座部分）：Agent 配方编译与快照（feat，2026-09-15）**：
+
+- **立项依据**：`docs/base-convergence.md` §6 —— 「`compileAgent()` / 配方快照校验属底座；多任务并发调度需先论证」，故本批**只做底座部分**，并发调度（配额 / 取消语义）不进本批。设计出处 `docs/architecture.md` §3.2（该函数自 M4 起一直是「设计条目，未排期」）。执行清单 `docs/m7-base-governance.md` §9，决策 §8-9~12
+- **`compileAgent()`（`packages/core/src/compile.ts`，新增）**：把三类缺陷提前到编译期 —— **工具重名**（复用 `findDuplicateToolNames`，且 MCP 物化工具与本地工具**同一命名空间**参与检测）、**参数 schema 非法**（新增 `validateSchema`，见下）、**MCP 引用不可达**（`mcpTools` 经注入的 `resolveMcp` 解析失败即报错）。错误**一次性汇总**而非 fail-fast：`AgentCompileError.issues` 给出全部问题；产物 `CompiledAgent` 含 `toolsHash` / `instructionsHash`，**确定性故可缓存**
+- **MCP 可达性为什么是注入式（§8-10）**：依赖方向为 `mcp → core`，core 反向 import 会成环；故 core 只接受结构化 `{ server, tool }` 与 `(ref) => AnyTool | undefined`，宿主一行 `resolveMcp: (ref) => registry.resolve(ref)` 即可接入 —— 零耦合，且仍受类型检查。不新增 `McpToolRef` 命名类型，避免 core / mcp 两侧事实源分裂
+- **`validateSchema`（`packages/types/src/schema.ts`，新增，§8-11）**：校验 **schema 自身**而非值（既有 `validate` 是值校验）—— 未知 `type` / 空 `type` 数组 / `required` 引用未定义属性 / `minimum > maximum` / 非布尔 `additionalProperties` 等，报错带字段路径；递归深度上限 12 防病态嵌套。纯函数零依赖，符合 types 红线。理由：schema 写错在运行时**不会报错**，只表现为模型一直调错参数，极难归因
+- **配方指纹拆两级（§8-12）**：`toolsHash`（硬：工具集变化 ⇒ transcript 无法复现）与新增 `instructionsHash`（软：语义漂移，可 `allowInstructionChange: true` 显式放行）。`AgentSnapshot` 增**可选** `instructionsHash?` —— **旧 checkpoint 无此字段时退回既有 `toolsHash` + `agentId` 校验，零破坏**；`assertResumable` 增第三参 `AssertResumableOptions`，`agent` 形参放宽为 `ToolSurface & { instructions?: string }`，既有调用点零改动。`temperature` / `maxTokens` **不纳入**指纹（不影响 transcript 结构）
+- **API 变更**：全部 additive（minor）—— 符号数 `types` 68→69、`memory` 19→21、`core` 70→78；`ErrorCode` 增 `AGENT_INVALID`，`AgentCompileError` 已入 `NAME_TO_CODE` 映射
+- **测试**：新增 `packages/core/test/m7-5.test.ts`（**16 例**：干净配方、重名、非法 schema、`required` 悬空、多问题一次汇总、MCP 未解析、注入 resolver 合并、本地与 MCP 撞名、确定性可缓存、工具顺序无关但指令敏感、空工具 warn、接受 `Agent` 实例、快照产出、指令漂移阻断与 `allowInstructionChange` 放行、旧快照兼容、异名 agent 拒绝）；`packages/types/test/schema.test.ts` 增 **10 例**（`validateSchema`）
+- **门禁**：`npm run ci` 六门全绿（lint 0 error / 3 个既有 warning；全仓覆盖率 行 92.73 / 分支 82.55 / 函数 90.34；`check:api` 与 `size` 已重冻）
+- **索引同步**：`docs/api-surface.md` §0 + §2 + §3、`docs/m7-base-governance.md`（§0 表 + 新增 §9 + §8-9~12 决策）、`docs/architecture.md` §11 M7 行 + §13 v1.17
+- **刻意未做**：并发调度（按 §6 需先论证）；**`compileAgent()` 不是授权检查** —— 编译通过的工具仍须逐次过 M3 审批与沙箱（与 M7-6a「检索是声明优化，不是权限收窄」同源）
+
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 
 - **13 份 LICENSE 换正本**：根 `LICENSE` 与 12 个包的 `LICENSE` 替换为 Apache License 2.0 官方文本（含 `Copyright 2026 wangzhiyong` 附录）

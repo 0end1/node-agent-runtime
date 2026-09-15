@@ -29,6 +29,12 @@ export interface AgentSnapshot {
   agentId: string;
   /** Fingerprint of the tool surface, verified before a resume. */
   toolsHash: string;
+  /**
+   * M7-5: fingerprint of the recipe instructions. Absent in checkpoints written
+   * before M7-5 (and in hosts that do not use `compileAgent()`), in which case
+   * resumability falls back to `toolsHash` + `agentId` only (§8-12).
+   */
+  instructionsHash?: string;
 }
 
 export interface Checkpoint {
@@ -130,8 +136,32 @@ export function computeToolsHash(agent: ToolSurface): string {
   return fnv1a32(canonical);
 }
 
+/**
+ * Fingerprint of a recipe's instructions (M7-5, §8-12).
+ *
+ * Deliberately separate from `computeToolsHash`: a tool-set change makes the
+ * recorded transcript impossible to replay (hard failure), whereas an
+ * instructions change only drifts the semantics — still blocked by default,
+ * but a host may explicitly accept it.
+ */
+export function computeInstructionsHash(agent: { instructions?: string }): string {
+  return fnv1a32(JSON.stringify({ instructions: agent.instructions ?? "" }));
+}
+
+export interface AssertResumableOptions {
+  /**
+   * Accept a recipe whose instructions changed (M7-5 §8-12).
+   * The tool set is still checked — this only relaxes the semantic-drift guard.
+   */
+  allowInstructionChange?: boolean;
+}
+
 /** Guard a resume: the recipe that produced the checkpoint must still match. */
-export function assertResumable(checkpoint: Checkpoint, agent: ToolSurface): void {
+export function assertResumable(
+  checkpoint: Checkpoint,
+  agent: ToolSurface & { instructions?: string },
+  options: AssertResumableOptions = {},
+): void {
   const hash = computeToolsHash(agent);
   if (hash !== checkpoint.agentSnapshot.toolsHash) {
     throw new CheckpointMismatchError(
@@ -144,6 +174,16 @@ export function assertResumable(checkpoint: Checkpoint, agent: ToolSurface): voi
       checkpoint.id,
       `checkpoint ${checkpoint.id} 属于 Agent "${checkpoint.agentSnapshot.agentId}"，与当前配方 "${agent.name}" 不一致`,
     );
+  }
+  const expectedInstructions = checkpoint.agentSnapshot.instructionsHash;
+  if (expectedInstructions !== undefined && !options.allowInstructionChange) {
+    const actual = computeInstructionsHash(agent);
+    if (actual !== expectedInstructions) {
+      throw new CheckpointMismatchError(
+        checkpoint.id,
+        `checkpoint ${checkpoint.id} 的配方指令已变化（instructionsHash ${expectedInstructions} → ${actual}），无法续跑；确认接受语义漂移时传 { allowInstructionChange: true }`,
+      );
+    }
   }
 }
 

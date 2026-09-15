@@ -1,8 +1,8 @@
-# M7 首批执行清单（底座治理交付：M7-1 / M7-2 / M7-3 / M7-6）
+# M7 执行清单（底座治理交付：首批 M7-1 / 2 / 3 / 6 + 第二批 M7-5 底座部分）
 
-> 记录时间：2026-09-10
+> 记录时间：2026-09-10（第二批 M7-5 于 2026-09-15 补入）
 > 定位：**执行清单（草案）**。把 `docs/product-direction.md` §5 的首批四项拆到「包 / 文件 / API / 验收用例 / 量级」粒度，使每项都能直接开单。
-> 性质：**执行清单（草案）**。**8 项全部已定**（§8 无待拍板项；第 8 项 §8-8 随 M7-6b 于 2026-09-15 补入）。本文不改变既有口径，立项需先按 `docs/development-checklist.md` §4 回填 `architecture.md` §11 M7 行与 §13 修订记录，再回填 §0 / §3.3。
+> 性质：**执行清单（草案）**。**12 项全部已定**（§8 无待拍板项；第 8 项 §8-8 随 M7-6b 于 2026-09-15 补入，第 9~12 项随 M7-5 底座部分立项同日补入）。本文不改变既有口径，立项需先按 `docs/development-checklist.md` §4 回填 `architecture.md` §11 M7 行与 §13 修订记录，再回填 §0 / §3.3。
 > 口径依据：`docs/base-convergence.md` §3（三问准入）/ §6（只对底座立项）；首批口径与验收面见 `docs/product-direction.md` §5。
 > 前置状态：M6 **Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）已关闭**；Gate 5 退出标准已修订为「P5.5 生产存储 + P5.6 Web 部署形态」（均已完成，M6-24）；桌面项已整体移出至产品侧。
 > 纪律：任何改动不得引入运行时依赖（保持零依赖卖点）；公共 API 变更走 changeset + `npm run check:api:update` 重冻基线。
@@ -18,6 +18,7 @@
 | **M7-3** | 策略工程化 | `types` · `policy` · `core` | `PolicyDocument` 契约 + `compilePolicy` + `testPolicy` + ≥3 套组织预设 | additive（minor） | 中 | M3 `DefaultPermissionPolicy` / `combinePolicies`（已有） |
 | **M7-6a** | 工具规模治理（首批） | `types` · `core` · `memory` | `tool_search` 检索式声明 + 步骤级工具面快照 | additive（minor） | 中 | `computeToolsHash`（已有） |
 | **M7-6b** | MCP 只读资源（**已交付**，2026-09-15） | `mcp` | `resources/list` / `resources/read` + `searchTools` | additive（minor） | 中 | M4 `McpRegistry`（已有） |
+| **M7-5**（底座部分） | Agent 配方编译与快照（**已交付**，2026-09-15） | `types` · `core` · `memory` | `validateSchema` + `compileAgent()` 编译期校验（重名 / Schema / MCP 可达性）+ 配方快照 `instructionsHash` | additive（minor） | 中 | `findDuplicateToolNames` / `computeToolsHash` / `assertResumable`（已有）；设计出处 `architecture.md` §3.2 |
 
 **M7-1 / 2 / 3 / 6a** 合起来即 `product-direction.md` §5 所称的「企业能验收的最小治理交付包」：**成本可见 · 链路可查 · 策略可测 · 工具可控**。M7-6b 性质上更接近「MCP 适配完善」而非治理，延后不破坏四角齐全（拆分依据见 §8-7）；**已于 2026-09-15 同批交付**（见 §5.3 与 §8-8）。
 
@@ -371,6 +372,95 @@ git add -A && git commit -m "chore: version packages"
    - **为什么敏感度取 `network-read` 而非按 URI 推断**：URI 长得像本地文件（`file:///`）不代表读取发生在本地 —— 对 agent 而言这是一次对外取数；保守取值让它自然落入既有 gate 矩阵与禁网沙箱，不新增旁路。`harmless` 一旦误判就是「沙箱不设防的读文件」。
    - **重评触发条件**：若真实 MCP server 普遍把长文本资源（>32k）作为主要交付形态，则 `maxResourceChars` 截断语义需改为「落 artifact 存指纹 + 返回摘要」（与 M7-1 的 §8-1 摘要降级同思路）。
    - **落地**：§5.3（含验收映射）。
+9. **M7-5 只做底座部分（`compileAgent()` + 配方快照），并发调度不进本批**。
+   - **判定依据**：`docs/base-convergence.md` §6 已判「`compileAgent()` / 配方快照校验属底座；多任务并发调度需先论证」。并发调度引入的是**配额与取消语义**，属宿主编排职责，先论证再立项，不混入本批。
+   - **为什么仍要单独立项**：`docs/architecture.md` §3.2 的 `compileAgent()` 自 M4 起一直是「设计条目，未排期」（见 `docs/final-review.md`）——它是「配方变更不破坏历史会话」这条验收的唯一实现面，而后者是可恢复性的前提。
+   - **落地**：§9。
+10. **MCP 可达性校验采用注入式 `resolveMcp`，core 不依赖 `mcp` 包**。
+   - **判定依据**：依赖方向为 `mcp → core`（M6 拆包 B1，见 `core/src/index.ts` 注记），core 反向引用会成环。故 core 只接受结构化解析函数 `(ref: { server; tool }) => AnyTool | undefined`，与 `McpRegistry.resolve()` 签名天然兼容，宿主一行 `resolveMcp: (ref) => registry.resolve(ref)` 即可接入。
+   - **为什么不在 core 声明 `McpToolRef` 命名类型**：会在 core 与 mcp 各留一个同名接口，形成事实源分裂；结构化参数让两侧**零耦合**且编译期仍受检。
+   - **代价**：core 侧无独立类型名，IDE 提示弱一点 —— 换来的是不破坏既有依赖方向。
+   - **落地**：§9.2 / §9.3（用例 3、4）。
+11. **Schema 校验新增 `validateSchema(schema)`（校验 schema 自身，而非值），落 `types`**。
+   - **判定依据**：既有 `validate(value, schema)` 是**值校验**；编译期要的是 **schema 自身合法性**（`type` 拼写错误、`required` 引用不存在的属性、`minimum > maximum`…）。这类缺陷在运行时只表现为「模型永远调不对参数」，极难归因。
+   - **为什么落 `types`**：纯函数、零依赖，符合 types 红线（只许契约声明 + 零 IO 纯函数）；且 `mcp` 包归一化远端 schema 后同样需要它。
+   - **落地**：§9.1 / §9.3（用例 8）。
+12. **配方指纹拆两级：`toolsHash`（硬）与 `instructionsHash`（软）**。
+   - **判定依据**：`toolsHash` 变化意味着 checkpoint 里的工具调用**无法复现** —— 必须硬失败（既有行为）。`instructions` 变化不改变工具契约，但会让「同一 checkpoint 在新人设下继续跑」产生语义漂移 —— 默认阻断，允许 `allowInstructionChange: true` 显式放行，作为运维逃生阀。
+   - **为什么 `temperature` / `maxTokens` 不纳入**：不影响 transcript 结构，纳入只会制造噪声。
+   - **为什么拆两个 hash 而不是一个 `recipeHash`**：单个 hash 无法在「放行 instructions 变化」时区分差异来源，逃生阀会退化成「整体跳过校验」。
+   - **兼容性**：旧 checkpoint 无 `instructionsHash` → 退回既有 `toolsHash` + `agentId` 校验，**零破坏**。
+   - **落地**：§9.1 / §9.3（用例 6、7）。
+
+---
+
+## 9. M7-5 底座部分：Agent 配方编译与快照（2026-09-15 立项）
+
+> 立项依据：`docs/base-convergence.md` §6；设计出处：`docs/architecture.md` §3.2（`Agent` 演进：`compileAgent()` → 校验重名、MCP 可达性、Schema 合法性，**产物可缓存**）。本批不含并发调度（§8-9）。
+
+### 9.1 包归属与落点
+
+| 包 | 文件 | 改动 |
+|---|---|---|
+| `types` | `src/schema.ts` | 新增 `validateSchema(schema: JsonSchema): string[]`（校验 schema 自身，§8-11）；纯函数、零依赖 |
+| `types` | `src/codes.ts` | `ErrorCode` 增 `AGENT_INVALID`；`NAME_TO_CODE` 增 `AgentCompileError → AGENT_INVALID` |
+| `core` | `src/agent.ts` | `AgentOptions` / `Agent` 增可选 `mcpTools?: readonly McpToolRefLike[]`（additive，缺省 `[]`） |
+| `core` | `src/compile.ts`（新增） | `compileAgent()`、`AgentCompileError`、`McpToolRefLike`、`CompiledAgent`、`AgentDiagnostic` |
+| `core` | `src/index.ts` | 导出上述符号（公共 API 面 additive） |
+| `memory` | `src/checkpoint.ts` | `AgentSnapshot` 增可选 `instructionsHash?`；新增 `computeInstructionsHash()`；`assertResumable()` 增软校验分支（§8-12） |
+
+### 9.2 API 变更（全部 additive minor）
+
+```ts
+// types
+function validateSchema(schema: JsonSchema): string[];   // [] == 合法
+ErrorCode.AGENT_INVALID;                                  // "agent_invalid"
+
+// core
+interface McpToolRefLike { server: string; tool: string }
+interface AgentDiagnostic { level: "error" | "warn"; code: string; message: string; tool?: string }
+interface CompiledAgent {
+  readonly agent: Agent;
+  readonly tools: readonly AnyTool[];        // 本地 + 已解析的 MCP 工具
+  readonly toolsHash: string;                // 与 memory.computeToolsHash 一致
+  readonly instructionsHash: string;
+  readonly warnings: readonly AgentDiagnostic[];   // 编译期 error 直接抛，只留 warn
+}
+function compileAgent(
+  input: Agent | AgentOptions,
+  options?: { resolveMcp?: (ref: McpToolRefLike) => AnyTool | undefined },
+): CompiledAgent;
+class AgentCompileError extends Error { readonly code = ErrorCode.AGENT_INVALID; issues: AgentDiagnostic[] }
+
+// memory
+AgentSnapshot.instructionsHash?: string
+function computeInstructionsHash(agent: { instructions?: string }): string
+function assertResumable(cp: Checkpoint, agent: ToolSurface & { instructions?: string },
+                         options?: { allowInstructionChange?: boolean }): void
+```
+
+**诊断码**：`duplicate-tool`（重名）、`invalid-schema`（schema 自身非法）、`mcp-unreachable`（MCP 引用未解析）、`empty-tools`（warn，配方无工具）。
+
+### 9.3 验收用例
+
+`packages/core/test/compile.test.ts`（新增，≥8 例）+ `packages/types/test/schema.test.ts`（增 `validateSchema` 用例）：
+
+1. 重名工具 → 抛 `AgentCompileError`，`issues[0].code === "duplicate-tool"`
+2. 非法 schema（`type: "strng"` / `required` 引用不存在的属性 / `minimum > maximum`）→ 抛错，`code === "invalid-schema"`
+3. MCP 引用未解析（`resolveMcp` 缺省 / 返回 `undefined`）→ 抛错，`code === "mcp-unreachable"`
+4. `resolveMcp` 接到 `McpRegistry.resolve` → 解析成功并入 `tools`，且与本地工具同参与重名检测
+5. 产物确定性：同一配方两次编译 `toolsHash` / `instructionsHash` 相同（**可缓存**）
+6. 配方快照：instructions 变更后 `assertResumable` 抛 `CheckpointMismatchError`；`allowInstructionChange: true` 放行
+7. 兼容：旧 checkpoint（无 `instructionsHash`）仍按 `toolsHash` + `agentId` 校验，行为不变
+8. `validateSchema`：合法返回 `[]`；各类非法返回非空且含字段路径
+
+### 9.4 风险条
+
+- **编译期校验不是权限**：`compileAgent()` 只保证配方**自洽**（不重名、schema 可解析、MCP 已注册），**不替代** M3 审批与沙箱 —— 编译通过的工具仍须逐次过 gate。与 M7-6a 的「检索是声明优化，不是权限收窄」同源。
+- **MCP 可达性是编译期快照**：`resolveMcp` 只证明编译那一刻可达；运行时 server 掉线仍按既有 `McpError` 处理，不因编译通过而放宽。
+- **instructions 纳入指纹会让 prompt 微调阻断续跑**：这是刻意的（§8-12）。逃生阀是 `allowInstructionChange`，**不是**改指纹算法 —— 否则护栏形同虚设。
+
+> **M7-5 底座部分已于立项同日（2026-09-15）交付** —— `types` 增 `validateSchema()`（校验 schema 自身）与 `ErrorCode.AGENT_INVALID`；`core` 增 `src/compile.ts`（`compileAgent()` / `agentSnapshotOf()` / `AgentCompileError` / `CompiledAgent`，重名与非法 schema 编译期报错、MCP 可达性经注入式 `resolveMcp` 校验），`Agent` 增可选 `mcpTools?`；`memory` 增 `computeInstructionsHash()` 与 `AgentSnapshot.instructionsHash?`（可选，旧快照零影响），`assertResumable()` 增软校验分支。测试见 `packages/core/test/m7-5.test.ts`（16 例）+ `packages/types/test/schema.test.ts` 增 10 例，`npm run ci` 六门全绿（覆盖率 行 92.73 / 分支 82.55 / 函数 90.34），`check:api` 与 `size` 已重冻（符号 `types` 68→69、`memory` 19→21、`core` 70→78）。
 
 ---
 

@@ -12,10 +12,12 @@ export {
   CheckpointStore,
   CheckpointMismatchError,
   computeToolsHash,
+  computeInstructionsHash,
   assertResumable,
 } from "./checkpoint.js";
 export type {
   Checkpoint,
+  AssertResumableOptions,
   AgentSnapshot,
   CheckpointSeed,
   CheckpointStoreOptions,

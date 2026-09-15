@@ -14,7 +14,18 @@ export { loadConfig, ConfigError } from "./config.js";
 export type { RuntimeConfig, FeatureFlags, LoadConfigOptions, McpConfig } from "./config.js";
 
 export { Agent, defineAgent, DEFAULT_AGENT_INSTRUCTIONS } from "./agent.js";
-export type { AgentOptions } from "./agent.js";
+export type { AgentOptions, McpToolRefLike } from "./agent.js";
+
+// ---- M7-5: agent recipe compilation (docs/m7-base-governance.md §9) ----
+// Moves duplicate names / malformed schemas / unreachable MCP servers from
+// "mid-run surprise" to "compile-time error". Not a permission check.
+export { compileAgent, agentSnapshotOf, AgentCompileError } from "./compile.js";
+export type {
+  CompiledAgent,
+  AgentDiagnostic,
+  AgentDiagnosticCode,
+  CompileAgentOptions,
+} from "./compile.js";
 
 // ---- Events ----
 export { EventBus } from "./events.js";

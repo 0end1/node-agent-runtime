@@ -18,6 +18,8 @@ export const ErrorCode = {
   SESSION: "session_error",
   CONFIG_INVALID: "config_invalid",
   TOOL_ERROR: "tool_error",
+  /** M7-5: an agent recipe failed compile-time validation. */
+  AGENT_INVALID: "agent_invalid",
   /** P3.4: a run/session budget or tool rate cap was hit. */
   LIMIT_EXCEEDED: "limit_exceeded",
 } as const;
@@ -45,6 +47,7 @@ const NAME_TO_CODE: Record<string, ErrorCode> = {
   SessionError: ErrorCode.SESSION,
   ConfigError: ErrorCode.CONFIG_INVALID,
   LimitExceededError: ErrorCode.LIMIT_EXCEEDED,
+  AgentCompileError: ErrorCode.AGENT_INVALID,
 };
 
 /** Normalize any thrown value into a stable `{ code, message }` descriptor. */

@@ -10,11 +10,11 @@
 | 包 | 版本 | 导出符号数 | 角色 |
 |---|---|---|---|
 | `@node-agent-runtime/types` | 0.2.0 | 8 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
-| `@node-agent-runtime/memory` | 0.2.0 | 19 | C3 会话记忆 + Checkpoint（步级快照/续跑校验）+ M7-1 上下文压缩纯函数 |
+| `@node-agent-runtime/memory` | 0.2.0 | 21 | C3 会话记忆 + Checkpoint（步级快照/续跑校验）+ M7-1 上下文压缩纯函数 + M7-5 配方指令指纹 |
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 28 | C5 授权决策 + M7-3 声明式策略契约/编译/测试/预设 |
-| `@node-agent-runtime/core` | 0.2.0 | 70（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade |
+| `@node-agent-runtime/core` | 0.2.0 | 78（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade + M7-5 配方编译 |
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@node-agent-runtime/host` | 0.2.0 | 14 | C8 会话/任务生命周期 + 审批审计导出 |
@@ -63,10 +63,13 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 **P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`LogContext`、`ConsoleLogger`、`toLogger`、`errorPayload`、`redact`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
 **M7-2 OTEL 导出**：`toOtelSpans`、`OtelSpan`、`OtelSpanKind`、`OtelContext`
+**M7-5 配方编译**：`compileAgent`、`agentSnapshotOf`、`AgentCompileError`、`CompiledAgent`、`AgentDiagnostic`、`AgentDiagnosticCode`、`CompileAgentOptions`、`McpToolRefLike`
 
 > **M7-2（2026-09-11，additive/minor）**：19 个事件接口统一增可选 `traceId?`（由 `emit()` 与 `redact()` 同点注入）；`run:start` 增 `startedAt`、`run:end` 增 `endedAt`（epoch ms）；`RunOptions` 增可选 `traceId?`，`RunResult` 增 `traceId`；`Logger` 增可选 `child?(ctx: LogContext): Logger`（`ConsoleLogger` 已实现，未绑定上下文时输出格式逐字不变）。`LogContext` 为本次新增导出。
 
 > **M7-2 收尾（2026-09-15，additive/minor）**：事件接口 `StepStartEvent` / `ToolStartEvent` / `ToolEndEvent` 增可选 `at?`（epoch ms，由 runtime 在发射点补齐），供 span 推导起止时间；新增 `toOtelSpans`（纯函数：确定性 id、`run→step→tool` 父子关系、`startTimeUnixNano` / `endTimeUnixNano` 单调递增）及类型 `OtelSpan`、`OtelSpanKind`、`OtelContext`。仅产出 span **数据形状**，不绑定任何 OTLP 传输/SDK、不引入运行时依赖。
+> **M7-5 Agent 配方编译（2026-09-15，additive/minor）**：新增 `compileAgent(input, options?)` —— 把「工具重名 / 参数 schema 非法 / MCP 引用不可达」三类缺陷从「跑起来才发现（或永远发现不了，只表现为模型一直调错）」提前到**编译期一次性报错**（`AgentCompileError.issues` 给出全部问题，非 fail-fast）；产物 `CompiledAgent` 含 `toolsHash` 与 `instructionsHash`，**确定性**故可缓存。`AgentOptions` / `Agent` 增可选 `mcpTools?`（结构化 `{ server, tool }`，与 `McpRegistry.resolve()` 同形，避免 core → mcp 反向依赖成环），经注入的 `resolveMcp` 解析后与本地工具**同一命名空间**参与重名检测；`agentSnapshotOf(compiled)` 产出可直接写入 checkpoint 的 `AgentSnapshot`。**编译通过不代表授权** —— 工具仍须逐次过 M3 审批与沙箱。
+
 **facade 转发**：`export *` → `@node-agent-runtime/types`、`@node-agent-runtime/memory`（含 Checkpoint）、`@node-agent-runtime/artifact`、`@node-agent-runtime/sandbox`、`@node-agent-runtime/policy`
 
 > **事件总线可注入（2026-09-08）**：`AgentRuntimeOptions.events?: EventBus<RuntimeEvent>` —— 宿主可创建并注入总线（默认仍自建）。配合 `SessionManagerOptions.events`，host 不再需要借用 `runtime.events` 内部构件。
@@ -75,9 +78,11 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 ## 3. `@node-agent-runtime/memory`（C3 · 记忆 + Checkpoint）
 
 **会话记忆**：`SessionMemory`、`Memory`、`MemoryFact`、`MemoryRecall`、`SessionMemoryOptions`
-**Checkpoint（M2）**：`CheckpointStore`、`CheckpointStoreOptions`、`CheckpointMismatchError`、`computeToolsHash`、`assertResumable`、`Checkpoint`、`CheckpointSeed`、`AgentSnapshot`、`ToolSurface`
+**Checkpoint（M2）**：`CheckpointStore`、`CheckpointStoreOptions`、`CheckpointMismatchError`、`computeToolsHash`、`computeInstructionsHash`、`assertResumable`、`AssertResumableOptions`、`Checkpoint`、`CheckpointSeed`、`AgentSnapshot`、`ToolSurface`
 
 > `ToolSurface`（`{ name, tools }` 结构化契约）取代原先对 `Agent` 类的依赖，使本包仅依赖 types。
+
+> **M7-5 配方快照（2026-09-15，additive/minor）**：`AgentSnapshot` 增**可选** `instructionsHash?`（旧快照无此字段照常工作）；新增纯函数 `computeInstructionsHash({ instructions })`（与 `computeToolsHash` 同一 FNV-1a 实现）；`assertResumable(checkpoint, agent, options?)` 增第三参 `AssertResumableOptions{ allowInstructionChange? }` —— 工具集与 `agentId` 仍为**硬校验**，`instructionsHash` 为**软校验**（仅当快照与当前配方双方都有该字段时才比对）。`agent` 形参类型放宽为 `ToolSurface & { instructions?: string }`，既有调用点零改动。
 
 ## 4. `@node-agent-runtime/artifact`
 

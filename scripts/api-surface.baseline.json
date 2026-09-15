@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T06:30:55.734Z",
+  "generatedAt": "2026-09-15T07:57:09.816Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -71,13 +71,15 @@
         "stringifyResult",
         "toolKind",
         "usageCost",
-        "validate"
+        "validate",
+        "validateSchema"
       ],
       "forwards": []
     },
     "@node-agent-runtime/memory": {
       "symbols": [
         "AgentSnapshot",
+        "AssertResumableOptions",
         "Checkpoint",
         "CheckpointMismatchError",
         "CheckpointSeed",
@@ -93,6 +95,7 @@
         "ToolSurface",
         "assertResumable",
         "compactMessages",
+        "computeInstructionsHash",
         "computeToolsHash",
         "countMessagesTokens",
         "estimateTokens"
@@ -167,12 +170,17 @@
     "@node-agent-runtime/core": {
       "symbols": [
         "Agent",
+        "AgentCompileError",
+        "AgentDiagnostic",
+        "AgentDiagnosticCode",
         "AgentOptions",
         "AgentRuntime",
         "AgentRuntimeOptions",
         "AnyTool",
         "CheckpointRestoredEvent",
         "CheckpointSavedEvent",
+        "CompileAgentOptions",
+        "CompiledAgent",
         "ConfigError",
         "ConsoleLogger",
         "DEFAULT_AGENT_INSTRUCTIONS",
@@ -186,6 +194,7 @@
         "LogLevel",
         "Logger",
         "McpConfig",
+        "McpToolRefLike",
         "MemoryStorage",
         "ModelProvider",
         "ModelRequest",
@@ -226,7 +235,9 @@
         "ToolSearchEntry",
         "ToolStartEvent",
         "UserMessageEvent",
+        "agentSnapshotOf",
         "buildRunContext",
+        "compileAgent",
         "createToolSearchTool",
         "defineAgent",
         "defineTool",

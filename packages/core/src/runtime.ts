@@ -13,16 +13,18 @@ import {
 import type { ModelProvider } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
-import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@node-agent-runtime/types";
+import type { ChatMessage, PriceTable, RunUsage, ToolCall, ToolResultMessage } from "@node-agent-runtime/types";
 import type { LimitViolation, RunLimits } from "@node-agent-runtime/types";
 import {
   newId,
   stringifyResult,
+  usageCost,
   validate,
   ErrorCode,
   errorInfo,
   checkRunLimits,
 } from "@node-agent-runtime/types";
+import { compactMessages, countMessagesTokens, type ContextBudget } from "@node-agent-runtime/memory";
 import { toLogger, redact, type Logger } from "./log.js";
 
 export interface AgentRuntimeOptions {
@@ -41,6 +43,16 @@ export interface AgentRuntimeOptions {
    * are merged on top of these (per-run wins).
    */
   limits?: RunLimits;
+  /**
+   * M7-1: default cost meter price table for every run. Per-run `RunOptions.pricing`
+   * overrides it. Has priority over any `RunOptions.costUsd` hook.
+   */
+  pricing?: PriceTable;
+  /**
+   * M7-1: default context budget for long-context compaction. Per-run `RunOptions.context`
+   * overrides it.
+   */
+  context?: ContextBudget;
 }
 
 /**
@@ -112,6 +124,16 @@ export interface RunOptions {
    * events can be stitched into a single trace (and told apart from
    * concurrent runs on the same runtime instance).
    */
+  /**
+   * M7-1: built-in cost meter price table for this run (overrides the runtime
+   * default). Has priority over the `costUsd` hook.
+   */
+  pricing?: PriceTable;
+  /**
+   * M7-1: context budget for long-context compaction of this run (overrides the
+   * runtime default).
+   */
+  context?: ContextBudget;
   traceId?: string;
 }
 
@@ -174,12 +196,16 @@ export class AgentRuntime {
   readonly events: EventBus<RuntimeEvent>;
   private readonly logger?: Logger;
   private readonly defaultLimits?: RunLimits;
+  private readonly pricing?: PriceTable;
+  private readonly contextBudget?: ContextBudget;
 
   constructor(options: AgentRuntimeOptions) {
     this.provider = options.provider;
     this.logger = toLogger(options.logger);
     this.events = options.events ?? new EventBus<RuntimeEvent>();
     this.defaultLimits = options.limits;
+    this.pricing = options.pricing;
+    this.contextBudget = options.context;
   }
 
   /** Subscribe to all runtime lifecycle events. */
@@ -203,7 +229,7 @@ export class AgentRuntime {
     for (const tool of agent.tools) toolMap.set(tool.name, tool);
     const canUseTools = toolMap.size > 0;
 
-    const history: ChatMessage[] = [...(options.history ?? [])];
+    let history: ChatMessage[] = [...(options.history ?? [])];
     const userMessage: ChatMessage = { role: "user", content: input };
     if (options.appendUserMessage !== false) history.push(userMessage);
 
@@ -211,7 +237,14 @@ export class AgentRuntime {
       inputTokens: options.initialUsage?.inputTokens ?? 0,
       outputTokens: options.initialUsage?.outputTokens ?? 0,
       modelCalls: options.initialUsage?.modelCalls ?? 0,
+      ...(options.initialUsage?.cachedInputTokens !== undefined
+        ? { cachedInputTokens: options.initialUsage.cachedInputTokens }
+        : {}),
+      ...(options.initialUsage?.costUsd !== undefined ? { costUsd: options.initialUsage.costUsd } : {}),
     };
+    // M7-1: 内置计量与上下文压缩的配置（per-run 覆盖 runtime 默认值）。
+    const pricing = options.pricing ?? this.pricing;
+    const contextBudget = options.context ?? this.contextBudget;
     const stepEvents: StepLedger = { toolStarts: [], toolEnds: [], responses: [] };
 
     // M7-2: 一次 run 一个 traceId —— 缺省由引擎生成，宿主可注入以对齐外部链路。
@@ -246,7 +279,11 @@ export class AgentRuntime {
         {
           steps: step,
           elapsedMs: Date.now() - startedAt,
-          ...(options.costUsd ? { costUsd: options.costUsd(usage) } : {}),
+          ...(usage.costUsd !== undefined
+            ? { costUsd: usage.costUsd }
+            : options.costUsd
+              ? { costUsd: options.costUsd(usage) }
+              : {}),
           toolCallTimes,
         },
         limits,
@@ -260,6 +297,22 @@ export class AgentRuntime {
       for (let step = 1; step <= maxSteps; step++) {
         // P3.4: budget check before every model round-trip (duration / tokens / cost).
         assertWithinLimits(step);
+        // M7-1: 上下文预算触发压缩（确定性纯函数，零依赖）。压缩发生在 provider
+        // 调用之前，保证送入模型的 history 始终在预算内。
+        if (contextBudget?.maxInputTokens !== undefined) {
+          const used = countMessagesTokens(history);
+          if (used > contextBudget.maxInputTokens) {
+            const compacted = compactMessages(history, contextBudget);
+            history = compacted.messages;
+            emit({
+              type: "context:compacted",
+              runId,
+              step,
+              removed: compacted.removed,
+              estimatedTokens: compacted.estimatedTokens,
+            });
+          }
+        }
         emit({ type: "step:start", runId, step });
         log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
@@ -278,7 +331,31 @@ export class AgentRuntime {
         if (response.usage) {
           usage.inputTokens += response.usage.inputTokens;
           usage.outputTokens += response.usage.outputTokens;
+          if (response.usage.cachedInputTokens) {
+            usage.cachedInputTokens = (usage.cachedInputTokens ?? 0) + response.usage.cachedInputTokens;
+          }
         }
+        // M7-1: 内置计量（脱钩宿主钩子）。优先级 pricing > costUsd 钩子。
+        let cost: number | undefined;
+        if (pricing) cost = usageCost(usage, pricing);
+        else if (options.costUsd) cost = options.costUsd(usage);
+        if (cost !== undefined) usage.costUsd = cost;
+
+        // M7-1: 用量/成本更新后再做一次预算校验，使 maxCostUsd 在成本已知后生效
+        // （step 开头的校验发生在 provider 返回之前，此时 costUsd 尚未算出）。
+        assertWithinLimits(step);
+
+        // M7-1: step 级用量/成本/上下文事件（审计与计费对账用）。
+        const contextUsed = contextBudget ? countMessagesTokens(history) : undefined;
+        emit({
+          type: "usage:update",
+          runId,
+          step,
+          usage: { ...usage },
+          ...(usage.costUsd !== undefined ? { costUsd: usage.costUsd } : {}),
+          ...(contextUsed !== undefined ? { contextUsed } : {}),
+          ...(contextBudget?.contextWindow !== undefined ? { contextSize: contextBudget.contextWindow } : {}),
+        });
 
         const assistantMsg: ChatMessage = {
           role: "assistant",

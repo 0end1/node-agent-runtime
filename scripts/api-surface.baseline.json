@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-11T00:45:13.922Z",
+  "generatedAt": "2026-09-15T02:40:34.356Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -17,6 +17,7 @@
         "ChatMessage",
         "CheckpointRestoredEvent",
         "CheckpointSavedEvent",
+        "ContextCompactedEvent",
         "DocDomain",
         "ErrorCode",
         "ErrorInfo",
@@ -30,6 +31,7 @@
         "PermissionApprovedEvent",
         "PermissionDeniedEvent",
         "PermissionRequestEvent",
+        "PriceTable",
         "ProcessEnv",
         "RunEndEvent",
         "RunErrorEvent",
@@ -57,6 +59,7 @@
         "ToolRateLimit",
         "ToolResultMessage",
         "ToolStartEvent",
+        "UsageUpdateEvent",
         "UserMessage",
         "UserMessageEvent",
         "checkRunLimits",
@@ -67,6 +70,7 @@
         "newId",
         "stringifyResult",
         "toolKind",
+        "usageCost",
         "validate"
       ],
       "forwards": []
@@ -79,6 +83,8 @@
         "CheckpointSeed",
         "CheckpointStore",
         "CheckpointStoreOptions",
+        "CompactResult",
+        "ContextBudget",
         "Memory",
         "MemoryFact",
         "MemoryRecall",
@@ -86,7 +92,10 @@
         "SessionMemoryOptions",
         "ToolSurface",
         "assertResumable",
-        "computeToolsHash"
+        "compactMessages",
+        "computeToolsHash",
+        "countMessagesTokens",
+        "estimateTokens"
       ],
       "forwards": []
     },

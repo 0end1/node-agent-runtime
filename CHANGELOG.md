@@ -34,6 +34,15 @@
 - **已知缺口**：步骤/工具级事件尚无时间戳 —— `toOtelSpans` 要给 step / tool span 填 `startTimeUnixNano` / `endTimeUnixNano`，届时须先补 `at?: number`（additive minor）
 - **索引同步**：`docs/architecture.md`（§11 M7 行 ☐ → 🟡、§13 v1.14）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §3、`docs/api-surface.md` §2
 
+**M7-1 成本与上下文治理（feat）**（2026-09-15）：
+
+- **内置计量（脱钩宿主钩子）**：`types` 新增 `pricing.ts`（`PriceTable` + `usageCost` 纯函数，缓存命中价与未配价回退）；`RunUsage` 增 `cachedInputTokens?` / `costUsd?`；`core` 的 `AgentRuntimeOptions` / `RunOptions` 增 `pricing?`，**优先级 `pricing` > `costUsd` 钩子**（钩子保留为回退，不破坏既有宿主）；用量更新后补一次预算校验使 `maxCostUsd` 在成本已知后生效
+- **上下文预算与压缩**：`memory` 新增 `compact.ts`（`ContextBudget` + `compactMessages` 确定性纯函数，零依赖、字符/4 估算、`countTokens` 可注入、结构化折叠保留用户原始目标与工具结果关键字段）；`core` 在 step 循环内 provider 调用前执行 compact 并发 `context:compacted`
+- **事件与配置**：`types` 新增 `UsageUpdateEvent`（`usage:update`，含 `costUsd?` / `contextUsed` / `contextSize`）与 `ContextCompactedEvent`（`context:compacted`）；`core` 的 `RuntimeConfig` 增 `context?` / `pricing?` + `AGENT_CONTEXT_*` 环境变量；`provider-openai` 解析 `prompt_tokens_details.cached_tokens`
+- **测试**：新增 `packages/types/test/pricing.test.ts` / `packages/memory/test/compact.test.ts` / `packages/core/test/m7-1.test.ts`（共 19 例，覆盖计量精确性、续账等价、压缩触发与可续跑、maxCostUsd 生效）
+- **门禁**：`npm run ci` 六门全绿；体积 memory +21.0%（阈值 +25%）/ types +6.2% / core +1.7%；已 `check:api:update` 重冻基线
+- **索引同步**：`docs/api-surface.md` §0（memory 符号数 14→19）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §2
+
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 
 - **13 份 LICENSE 换正本**：根 `LICENSE` 与 12 个包的 `LICENSE` 替换为 Apache License 2.0 官方文本（含 `Copyright 2026 wangzhiyong` 附录）

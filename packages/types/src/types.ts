@@ -42,4 +42,14 @@ export interface RunUsage {
   outputTokens: number;
   /** How many model round trips happened. */
   modelCalls: number;
+  /**
+   * Cache-read input tokens (prompt caching hit). Optional; only when the
+   * provider reports it. Billed at a separate rate via `PriceTable`.
+   */
+  cachedInputTokens?: number;
+  /**
+   * Estimated USD cost so far. Optional; set by the engine when a `PriceTable`
+   * is configured (M7-1), or by a host `costUsd` hook. `undefined` = not metered.
+   */
+  costUsd?: number;
 }

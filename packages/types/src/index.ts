@@ -8,6 +8,7 @@ export * from "./audit.js";
 export * from "./codes.js";
 export * from "./events.js";
 export * from "./limits.js";
+export * from "./pricing.js";
 export * from "./schema.js";
 export * from "./storage.js";
 export * from "./tools.js";

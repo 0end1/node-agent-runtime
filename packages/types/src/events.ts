@@ -85,6 +85,34 @@ export interface RunErrorEvent {
   traceId?: string;
 }
 
+// ---- Cost & context governance events (M7-1) --------------------------
+
+export interface UsageUpdateEvent {
+  type: "usage:update";
+  runId: string;
+  step: number;
+  /** Cumulative usage up to and including this step. */
+  usage: RunUsage;
+  /** Estimated USD so far (when a `PriceTable` is configured, or a host hook). */
+  costUsd?: number;
+  /** Approximate tokens currently in the prompt (after any compaction). */
+  contextUsed?: number;
+  /** Configured context window (only when `contextWindow` is set). */
+  contextSize?: number;
+  traceId?: string;
+}
+
+export interface ContextCompactedEvent {
+  type: "context:compacted";
+  runId: string;
+  step: number;
+  /** Number of messages folded into the summary placeholder. */
+  removed: number;
+  /** Approximate token count of the compacted transcript. */
+  estimatedTokens: number;
+  traceId?: string;
+}
+
 // ---- Session & Task lifecycle events (M1) -------------------------------
 
 export interface SessionCreatedEvent {
@@ -210,6 +238,8 @@ export type RuntimeEvent =
   | ToolEndEvent
   | RunEndEvent
   | RunErrorEvent
+  | UsageUpdateEvent
+  | ContextCompactedEvent
   // ---- Session & Task lifecycle events (M1) ----
   | SessionCreatedEvent
   | SessionUpdatedEvent

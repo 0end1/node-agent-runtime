@@ -28,7 +28,7 @@ export interface ModelResponse {
   content: string | null;
   toolCalls: RawToolCall[];
   finishReason: FinishReason;
-  usage?: { inputTokens: number; outputTokens: number };
+  usage?: { inputTokens: number; outputTokens: number; cachedInputTokens?: number };
 }
 
 /** A pluggable chat model backend. */

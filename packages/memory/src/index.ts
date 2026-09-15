@@ -21,3 +21,11 @@ export type {
   CheckpointStoreOptions,
   ToolSurface,
 } from "./checkpoint.js";
+
+// M7-1: 确定性、零依赖的上下文压缩（引擎在 step 循环内调用）。
+export {
+  compactMessages,
+  countMessagesTokens,
+  estimateTokens,
+} from "./compact.js";
+export type { ContextBudget, CompactResult } from "./compact.js";

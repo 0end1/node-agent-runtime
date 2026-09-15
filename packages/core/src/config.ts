@@ -1,6 +1,7 @@
 import type { SandboxMode } from "@node-agent-runtime/sandbox";
+import type { ContextBudget } from "@node-agent-runtime/memory";
 import { ErrorCode } from "@node-agent-runtime/types";
-import type { ProcessEnv, RunLimits } from "@node-agent-runtime/types";
+import type { PriceTable, ProcessEnv, RunLimits } from "@node-agent-runtime/types";
 import type { LogLevel } from "./log.js";
 
 export interface FeatureFlags {
@@ -38,6 +39,10 @@ export interface RuntimeConfig {
   };
   /** P3.4: budget guardrails derived from env / overrides (unset = no cap). */
   limits?: RunLimits;
+  /** M7-1: context budget for long-context compaction (unset = no cap). */
+  context?: ContextBudget;
+  /** M7-1: built-in cost meter price table (unset = cost not metered). */
+  pricing?: PriceTable;
   /** P3.6: MCP supply-chain guardrails handed to hosts for their transports. */
   mcp?: McpConfig;
   features: FeatureFlags;
@@ -65,6 +70,8 @@ export interface LoadConfigOptions {
     sandbox: Partial<RuntimeConfig["sandbox"]>;
     permission: Partial<RuntimeConfig["permission"]>;
     limits: Partial<RunLimits>;
+    context: Partial<ContextBudget>;
+    pricing: PriceTable;
     mcp: Partial<McpConfig>;
     features: Partial<FeatureFlags>;
   }>;
@@ -111,6 +118,26 @@ function buildLimits(
     ...(overrides ?? {}),
   };
   return Object.keys(limits).length === 0 ? undefined : limits;
+}
+
+/** M7-1: assemble `context` budget from `AGENT_CONTEXT_*` env + overrides. */
+function buildContext(
+  env: ProcessEnv,
+  overrides: Partial<ContextBudget> | undefined,
+): ContextBudget | undefined {
+  const budget: ContextBudget = {
+    ...(parsePositiveInt(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) !== undefined
+      ? { maxInputTokens: parsePositiveInt(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_CONTEXT_WINDOW) !== undefined
+      ? { contextWindow: parsePositiveInt(env.AGENT_CONTEXT_WINDOW) }
+      : {}),
+    ...(parsePositiveInt(env.AGENT_CONTEXT_KEEP_LAST_TURNS) !== undefined
+      ? { keepLastTurns: parsePositiveInt(env.AGENT_CONTEXT_KEEP_LAST_TURNS) }
+      : {}),
+    ...(overrides ?? {}),
+  };
+  return Object.keys(budget).length === 0 ? undefined : budget;
 }
 
 const MCP_ENV_PREFIX = "AGENT_MCP_ENV_";
@@ -223,6 +250,8 @@ export function loadConfig(options: LoadConfigOptions = {}): RuntimeConfig {
     },
     permission: { ...(ov.permission ?? {}) },
     limits: buildLimits(env, ov.limits),
+    context: buildContext(env, ov.context),
+    pricing: ov.pricing,
     mcp: buildMcpConfig(env, ov.mcp),
     features,
   };

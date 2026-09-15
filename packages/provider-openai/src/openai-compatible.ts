@@ -42,7 +42,12 @@ interface OpenAIChoice {
 
 interface OpenAIResponseBody {
   choices?: OpenAIChoice[];
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+    completion_tokens_details?: { cached_tokens?: number };
+  };
   error?: { message?: string; type?: string };
 }
 
@@ -201,6 +206,9 @@ export class OpenAIClientProvider implements ModelProvider {
           ? {
               inputTokens: data.usage.prompt_tokens,
               outputTokens: data.usage.completion_tokens ?? 0,
+              ...(data.usage.prompt_tokens_details?.cached_tokens !== undefined
+                ? { cachedInputTokens: data.usage.prompt_tokens_details.cached_tokens }
+                : {}),
             }
           : undefined,
     };

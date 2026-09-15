@@ -10,7 +10,7 @@
 | 包 | 版本 | 导出符号数 | 角色 |
 |---|---|---|---|
 | `@node-agent-runtime/types` | 0.2.0 | 8 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
-| `@node-agent-runtime/memory` | 0.2.0 | 14 | C3 会话记忆 + Checkpoint（步级快照/续跑校验） |
+| `@node-agent-runtime/memory` | 0.2.0 | 19 | C3 会话记忆 + Checkpoint（步级快照/续跑校验）+ M7-1 上下文压缩纯函数 |
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 19 | C5 授权决策 |

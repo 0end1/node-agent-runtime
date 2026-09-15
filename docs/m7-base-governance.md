@@ -90,6 +90,8 @@
 - 近似 token 估算与真实用量有偏差 → 验收只承诺「预算可触发、可续跑」，不承诺与厂商计费一致；`usage:update.contextSize` 仅在配置 `contextWindow` 时提供。
 - compact 改变 transcript → 必须与 checkpoint 语义对齐，否则破坏 M2 已验收的「续跑 transcript 一致」。
 
+> **落地状态（2026-09-15）**：**M7-1 已交付（批次 B）** —— `RunUsage` 增 `cachedInputTokens?` / `costUsd?`；`types/src/pricing.ts`（`PriceTable` + `usageCost` 纯函数，含缓存命中价与未配价回退）；`memory/src/compact.ts`（`ContextBudget` + `compactMessages` 确定性纯函数，零依赖、字符/4 估算、`countTokens` 可注入、结构化折叠保留用户原始目标与工具结果关键字段）；`core` 增 `pricing?` / `context?`（per-run 覆盖 runtime 默认，优先级 `pricing` > `costUsd` 钩子），step 循环内 provider 调用前执行 compact 并发 `context:compacted`、用量更新后发 `usage:update` 并在成本已知后补一次预算校验使 `maxCostUsd` 生效；`provider-openai` 解析 `prompt_tokens_details.cached_tokens`；`config.ts` 接入 `AGENT_CONTEXT_*` 环境变量。`npm run ci` 六门全绿；测试见 `packages/types/test/pricing.test.ts` / `packages/memory/test/compact.test.ts` / `packages/core/test/m7-1.test.ts`（共 19 例）。**M7-2 的目标 2（OTEL）与目标 3（审计导出）仍待做**。
+
 ---
 
 ## 3. M7-2 · 可观测与合规导出

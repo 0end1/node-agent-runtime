@@ -13,13 +13,24 @@ export type {
 
 export {
   McpRegistry,
+  McpResourceError,
   MCP_TOOL_PREFIX,
+  MCP_RESOURCE_MARKER,
+  DEFAULT_MAX_RESOURCE_CHARS,
+  DEFAULT_MAX_RESOURCE_TOOLS,
   mcpToolName,
+  mcpResourceToolName,
   parseMcpToolName,
   normalizeSchema,
   pathArgKeysOf,
+  resourceText,
 } from "./registry.js";
-export type { RegisteredServer, McpRegistryOptions } from "./registry.js";
+export type {
+  RegisteredServer,
+  McpRegistryOptions,
+  RegistryResource,
+  McpResourceRead,
+} from "./registry.js";
 
 export { McpError, McpTimeoutError, McpConnectionError } from "./jsonrpc.js";
 
@@ -29,6 +40,9 @@ export type {
   McpToolMeta,
   McpTextContent,
   McpCallToolResult,
+  McpResourceMeta,
+  McpResourceContent,
+  McpReadResourceResult,
   McpServerInfo,
   McpServerCapabilities,
   McpInitializeResult,

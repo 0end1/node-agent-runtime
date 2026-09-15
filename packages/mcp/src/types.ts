@@ -32,6 +32,32 @@ export interface McpCallToolResult {
   isError?: boolean;
 }
 
+/**
+ * One read-only resource advertised by a remote MCP server (`resources/list`,
+ * M7-6b). `uri` is the only required field and — being remote-supplied — is
+ * treated as untrusted input everywhere downstream.
+ */
+export interface McpResourceMeta {
+  uri: string;
+  name?: string;
+  description?: string;
+  mimeType?: string;
+}
+
+/** One item of a `resources/read` result (text payload or base64 blob). */
+export interface McpResourceContent {
+  uri: string;
+  mimeType?: string;
+  text?: string;
+  /** Base64-encoded payload for non-text resources. */
+  blob?: string;
+}
+
+/** Result of `resources/read` (spec: ReadResourceResult). */
+export interface McpReadResourceResult {
+  contents: McpResourceContent[];
+}
+
 export interface McpServerInfo {
   name: string;
   version?: string;
@@ -73,6 +99,17 @@ export interface McpServerHandle {
   listTools(): Promise<McpToolMeta[]>;
   /** Invoke one tool by its *remote* name (no prefix). */
   callTool(name: string, arguments_: Record<string, unknown>): Promise<McpCallToolResult>;
+  /**
+   * M7-6b (optional capability): the server's read-only resources. Absent ⇒
+   * the server has no resources, so callers may probe unconditionally.
+   */
+  listResources?(): Promise<McpResourceMeta[]>;
+  /**
+   * M7-6b (optional capability): read one advertised resource. Callers are
+   * expected to pass a URI obtained from `listResources()` — reading an
+   * undeclared URI is rejected upstream in `McpRegistry.readResource()`.
+   */
+  readResource?(uri: string): Promise<McpReadResourceResult>;
   /** Shut the connection down. Idempotent. */
   close(): Promise<void>;
 }

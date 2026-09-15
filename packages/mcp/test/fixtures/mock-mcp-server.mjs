@@ -5,7 +5,8 @@
  * MCP methods it answers *by hand* (no shared code with the client under
  * test), so the round trip genuinely exercises the wire protocol.
  *
- * Speaks: initialize, notifications/initialized, tools/list, tools/call, ping.
+ * Speaks: initialize, notifications/initialized, tools/list, tools/call,
+ * resources/list, resources/read, ping.
  */
 import { createInterface } from "node:readline";
 
@@ -55,6 +56,17 @@ const TOOLS = [
   },
 ];
 
+/** M7-6b: read-only resources advertised by this fixture. */
+const RESOURCES = [
+  { uri: "file:///README.md", name: "README", description: "项目说明", mimeType: "text/markdown" },
+  { uri: "file:///notes.txt", name: "notes", mimeType: "text/plain" },
+];
+
+const RESOURCE_TEXTS = {
+  "file:///README.md": "# 标题\n来自子进程的只读资源",
+  "file:///notes.txt": "note-1\nnote-2",
+};
+
 function methodNotFound(name) {
   return { code: -32601, message: `method not found: ${name}` };
 }
@@ -89,7 +101,7 @@ function handle(msg) {
       case "initialize":
         result = {
           protocolVersion: PROTOCOL_VERSION,
-          capabilities: { tools: { listChanged: false } },
+          capabilities: { tools: { listChanged: false }, resources: { listChanged: false } },
           serverInfo: SERVER_INFO,
         };
         break;
@@ -101,6 +113,16 @@ function handle(msg) {
         break;
       case "tools/call": {
         result = invokeTool(params?.name, params?.arguments);
+        break;
+      }
+      case "resources/list":
+        result = { resources: RESOURCES };
+        break;
+      case "resources/read": {
+        const uri = params?.uri;
+        const text = RESOURCE_TEXTS[uri];
+        if (text === undefined) throw { code: -32602, message: `unknown resource: ${uri}` };
+        result = { contents: [{ uri, mimeType: "text/plain", text }] };
         break;
       }
       default:

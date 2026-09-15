@@ -17,7 +17,7 @@
 | **M7-2** | 可观测与合规导出 | `types` · `core` · `host` | traceId 贯穿 + OTEL 形状纯函数 + 审计导出（CSV/JSON） | additive（minor） | 中 | P3.1 `Logger`、P3.3 `ApprovalStore`（已有） |
 | **M7-3** | 策略工程化 | `types` · `policy` · `core` | `PolicyDocument` 契约 + `compilePolicy` + `testPolicy` + ≥3 套组织预设 | additive（minor） | 中 | M3 `DefaultPermissionPolicy` / `combinePolicies`（已有） |
 | **M7-6a** | 工具规模治理（首批） | `types` · `core` · `memory` | `tool_search` 检索式声明 + 步骤级工具面快照 | additive（minor） | 中 | `computeToolsHash`（已有） |
-| **M7-6b** | MCP 只读资源（延后） | `mcp` | `resources/list` / `resources/read` + `searchTools` | additive（minor） | 中 | M4 `McpRegistry`（已有） |
+| **M7-6b** | MCP 只读资源（**已交付**，2026-09-15） | `mcp` | `resources/list` / `resources/read` + `searchTools` | additive（minor） | 中 | M4 `McpRegistry`（已有） |
 
 **M7-1 / 2 / 3 / 6a** 合起来即 `product-direction.md` §5 所称的「企业能验收的最小治理交付包」：**成本可见 · 链路可查 · 策略可测 · 工具可控**。M7-6b 性质上更接近「MCP 适配完善」而非治理，延后不破坏四角齐全（拆分依据见 §8-7）。
 
@@ -215,9 +215,11 @@
    - `packages/core/src/runtime.ts`：`StepSnapshot` 增 `toolSurface?: { declared: readonly string[]; used: readonly string[] }`；`packages/types/src/events.ts` 的 `StepStartEvent` 增 `declaredTools?: string[]`。
    - `packages/memory/src/checkpoint.ts`：`Checkpoint` 增 `toolSurface?`（additive）。
    - 与 `toolsHash` 的关系要写清：`toolsHash` 校验的是**配方工具集**是否变化（续跑护栏），`toolSurface` 记录的是**本步声明与执行**的工具集（审计/对账用）。**两者独立**，不得互相替换。
-3. **MCP 只读资源**
-   - `packages/mcp/src/client.ts` / `registry.ts`：增 `listResources()` / `readResource(uri)`（JSON-RPC `resources/list` / `resources/read`）与 `McpRegistry.searchTools(query)`。
-   - 资源物化为只读工具（命名沿用 `mcp__<server>__...` 前缀规则，`packages/mcp/src/registry.ts:29`），敏感度按保守值（`network-read`），并走既有 gate / sandbox 链路。
+3. **MCP 只读资源 ✅ 已交付（2026-09-15）**
+   - `packages/mcp/src/types.ts`：新增 `McpResourceMeta` / `McpResourceContent` / `McpReadResourceResult`；`McpServerHandle` 增**可选** `listResources()` / `readResource(uri)`（可选 ⇒ additive，既有 handle 零改动）。
+   - `packages/mcp/src/client.ts`：`McpClient` 记录 `initialize` 协商的 `capabilities` 并暴露 `resourcesSupported`；`listResources()`（cursor 翻页）与 `readResource(uri)`（校验 `contents` 数组）。**未声明 `resources` 能力 ⇒ `listResources()` 返回 `[]`**（无资源 ≠ 故障），协议层畸形响应仍抛 `McpError`。
+   - `packages/mcp/src/registry.ts`：`register()` 顺带列取资源并物化为只读工具，命名 `mcpResourceToolName()` → `mcp__<server>__resource__<slug>_<fnv1a8>`（确定性 + 防碰撞），URI 在闭包内固定；`McpRegistry.listResources()` / `readResource(uri, server?)` / `searchTools(query, limit?)`（复用 `core` 的 `ToolIndex`）。
+   - 敏感度按保守值（`network-read`），并走既有 gate / sandbox 链路（`network: "deny"` ⇒ 拒绝，**未新增旁路**）；资源文本经 `resourceText()` 摊平（二进制不进上下文、按 `maxResourceChars` 截断）。
 
 ### 验收用例（均可自动化）
 
@@ -226,6 +228,7 @@
 - 检索开启后，**未声明但被模型显式调用**的工具仍能执行（`toolMap` 全量语义未破坏）。
 - checkpoint 的 `toolSurface.used` 与实际执行工具一致；`declared` 变化**不影响** `toolsHash` 续跑校验。
 - MCP mock server 提供 `resources/list` → 只读资源物化成功、可 `read`；越权 URI 被 sandbox 声明域拒绝。
+  - 映射：`packages/mcp/test/m7-6b.test.ts`（物化 + 可 `read` + 越权 URI 抛 `McpResourceError` 且不转发 + `LocalSandbox` 禁网拒绝 / 放行后成功）与 `packages/mcp/test/mcp.test.ts`（HTTP mock 与真实子进程的 `resources/list`·`read`）。
 - 大工具集场景进 `scripts/e2e/`（沿用 M6-17 的跨形态 E2E 设施）。
 
 ### 风险
@@ -233,7 +236,9 @@
 - `tool_search` 会改变模型可见工具面 → 需明确「检索是声明优化，不是权限收窄」，避免被误读为安全边界。
 - MCP 资源读取扩大攻击面（URI 由远端给出）→ 必须复用既有 SSRF 白名单与沙箱声明域，不新增旁路。
 
-> **落地状态（2026-09-15）**：**M7-6a 已交付** —— `packages/core/src/tool-search.ts` 新增 `ToolIndex`（倒排索引 + 子串打分，零依赖）+ `createToolSearchTool`（生成 `tool_search` 元工具）；`RunOptions.toolBudget`（opt-in，默认 `search: false`）按阈值裁剪声明面并注入 `tool_search`；`StepSnapshot.toolSurface` / `StepStartEvent.declaredTools` 记录本步工具面，`Checkpoint.toolSurface` 同步落库（host 接入）；`toolMap` 始终全量，故未声明工具仍可按名执行（**非权限收窄**）。测试见 `packages/core/test/tool-search.test.ts` + `m7-6.test.ts`（共 19 例），`npm run ci` 全绿。**6b（MCP 只读资源）延后**，不进首批。
+> **落地状态（2026-09-15）**：**M7-6a 已交付** —— `packages/core/src/tool-search.ts` 新增 `ToolIndex`（倒排索引 + 子串打分，零依赖）+ `createToolSearchTool`（生成 `tool_search` 元工具）；`RunOptions.toolBudget`（opt-in，默认 `search: false`）按阈值裁剪声明面并注入 `tool_search`；`StepSnapshot.toolSurface` / `StepStartEvent.declaredTools` 记录本步工具面，`Checkpoint.toolSurface` 同步落库（host 接入）；`toolMap` 始终全量，故未声明工具仍可按名执行（**非权限收窄**）。测试见 `packages/core/test/tool-search.test.ts` + `m7-6.test.ts`（共 19 例），`npm run ci` 全绿。
+>
+> **M7-6b 亦已同日交付** —— `mcp` 增 `resources/list` / `resources/read`（`McpClient` + `McpRegistry`，`McpServerHandle` 上为可选方法）与 `McpRegistry.searchTools()`；资源物化为只读工具（`mcp__<server>__resource__<slug>_<fnv1a8>`，URI 闭包内固定），敏感度保守取 `network-read` 并走既有 gate / sandbox，读取仅接受已声明 URI（越权即 `McpResourceError`）。规模与上下文护栏：`maxResourceTools`（默认 50）/ `resourceTools`（可关）/ `maxResourceChars`（默认 32k）。测试见 `packages/mcp/test/m7-6b.test.ts`（13 例）+ `mcp.test.ts` 增 4 例，`npm run ci` 全绿。取舍见 §8-8。
 
 ---
 
@@ -358,6 +363,14 @@ git add -A && git commit -m "chore: version packages"
    - **为什么不让 M7-6 整体延后**：那样首批会缺「工具可控」这一角，`product-direction.md` §5 的「企业能验收的最小治理交付包」就不再四角齐全，对外表述要改。拆出 6a 后四角仍在，而 6b 性质上更接近「MCP 适配完善」而非「治理」。
    - **代价**：需同步 `product-direction.md` §5 的条目表述（M7-6 → 6a / 6b），6a 量级由「中-大」下调为「中」。
    - **落地**：§5（1/2 属 6a，3 属 6b）。
+8. **M7-6b 资源物化默认开、但按 server 上限 50（`resourceTools: true` + `maxResourceTools: 50`）**。
+   - **判定依据**：规格要求「资源物化为只读工具」，故默认开；但**资源数量完全由远端决定** —— 一个文件系统 MCP server 动辄上千资源，全量物化会直接击穿 6a 刚建立的工具面治理（声明面越宽，模型越难选对、也越贵）。50 对齐 6a 的 `maxDeclared`，使「MCP 资源」这一路新增面与「已有工具」同量级。
+   - **为什么不是默认关**：默认关会让「MCP 资源」对模型完全不可见，等于把验收项（物化成功、可 read）做成需要额外开关才成立的能力，与 §5 目标 3 的口径不符；`resourceTools: false` 仍可作为资源密集型 server 的逃生阀保留。
+   - **为什么超出的资源不报错**：超出上限只影响**物化**，不影响**可达性** —— 声明域仍是完整列表，宿主/模型仍可经 `McpRegistry.readResource(uri)` 按 URI 读取；静默截断而非报错，避免远端资源数量波动引发注册失败。
+   - **为什么 URI 必须在闭包内固定 + 只认已声明 URI**：URI 由远端给出（§5 风险条），若允许模型在调用期传 URI，则提示注入可直接指向 `file:///etc/shadow`；声明域即资源的「sandbox 声明域」，越权在 `McpRegistry` 层就被拒且不转发。
+   - **为什么敏感度取 `network-read` 而非按 URI 推断**：URI 长得像本地文件（`file:///`）不代表读取发生在本地 —— 对 agent 而言这是一次对外取数；保守取值让它自然落入既有 gate 矩阵与禁网沙箱，不新增旁路。`harmless` 一旦误判就是「沙箱不设防的读文件」。
+   - **重评触发条件**：若真实 MCP server 普遍把长文本资源（>32k）作为主要交付形态，则 `maxResourceChars` 截断语义需改为「落 artifact 存指纹 + 返回摘要」（与 M7-1 的 §8-1 摘要降级同思路）。
+   - **落地**：§5.3（含验收映射）。
 
 ---
 

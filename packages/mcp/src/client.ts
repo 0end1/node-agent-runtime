@@ -23,6 +23,9 @@ import {
   type McpCallToolResult,
   type McpClientOptions,
   type McpInitializeResult,
+  type McpReadResourceResult,
+  type McpResourceMeta,
+  type McpServerCapabilities,
   type McpServerHandle,
   type McpServerInfo,
   type McpToolMeta,
@@ -38,6 +41,7 @@ export class McpClient implements McpServerHandle {
   private closed = false;
   private serverInfoValue?: McpServerInfo;
   private protocolVersion?: string;
+  private capabilitiesValue?: McpServerCapabilities;
 
   constructor(options: McpClientOptions) {
     if (!options.name?.trim()) throw new Error("McpClient 需要一个非空 name");
@@ -53,6 +57,20 @@ export class McpClient implements McpServerHandle {
   /** Negotiated protocol revision (available after `connect()`). */
   get negotiatedProtocolVersion(): string | undefined {
     return this.protocolVersion;
+  }
+
+  /** Capabilities the server advertised in `initialize` (M7-6b). */
+  get capabilities(): McpServerCapabilities | undefined {
+    return this.capabilitiesValue;
+  }
+
+  /**
+   * M7-6b: whether the server advertised the `resources` capability. Gates
+   * `listResources()` / `readResource()` so an unsupported server fails fast
+   * and locally instead of paying a round trip for a method-not-found frame.
+   */
+  get resourcesSupported(): boolean {
+    return this.capabilitiesValue?.resources !== undefined;
   }
 
   async connect(): Promise<void> {
@@ -75,6 +93,7 @@ export class McpClient implements McpServerHandle {
     }
     this.protocolVersion = serverVersion;
     this.serverInfoValue = result.serverInfo;
+    this.capabilitiesValue = result.capabilities;
     // Mark ourselves initialized; the server now accepts requests.
     await this.transport.notify(makeNotification("notifications/initialized"));
     this.connected = true;
@@ -99,6 +118,55 @@ export class McpClient implements McpServerHandle {
       cursor = result.nextCursor;
     } while (cursor);
     return tools;
+  }
+
+  /**
+   * M7-6b: the server's advertised read-only resources (`resources/list`,
+   * cursor-paginated like `tools/list`).
+   *
+   * A server that never advertised the `resources` capability has no
+   * resources — this returns `[]` rather than throwing, so callers (the
+   * registry, hosts) can probe unconditionally. Protocol-level malformed
+   * replies still raise `McpError`. URIs are remote-supplied and therefore
+   * filtered here: entries without a usable `uri` never reach the caller.
+   */
+  async listResources(): Promise<McpResourceMeta[]> {
+    this.requireConnected();
+    if (!this.resourcesSupported) return [];
+    const resources: McpResourceMeta[] = [];
+    let cursor: string | undefined;
+    do {
+      const result = (await this.request("resources/list", cursor ? { cursor } : {})) as {
+        resources?: McpResourceMeta[];
+        nextCursor?: string;
+      };
+      if (!result || !Array.isArray(result.resources)) {
+        throw new McpError("resources/list 响应缺少 resources 数组", { remote: true });
+      }
+      for (const entry of result.resources) {
+        if (entry && typeof entry.uri === "string" && entry.uri.trim()) resources.push(entry);
+      }
+      cursor = result.nextCursor;
+    } while (cursor);
+    return resources;
+  }
+
+  /**
+   * M7-6b: read one advertised resource (`resources/read`). `uri` should come
+   * from `listResources()`; an “越权” URI is rejected by `McpRegistry` before
+   * it ever reaches this call (defence in depth — the URI is remote data).
+   */
+  async readResource(uri: string): Promise<McpReadResourceResult> {
+    this.requireConnected();
+    if (typeof uri !== "string" || !uri.trim()) throw new Error("readResource 需要非空 uri");
+    if (!this.resourcesSupported) {
+      throw new McpError(`MCP server "${this.name}" 未声明 resources 能力`);
+    }
+    const result = (await this.request("resources/read", { uri })) as McpReadResourceResult;
+    if (!result || !Array.isArray(result.contents)) {
+      throw new McpError("resources/read 响应缺少 contents 数组", { remote: true });
+    }
+    return result;
   }
 
   async callTool(name: string, arguments_: Record<string, unknown>): Promise<McpCallToolResult> {

@@ -18,7 +18,7 @@
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@node-agent-runtime/host` | 0.2.0 | 14 | C8 会话/任务生命周期 + 审批审计导出 |
-| `@node-agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
+| `@node-agent-runtime/mcp` | 0.2.0 | 40 | C6 MCP 适配 + M7-6b 只读资源 |
 | `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
 
@@ -112,6 +112,8 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 ## 10. `@node-agent-runtime/mcp`（C6）
 
 `McpClient`、`McpClientOptions`、`McpRegistry`、`McpRegistryOptions`、`RegisteredServer`、`StdioTransport`、`StdioTransportOptions`、`StreamableHttpTransport`、`StreamableHttpTransportOptions`、`McpTransport`、`McpError`、`McpTimeoutError`、`McpConnectionError`、`MCP_PROTOCOL_VERSION`、`MCP_TOOL_PREFIX`、`mcpToolName`、`parseMcpToolName`、`normalizeSchema`、`pathArgKeysOf`、`parseSse`、`validateMcpServerUrl`、`McpServerHandle`、`McpToolMeta`、`McpToolRef`、`McpCallToolResult`、`McpServerInfo`、`McpServerCapabilities`、`McpInitializeResult`、`McpTextContent`
+
+> **M7-6b 只读资源（2026-09-15，additive/minor）**：类型 `McpResourceMeta`、`McpResourceContent`、`McpReadResourceResult`、`RegistryResource`、`McpResourceRead`；`McpClient.listResources()` / `readResource(uri)` / `resourcesSupported`（`McpServerHandle` 上同名为**可选**方法，既有实现不受影响）；`McpRegistry.listResources()` / `readResource(uri)` / `searchTools(query)`；命名 `mcpResourceToolName`、`MCP_RESOURCE_MARKER`；纯函数 `resourceText`（blob 仅文本类 mime 才 base64 解码、结果按 `maxResourceChars` 截断）；常量 `DEFAULT_MAX_RESOURCE_CHARS` / `DEFAULT_MAX_RESOURCE_TOOLS`；错误 `McpResourceError`。资源按保守敏感度 `network-read` 物化，读取仅接受 `resources/list` **已声明**的 URI。
 
 ## 11. `@node-agent-runtime/provider-openai`（C7）
 

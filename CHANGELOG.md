@@ -11,7 +11,7 @@
 **M7 首批执行清单（docs）**（2026-09-10）：
 
 - **新增 `docs/m7-base-governance.md`（M7 首批执行清单草案）**：把 `docs/product-direction.md` §5 的首批四项拆到「包 / 文件 / API / 验收用例 / 量级」粒度，每项可直接开单。性质为**执行清单（草案）**，截至 2026-09-10 **7 项全部已定（无待拍板）**；不改口径，立项需先按 `development-checklist.md` §4 回填 `architecture.md` §11 + §13。**M7 状态已于 2026-09-11 转 🟡 进行中（见下方 M7-2 条目）**
-- **四项落点**：**M7-1** 成本与上下文治理（`types`·`memory`·`core`·`provider-openai`：`RunUsage` 扩展 + `PriceTable`/`usageCost` + `compactMessages` + `usage:update`/`context:compacted` 事件，`runtime.ts:108` 的宿主 `costUsd` 钩子降级为回退）；**M7-2** 可观测与合规导出（traceId 贯穿全部事件 + `startedAt`/`endedAt`（OTEL 导出 `toOtelSpans` 与审计 `serializeAudit` 待补））；**M7-3** 策略工程化（`PolicyDocument` 契约 + `compilePolicy`/`testPolicy` + ≥3 套组织预设，复用 `combinePolicies` 最严语义，glob 自实现）；**M7-6** 工具规模治理（**6a 已交付**：`tool_search` 检索式声明 + 步骤级 `toolSurface` 快照；**6b** MCP `resources/list`·`read` **延后**）
+- **四项落点**：**M7-1** 成本与上下文治理（`types`·`memory`·`core`·`provider-openai`：`RunUsage` 扩展 + `PriceTable`/`usageCost` + `compactMessages` + `usage:update`/`context:compacted` 事件，`runtime.ts:108` 的宿主 `costUsd` 钩子降级为回退）；**M7-2** 可观测与合规导出（traceId 贯穿全部事件 + `startedAt`/`endedAt`（OTEL 导出 `toOtelSpans` 与审计 `serializeAudit` 待补））；**M7-3** 策略工程化（`PolicyDocument` 契约 + `compilePolicy`/`testPolicy` + ≥3 套组织预设，复用 `combinePolicies` 最严语义，glob 自实现）；**M7-6** 工具规模治理（**6a 已交付**：`tool_search` 检索式声明 + 步骤级 `toolSurface` 快照；**6b MCP `resources/list`·`read` 只读资源亦已交付**，2026-09-15）
 - **API 变更分级**：首批**全部 additive（minor）**，无需 major —— 以可选字段与新增导出为主；需 `npm run check:api:update` 重冻基线并同步 `api-surface.md`
 - **实施顺序**：批次 A **已定（2026-09-10 修订）：延后实发，改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」**（实发前置未具备：npm 组织 `node-agent-runtime` 未创建、本机 npm 10.9.4 未登录且 classic token 已被撤销；bump 只改 `package.json` 与 CHANGELOG、**完全可逆**，仍可避开「0.3.0 未发、0.4.0 成堆」的空档）→ 批次 B traceId 横切面 + M7-1 → 批次 C M7-3 → 批次 D **M7-6a**（不依赖 `mcp`）→ 批次 E **M7-6b**（MCP 只读资源，延后）；**M7-1 构成硬顺序约束** —— ACP 把 token 计量升级为协议义务（`usage_update` 的 `used` / `size` 必填），故 M7-1 须先于 ACP 协议包与流式输出（G2），顺序倒置将产生临时计量返工
 - **决策记录（§8：7 项全部已定，无待拍板）**：**已定** —— ① **延后实发；改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」后再叠 M7**（原为「先实发 0.3.0」；隔离不可回收的版本/tag 语义风险与可回滚的代码/API 风险，M7 落点仍为 0.3.0 → 0.4.0；剩余闸门**不阻塞 M7 写码、只阻塞实发**：npm 组织 `node-agent-runtime`、发布凭据 + npm ≥ 11.5.1、许可边界 `product-direction.md` §8-2）；② compact 采用**纯函数式确定性裁剪**（模型摘要仅作可选 `summarize` 注入钩子，默认关闭；`resume()` transcript 一致性与计量责任归宿主，配合结构化折叠保留用户原始目标与 `deny` 记录）；③ OTEL 导出采用 `core/src/otel.ts` **纯函数产出 OTLP 形状 + 宿主适配传输**（不新增 `@node-agent-runtime/otel` 包，守住「12 包 / 零第三方运行时依赖」口径，重评触发条件为多宿主重复实现传输）；④ **审计导出归 `host`**（导出环节须能兜底 `redact`，不能把「上游一定脱敏过」当唯一防线；格式常量随实现留 `host`）；⑤ **`policy:test` 进 `npm run ci`**（策略是外部输入，无门禁会退化成配置漂移）；⑥ **`tool_search` 默认 `maxDeclared: 50` / `search: false`（opt-in）**（默认关闭使现行为零变化）；⑦ **M7-6 拆为 6a / 6b，6a 进首批、6b 延后**（6a 只依赖 `types`/`core`/`memory`、不依赖 `mcp`；整体延后会缺「工具可控」这一角）
@@ -64,7 +64,7 @@
 - **测试**：新增 `packages/core/test/tool-search.test.ts`（13 例：索引中文/英文/空查询/limit/重名/无命中、元工具返回）+ `packages/core/test/m7-6.test.ts`（声明面裁剪 ≤51、tool_search 发现、未声明工具仍可执行、toolSurface 快照）；`npm run ci` 全绿。
 - **门禁**：`npm run ci` 六门全绿；已 `check:api:update` / `size:update` 重冻基线。
 - **索引同步**：`docs/api-surface.md` §0（core 符号数 60→66）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §5。
-- **6b（MCP 只读资源）延后**：归入 M7-6b，不进首批。
+- **6b（MCP 只读资源）原定延后**，已于 2026-09-15 交付，见下方「M7-6b」条目。
 
 **M7-2 收尾：OTEL span 导出 + 审计导出（feat）**（2026-09-15）：
 
@@ -75,6 +75,20 @@
 - **测试**：新增 `packages/core/test/otel.test.ts`（7 例：父子结构、id 形态与确定性、时间戳单调、失败工具 `ERROR` 状态与属性、跨 run traceId 不同、`serviceName`；另含一次**真实 run** 验证 runtime 确实补齐 `at`）与 `packages/host/test/audit-export.test.ts`（7 例：表头固定、整串密钥被屏蔽、RFC 4180 转义、ISO 时间、JSON 稳定键序、行数与决策数一致、store 过滤）
 - **门禁**：`npm run ci` 六门全绿；已 `check:api:update` / `size:update` 重冻基线
 - **索引同步**：`docs/api-surface.md` §0（core 66→70、host 10→14）+ §2 / §9、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §2 / §3、`docs/architecture.md` §11
+
+**M7-6b：MCP 只读资源（`resources/list` · `resources/read` + `searchTools`，feat）**（2026-09-15）：
+
+- **协议扩展（`packages/mcp/src/types.ts`）**：新增 `McpResourceMeta` / `McpResourceContent` / `McpReadResourceResult`；`McpServerHandle` 增**可选** `listResources()` / `readResource(uri)` —— 可选即 additive，既有 handle 实现（含用户自建传输）零改动
+- **传输层（`client.ts`）**：`McpClient` 记录 `initialize` 协商出的 `capabilities`，据此暴露 `resourcesSupported`；`listResources()` 按 cursor 翻页（与 `tools/list` 一致），`readResource(uri)` 校验 `contents` 数组。**未声明 `resources` 能力的 server 直接返回 `[]` 而非报错**（无资源 ≠ 故障），协议层畸形响应仍抛 `McpError`
+- **资源物化（`registry.ts`）**：`register()` 顺带列取资源并物化为**只读工具**，命名 `mcpResourceToolName()` → `mcp__<server>__resource__<slug>_<fnv1a8>`（确定性、防碰撞）；URI 在闭包内固定，模型无法在调用期改写
+- **敏感度取保守值 `network-read`**：资源读取对 agent 而言是一次对外取数，不因 URI 长得像本地文件就判 `harmless`；因此天然走既有 gate 矩阵与 `LocalSandbox`（`network: "deny"` ⇒ `沙箱已禁网`，测试已断言），**未新增旁路**
+- **越权 URI 防线**：`McpRegistry.readResource(uri)` 只接受 `resources/list` **已声明**的 URI，未声明一律 `McpResourceError`（URI 由远端给出，模型幻觉 / 提示注入都可能指向 `file:///etc/shadow`）—— 即资源的「sandbox 声明域」
+- **工具规模护栏**：`resourceTools`（默认 `true`）+ `maxResourceTools`（默认 50，对齐 M7-6a `maxDeclared`），超出的资源不物化但仍可按 URI 读取 —— 文件系统类 server 动辄上千资源，全量物化会直接击穿 M7-6a 的治理目标（决策记录见 `m7-base-governance.md` §8-8）
+- **上下文护栏**：`resourceText()` 纯函数把 `contents` 摊平成文本——`text` 原样取用，`blob` **仅文本类 mime 才 base64 解码**（二进制不进上下文），并按 `maxResourceChars`（默认 32k）截断，避免一次读取撑爆上下文（M7-1 口径）
+- **检索**：`McpRegistry.searchTools(query, limit?)` 复用 `core` 的 `ToolIndex`（M7-6a），工具与资源工具一并参与排序，注册/注销时索引失效重建；空查询返回 `[]` 不抛错
+- **测试**：新增 `packages/mcp/test/m7-6b.test.ts`（13 例：声明域列取、物化与固定 URI、命名确定性与字符白名单、越权 URI 被拒且不转发、sandbox 禁网拒绝 / 放行后成功、`resourceTools: false` 仍可读、`maxResourceTools` 上限、注销清理、`searchTools` 排序与空查询）；`mcp.test.ts` 增 4 例（HTTP mock 的 `resources/list`·`read`、远端未知 URI → `McpError{remote:true}`、无 `resources` 能力的 server 降级为无资源、真实子进程读取）
+- **门禁**：`npm run ci` 六门全绿；`check:api` / `size` 已重冻（mcp 符号 29→40；tarball +8KB / **+28%** 触发 +25% 阈值 —— 基线文件本身不带说明字段，理由记录于此：新增资源模块（协议类型 + 客户端 2 方法 + registry 物化/声明域/检索 + `resourceText`）的固有增量，非无用膨胀，取舍见 `m7-base-governance.md` §8-8）
+- **索引同步**：`docs/api-surface.md` §0 + §10、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §0 / §5 / §8-8、`docs/architecture.md` §5.3
 
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 

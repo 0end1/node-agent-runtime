@@ -5,18 +5,18 @@
     "entryCount": 10
   },
   "@node-agent-runtime/core": {
-    "packageSize": 113038,
-    "unpackedSize": 441441,
+    "packageSize": 113033,
+    "unpackedSize": 441440,
     "entryCount": 118
   },
   "@node-agent-runtime/host": {
-    "packageSize": 22345,
-    "unpackedSize": 84303,
+    "packageSize": 22362,
+    "unpackedSize": 84351,
     "entryCount": 18
   },
   "@node-agent-runtime/mcp": {
-    "packageSize": 29248,
-    "unpackedSize": 100912,
+    "packageSize": 37442,
+    "unpackedSize": 132061,
     "entryCount": 26
   },
   "@node-agent-runtime/memory": {

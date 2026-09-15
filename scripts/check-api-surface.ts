@@ -25,17 +25,17 @@ const ROOT = path.resolve(path.dirname(process.argv[1]), "..");
 /** 与 docs/api-surface.md §0 表相同的包序与期望符号数（仅摘要对照，不参与门禁判定）。 */
 const PACKAGES = [
   { name: "@node-agent-runtime/types", dir: "types", expect: null }, // §0 未给数字（子模块聚合）
-  { name: "@node-agent-runtime/memory", dir: "memory", expect: 14 },
+  { name: "@node-agent-runtime/memory", dir: "memory", expect: 19 },
   { name: "@node-agent-runtime/artifact", dir: "artifact", expect: 8 },
   { name: "@node-agent-runtime/sandbox", dir: "sandbox", expect: 14 },
-  { name: "@node-agent-runtime/policy", dir: "policy", expect: 15 },
-  { name: "@node-agent-runtime/core", dir: "core", expect: 49 },
+  { name: "@node-agent-runtime/policy", dir: "policy", expect: 28 },
+  { name: "@node-agent-runtime/core", dir: "core", expect: 70 },
   { name: "@node-agent-runtime/tools-basic", dir: "tools-basic", expect: 4 },
   { name: "@node-agent-runtime/mock", dir: "mock", expect: 1 },
-  { name: "@node-agent-runtime/host", dir: "host", expect: 10 },
-  { name: "@node-agent-runtime/mcp", dir: "mcp", expect: 28 },
+  { name: "@node-agent-runtime/host", dir: "host", expect: 14 },
+  { name: "@node-agent-runtime/mcp", dir: "mcp", expect: 40 },
   { name: "@node-agent-runtime/provider-openai", dir: "provider-openai", expect: 2 },
-  { name: "@node-agent-runtime/store-sqlite", dir: "store-sqlite", expect: 2 },
+  { name: "@node-agent-runtime/store-sqlite", dir: "store-sqlite", expect: 3 },
 ];
 
 const BASELINE_FILE = path.join(ROOT, "scripts", "api-surface.baseline.json");

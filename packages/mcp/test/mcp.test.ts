@@ -104,15 +104,36 @@ const REMOTE_TOOLS = [
   },
 ];
 
+/** Resources advertised by the mock server when `x-mcp-resources: 1` (M7-6b). */
+const REMOTE_RESOURCES = [
+  {
+    uri: "file:///README.md",
+    name: "README",
+    description: "项目说明",
+    mimeType: "text/markdown",
+  },
+  {
+    uri: "file:///config.json",
+    name: "config",
+    mimeType: "application/json",
+  },
+];
+
+const RESOURCE_TEXTS: Record<string, string> = {
+  "file:///README.md": "# 标题\n只读资源内容",
+  "file:///config.json": '{"answer":42}',
+};
+
 /** Build a JSON-RPC response envelope as the *server* would. */
 function answerRequest(
   msg: {
     id?: unknown;
     method?: string;
-    params?: { name?: string; arguments?: Record<string, unknown> };
+    params?: { name?: string; arguments?: Record<string, unknown>; uri?: string };
   },
   serverName: string,
   version: string,
+  withResources = false,
 ): Record<string, unknown> | undefined {
   if (msg.id === undefined) return undefined; // notification
   const id = msg.id;
@@ -122,7 +143,10 @@ function answerRequest(
       case "initialize":
         result = {
           protocolVersion: version,
-          capabilities: { tools: { listChanged: false } },
+          capabilities: {
+            tools: { listChanged: false },
+            ...(withResources ? { resources: { listChanged: false } } : {}),
+          },
           serverInfo: { name: serverName, version: "1.0.0" },
         };
         break;
@@ -150,6 +174,23 @@ function answerRequest(
             error: { code: -32602, message: `unknown tool: ${name}` },
           };
         }
+        break;
+      }
+      // ---- M7-6b: read-only resources ----
+      case "resources/list":
+        result = { resources: REMOTE_RESOURCES };
+        break;
+      case "resources/read": {
+        const uri = msg.params?.uri ?? "";
+        const text = RESOURCE_TEXTS[uri];
+        if (text === undefined) {
+          return {
+            jsonrpc: "2.0",
+            id,
+            error: { code: -32602, message: `unknown resource: ${uri}` },
+          };
+        }
+        result = { contents: [{ uri, mimeType: "text/plain", text }] };
         break;
       }
       default:
@@ -187,7 +228,7 @@ function mockHttpServer(t: { after: (fn: () => void) => void }, name = "mock-htt
       let msg: {
         id?: unknown;
         method?: string;
-        params?: { name?: string; arguments?: Record<string, unknown> };
+        params?: { name?: string; arguments?: Record<string, unknown>; uri?: string };
       };
       try {
         msg = JSON.parse(body || "{}");
@@ -210,7 +251,7 @@ function mockHttpServer(t: { after: (fn: () => void) => void }, name = "mock-htt
       }
       const send = () => {
         const version = overrideVersion ?? "2024-11-05";
-        const payload = answerRequest(msg, name, version);
+        const payload = answerRequest(msg, name, version, req.headers["x-mcp-resources"] === "1");
         const mode = String(req.headers["x-mcp-return"] ?? "sse");
         if (mode === "json") {
           res.writeHead(200, { "content-type": "application/json" });
@@ -349,6 +390,48 @@ describe("McpClient over Streamable HTTP (§5.3 transport)", () => {
   });
 });
 
+describe("M7-6b — read-only resources over the wire (§5.3 / m7-base-governance §5-3)", () => {
+  it("lists advertised resources and reads one by URI", async (t) => {
+    const { url } = await mockHttpServer(t, "res-server");
+    const client = httpClient("res-server", url, { "x-mcp-resources": "1" });
+    t.after(() => client.close());
+    await client.connect();
+    assert.equal(client.resourcesSupported, true);
+    const resources = await client.listResources();
+    assert.deepEqual(
+      resources.map((r) => r.uri),
+      ["file:///README.md", "file:///config.json"],
+    );
+    const read = await client.readResource("file:///README.md");
+    assert.equal(read.contents[0]?.text, "# 标题\n只读资源内容");
+  });
+
+  it("surfaces a server-side unknown URI as a remote McpError", async (t) => {
+    const { url } = await mockHttpServer(t, "res-err");
+    const client = httpClient("res-err", url, { "x-mcp-resources": "1" });
+    t.after(() => client.close());
+    await client.connect();
+    await assert.rejects(
+      () => client.readResource("file:///etc/shadow"),
+      (err: Error) => {
+        assert.ok(err instanceof McpError);
+        assert.equal((err as McpError).remote, true);
+        return true;
+      },
+    );
+  });
+
+  it("treats a server without the capability as having no resources", async (t) => {
+    const { url } = await mockHttpServer(t, "res-none");
+    const client = httpClient("res-none", url);
+    t.after(() => client.close());
+    await client.connect();
+    assert.equal(client.resourcesSupported, false);
+    assert.deepEqual(await client.listResources(), []);
+    await assert.rejects(() => client.readResource("file:///README.md"), McpError);
+  });
+});
+
 describe("McpClient over stdio (real child process)", () => {
   it("handshakes, lists and calls a real subprocess server", async (t) => {
     const client = stdioClient("stdio");
@@ -366,6 +449,20 @@ describe("McpClient over stdio (real child process)", () => {
     const failed = await client.callTool("fail", {});
     assert.equal(failed.isError, true);
     assert.match(failed.content[0].text, /故意的失败/);
+  });
+
+  it("lists and reads a resource from a real subprocess server (M7-6b)", async (t) => {
+    const client = stdioClient("stdio-res");
+    t.after(() => client.close());
+    await client.connect();
+    assert.equal(client.resourcesSupported, true);
+    const resources = await client.listResources();
+    assert.deepEqual(
+      resources.map((r) => r.uri),
+      ["file:///README.md", "file:///notes.txt"],
+    );
+    const read = await client.readResource("file:///README.md");
+    assert.match(read.contents[0]?.text ?? "", /只读资源/);
   });
 
   it("rejects tool calls issued before connect", async () => {

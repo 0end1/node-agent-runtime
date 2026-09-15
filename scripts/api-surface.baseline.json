@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T05:57:07.625Z",
+  "generatedAt": "2026-09-15T06:30:55.734Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -281,7 +281,10 @@
     },
     "@node-agent-runtime/mcp": {
       "symbols": [
+        "DEFAULT_MAX_RESOURCE_CHARS",
+        "DEFAULT_MAX_RESOURCE_TOOLS",
         "MCP_PROTOCOL_VERSION",
+        "MCP_RESOURCE_MARKER",
         "MCP_TOOL_PREFIX",
         "McpCallToolResult",
         "McpClient",
@@ -289,8 +292,13 @@
         "McpConnectionError",
         "McpError",
         "McpInitializeResult",
+        "McpReadResourceResult",
         "McpRegistry",
         "McpRegistryOptions",
+        "McpResourceContent",
+        "McpResourceError",
+        "McpResourceMeta",
+        "McpResourceRead",
         "McpServerCapabilities",
         "McpServerHandle",
         "McpServerInfo",
@@ -300,15 +308,18 @@
         "McpToolRef",
         "McpTransport",
         "RegisteredServer",
+        "RegistryResource",
         "StdioTransport",
         "StdioTransportOptions",
         "StreamableHttpTransport",
         "StreamableHttpTransportOptions",
+        "mcpResourceToolName",
         "mcpToolName",
         "normalizeSchema",
         "parseMcpToolName",
         "parseSse",
         "pathArgKeysOf",
+        "resourceText",
         "validateMcpServerUrl"
       ],
       "forwards": []

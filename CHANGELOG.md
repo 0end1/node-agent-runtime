@@ -18,6 +18,13 @@
 - **口径修正**：`docs/product-direction.md` §0 原「第一批（建议）」仍列审批体验，与 §5 的降级归类矛盾 —— 已对齐为 M7-1/2/3/6 并标注 M7-4 降级
 - **索引同步**：`docs/product-direction.md`（§0 / §5 / §9）、`docs/development-checklist.md`（§0 M7 行 / §3.3 注记 / §5 相关文档）、`docs/architecture.md`（§11 M7 行 + §13 v1.13）
 
+**许可边界拍板 + 实发前置解除（docs）**（2026-09-15）：
+
+- **§8-2 许可边界已拍板（open-core）**：`docs/product-direction.md` §8 第 2 项由「待拍板」转为**已定** —— **L0 底座 `@node-agent-runtime/*` 12 包全部 Apache-2.0 并实发 npm**（`LICENSE`、12 包 `license` 字段、README 徽章本就一致）；**L1 治理增值层**（审计导出对接 SIEM、策略中心、配额与预算、SSO/RBAC、商业支持）**另行闭源**，落在 12 包之外的独立仓库 / 独立包。**新增能力先自问「属于 L0 还是 L1」** —— 12 包一旦以 Apache-2.0 实发即不可回收，闭源能力不得以「先在底座埋点 / 预留钩子」的方式变相混入 L0
+- **实发三项前置全部解除**（核验记录见 `docs/m7-base-governance.md` §6）：① npm 用户/组织 `node-agent-runtime` 已存在（granular token `whoami` 命中，与 scope 同名）；② granular access token 已签发，配置为仓库 secret `NPM_TOKEN`（**首发不走 OIDC** —— 未发布包无 Trusted Publisher 配置入口，12 包上架后逐包配置转免 token）；③ 许可边界已拍板（上条）
+- **口径厘清（两项，修正既有记载）**：**npm ≥ 11.5.1 降级为非阻塞** —— 它是**转 OIDC** 的前置而非首发阻塞，首发用 granular token，CI 由 `setup-node` 按 `.nvmrc`（22.22.1）装配 npm；**首发可带 provenance** —— npm 的真实门槛是「云托管 runner + `id-token: write` + npm CLI ≥ 9.5.0 + `access=public` + `repository` 字段匹配」，本仓 `release.yml:16-19` / `runs-on: ubuntu-latest` / `.changeset/config.json` 的 `access: "public"` / 12 包 `repository.url` 全部满足；`Can't generate provenance for new or private package`（npm/cli#7706）**只在 `access` 未设 public 时触发**，与仓库是否私有无关
+- **发布路径**：走 `release.yml` 的 changesets 流程（CI 读 secret `NPM_TOKEN`）—— 本地 `npm run version-packages` 消费 7 个 changeset 把 12 包统一 bump 到 **0.4.0** 并 push，CI 检测无剩余 changeset 后直接执行 `npm run release`
+
 **批次 A：版本 bump 到 0.3.0（chore，未发布）**（2026-09-11）：
 
 - 消费 `.changeset/p4-sdk-publishing.md`，12 包 `0.2.0 → 0.3.0`；包间 `dependencies` / `devDependencies` / `peerDependencies` 同步为 `^0.3.0`，并生成 12 份包级 CHANGELOG

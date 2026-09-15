@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/sandbox",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "C4 sandbox package of the Agent runtime: run-level execution boundary — SandboxMode tiers, SandboxScope and the in-process LocalSandbox (path/network/time enforcement, sandbox:write visibility). Depends only on @node-agent-runtime/types.",
   "license": "Apache-2.0",
   "author": {
@@ -44,10 +44,10 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/types": "^0.3.0"
+    "@node-agent-runtime/types": "^0.4.0"
   },
   "peerDependencies": {
-    "@node-agent-runtime/types": "^0.3.0"
+    "@node-agent-runtime/types": "^0.4.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

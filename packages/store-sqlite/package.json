@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/store-sqlite",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "C9 optional Storage backend of the Agent runtime: SQLiteStorage implementing the core Storage trait via node:sqlite (bundled with Node, no third-party native deps). Deliberately kept out of the core dependency graph.",
   "license": "Apache-2.0",
   "author": {
@@ -44,10 +44,10 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/core": "^0.3.0"
+    "@node-agent-runtime/core": "^0.4.0"
   },
   "peerDependencies": {
-    "@node-agent-runtime/core": "^0.3.0"
+    "@node-agent-runtime/core": "^0.4.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

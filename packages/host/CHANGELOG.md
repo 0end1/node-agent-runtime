@@ -1,5 +1,26 @@
 # @node-agent-runtime/host
 
+## 0.4.0
+
+### Minor Changes
+
+- 552076d: M7-2 可观测与合规导出（收尾：OTEL + 审计导出）。`StepStartEvent` / `ToolStartEvent` / `ToolEndEvent` 增可选 `at?`（epoch ms，由 runtime 在发射点补齐），补上此前「仅 run 级有时间戳」的缺口；`core` 新增 `toOtelSpans` 纯函数，产出 OTLP-JSON span 形状（确定性 id、`run→step→tool` 父子关系、单调 `startTimeUnixNano` / `endTimeUnixNano`），**只产形状、不绑定 OTLP 传输**，不新增包、零第三方运行时依赖；`host` 新增 `serializeAudit` / `exportAudit`（CSV RFC 4180 + JSON 稳定键序），固定列序仅含 `argumentsFingerprint`（不含工具参数原文），每条记录先过 `redact` 再落盘。全部 additive，无需 major。
+- fa0b539: M7-6a 工具规模治理（检索式声明）：`core` 新增 `ToolIndex` / `createToolSearchTool` 与 `RunOptions.toolBudget`（opt-in 声明面裁剪 + `tool_search` 元工具，非权限收窄）；`StepSnapshot.toolSurface` / `StepStartEvent.declaredTools` 记录本步工具面，`Checkpoint.toolSurface` 同步落库（host 接入）。`StepStartEvent`/`StepSnapshot`/`Checkpoint` 均为 additive 字段，全部 minor。
+
+### Patch Changes
+
+- Updated dependencies [6d7d3ff]
+- Updated dependencies [552076d]
+- Updated dependencies [65743e8]
+- Updated dependencies [26196ca]
+- Updated dependencies [3e93fe1]
+- Updated dependencies [fa0b539]
+  - @node-agent-runtime/types@0.4.0
+  - @node-agent-runtime/memory@0.4.0
+  - @node-agent-runtime/core@0.4.0
+  - @node-agent-runtime/policy@0.4.0
+  - @node-agent-runtime/sandbox@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

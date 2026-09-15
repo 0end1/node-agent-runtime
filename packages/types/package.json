@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/types",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "C1 shared leaf package of the Agent runtime: message/tool-call contracts, JSON Schema subset validator and zero-IO pure helpers. No internal dependencies.",
   "license": "Apache-2.0",
   "author": {

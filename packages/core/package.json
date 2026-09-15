@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/core",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "C2 engine package of the Agent runtime: AgentRuntime run loop, agent recipe, run context, EventBus, tool/model contracts and the zero-dependency MemoryStorage/FileStorage, plus a facade re-exporting types/memory/artifact/sandbox/policy. Session & provider backends live in sibling packages. Depends only on @node-agent-runtime/types.",
   "license": "Apache-2.0",
   "author": {
@@ -45,9 +45,9 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@node-agent-runtime/types": "^0.3.0",
-    "@node-agent-runtime/memory": "^0.3.0",
-    "@node-agent-runtime/policy": "^0.3.0"
+    "@node-agent-runtime/types": "^0.4.0",
+    "@node-agent-runtime/memory": "^0.4.0",
+    "@node-agent-runtime/policy": "^0.4.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

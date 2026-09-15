@@ -292,6 +292,18 @@ git add -A && git commit -m "chore: version packages"
 | **A（推荐，与 changesets 语义一致）** | push `main` | `changesets/action` 开 "Version Packages" PR（消费 changeset → 12 包统一 bump 到 0.3.0 + 生成各包 CHANGELOG）→ **合并该 PR** → 自动打 tag 并执行 `npm run release` |
 | **B（直接发）** | push tag `v0.3.0` | `publish-tag` job 逐包 `npm publish --workspaces --access public --provenance`。**注意**：该 job 按仓库当前 `package.json` 版本发布，故必须先本地 `npm run version-packages`（消费 changeset → 12 包 bump 到 0.3.0）**并提交**，再打 tag；**否则会把 0.2.0 真实发出去** —— 因 0.2.0 从未实发（已核实 E404），registry **不会**拒绝，也就**没有安全网**，0.3.0 这个目标版本号反被 0.2.0 占掉，只能后续补发 |
 
+**2026-09-15 实发前置核验（原三项闸门已全部解除，历史记载保留于下）**：
+
+| 原闸门 | 状态 | 依据 |
+|---|---|---|
+| ① npm 用户/组织 `node-agent-runtime` | ✅ 解除 | granular token 的 `whoami` 返回 `node-agent-runtime`，与 scope 同名（npm 将同名 scope 授予该用户/组织）；registry 上 `@node-agent-runtime/*` 仍为 404 → 本次仍属**首次发布** |
+| ② 发布凭据 | ✅ 解除 | 已签发 granular access token（scopes：全部自有包 + org `0end1`，非只读），配置为仓库 secret `NPM_TOKEN`。**首发不走 OIDC**（未发布包无 Trusted Publisher 配置入口），12 包上架后逐包配置 Trusted Publisher 转免 token |
+| ③ 许可边界（`product-direction.md` §8-2） | ✅ 解除（2026-09-15 拍板） | **open-core**：L0 底座 12 包全部 Apache-2.0 实发；L1 治理增值层（审计导出对接、策略中心、配额与预算、SSO/RBAC）另行闭源，落在 12 包之外 |
+
+> **npm ≥ 11.5.1 降级为非阻塞**（厘清下方第 309 行的原记载）：该要求是**转 OIDC** 的前置，不是首发的阻塞 —— 首发用 granular token，CI 由 `setup-node` 按 `.nvmrc`（22.22.1）装配 npm，只需 ≥ 9.5.0 即满足 provenance 门槛。**仅在上架后转 OIDC 时才需** `npm i -g npm@latest` 并同步 `packageManager` 字段。
+
+> **provenance 结论（修订下方第 301 行的推断）**：首发**可以**带 provenance。npm 的真实门槛是「云托管 runner + `id-token: write` + npm CLI ≥ 9.5.0 + `access=public` + `repository` 字段匹配」，本仓 `release.yml:16-19`、`runs-on: ubuntu-latest`、`.changeset/config.json` 的 `access: "public"` 与 12 包 `repository.url`（2026-09-10 已核实一致）**全部满足**；只有 `access` 未设 public 才会触发 `Can't generate provenance for new or private package`（npm/cli#7706），本仓不受影响。**最终以首次发布日志是否出现 `Attestation` 为准。**
+
 **前置条件（两项，缺一不可）**：
 
 1. **发布凭据**（原写作「仓库 secret `NPM_TOKEN`」，**已按 npm 新规更正**）：本机 `npm whoami` 当前返回 `E401`（未登录）。

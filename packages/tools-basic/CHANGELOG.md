@@ -1,5 +1,18 @@
 # @node-agent-runtime/tools-basic
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [6d7d3ff]
+- Updated dependencies [552076d]
+- Updated dependencies [65743e8]
+- Updated dependencies [26196ca]
+- Updated dependencies [3e93fe1]
+- Updated dependencies [fa0b539]
+  - @node-agent-runtime/types@0.4.0
+  - @node-agent-runtime/core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

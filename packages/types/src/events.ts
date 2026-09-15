@@ -28,6 +28,8 @@ export interface StepStartEvent {
   runId: string;
   /** 1-based model round-trip index */
   step: number;
+  /** Epoch ms when this step began (M7-2, additive) — feeds OTEL span timing. */
+  at?: number;
   traceId?: string;
   /**
    * M7-6a: the names of tools actually declared to the model this step
@@ -51,6 +53,8 @@ export interface ToolStartEvent {
   runId: string;
   step: number;
   toolCall: ToolCall;
+  /** Epoch ms when the tool call started (M7-2, additive). */
+  at?: number;
   traceId?: string;
 }
 
@@ -63,6 +67,8 @@ export interface ToolEndEvent {
   result: string;
   durationMs: number;
   ok: boolean;
+  /** Epoch ms when the tool call finished (M7-2, additive). */
+  at?: number;
   traceId?: string;
 }
 

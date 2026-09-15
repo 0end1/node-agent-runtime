@@ -90,14 +90,13 @@
 - 近似 token 估算与真实用量有偏差 → 验收只承诺「预算可触发、可续跑」，不承诺与厂商计费一致；`usage:update.contextSize` 仅在配置 `contextWindow` 时提供。
 - compact 改变 transcript → 必须与 checkpoint 语义对齐，否则破坏 M2 已验收的「续跑 transcript 一致」。
 
-> **落地状态（2026-09-15）**：**M7-1 已交付（批次 B）** —— `RunUsage` 增 `cachedInputTokens?` / `costUsd?`；`types/src/pricing.ts`（`PriceTable` + `usageCost` 纯函数，含缓存命中价与未配价回退）；`memory/src/compact.ts`（`ContextBudget` + `compactMessages` 确定性纯函数，零依赖、字符/4 估算、`countTokens` 可注入、结构化折叠保留用户原始目标与工具结果关键字段）；`core` 增 `pricing?` / `context?`（per-run 覆盖 runtime 默认，优先级 `pricing` > `costUsd` 钩子），step 循环内 provider 调用前执行 compact 并发 `context:compacted`、用量更新后发 `usage:update` 并在成本已知后补一次预算校验使 `maxCostUsd` 生效；`provider-openai` 解析 `prompt_tokens_details.cached_tokens`；`config.ts` 接入 `AGENT_CONTEXT_*` 环境变量。`npm run ci` 六门全绿；测试见 `packages/types/test/pricing.test.ts` / `packages/memory/test/compact.test.ts` / `packages/core/test/m7-1.test.ts`（共 19 例）。**M7-2 的目标 2（OTEL）与目标 3（审计导出）仍待做**。
+> **落地状态（2026-09-15）**：**M7-1 已交付（批次 B）** —— `RunUsage` 增 `cachedInputTokens?` / `costUsd?`；`types/src/pricing.ts`（`PriceTable` + `usageCost` 纯函数，含缓存命中价与未配价回退）；`memory/src/compact.ts`（`ContextBudget` + `compactMessages` 确定性纯函数，零依赖、字符/4 估算、`countTokens` 可注入、结构化折叠保留用户原始目标与工具结果关键字段）；`core` 增 `pricing?` / `context?`（per-run 覆盖 runtime 默认，优先级 `pricing` > `costUsd` 钩子），step 循环内 provider 调用前执行 compact 并发 `context:compacted`、用量更新后发 `usage:update` 并在成本已知后补一次预算校验使 `maxCostUsd` 生效；`provider-openai` 解析 `prompt_tokens_details.cached_tokens`；`config.ts` 接入 `AGENT_CONTEXT_*` 环境变量。`npm run ci` 六门全绿；测试见 `packages/types/test/pricing.test.ts` / `packages/memory/test/compact.test.ts` / `packages/core/test/m7-1.test.ts`（共 19 例）。**M7-2 的目标 2（OTEL）与目标 3（审计导出）已于 2026-09-15 交付**（见 §3 落地状态）。
 
 ---
 
 ## 3. M7-2 · 可观测与合规导出
 
-> **落地状态（2026-09-11）**：**traceId 贯穿已交付**（下方目标 1）—— 19 个事件统一 `traceId?`；注入点收口在 `emit()`（与 `redact()` 同处）并以 run 内闭包传递，故并发 run 互不串扰；`RunOptions.traceId?` / `RunResult.traceId`；`Logger.child?` 与 `ConsoleLogger` 实现（未绑定上下文时输出格式逐字不变）；`run:start.startedAt` / `run:end.endedAt`。测试见 `packages/core/test/trace.test.ts`（12 例），`npm run ci` 六门全绿。**目标 2（OTEL）与目标 3（审计导出）待做**。
-> **已知缺口（做目标 2 前须补）**：步骤/工具级事件**尚无时间戳**。当前只有 `run:start` / `run:end` 带时间，而 `toOtelSpans` 要给 step / tool span 填 `startTimeUnixNano` / `endTimeUnixNano`，届时需为这些事件增 `at?: number`（additive minor，不破坏兼容）。
+> **落地状态（2026-09-15）：M7-2 三项全部交付**。目标 1 traceId 贯穿（2026-09-11，见下）；**目标 2 OTEL 导出**：`core/src/otel.ts` 的 `toOtelSpans` 纯函数产出 OTLP-JSON 形状（确定性 id、`run→step→tool` 父子、`startTimeUnixNano` / `endTimeUnixNano` 单调），**不绑定传输、不新增包、零第三方运行时依赖**；**目标 3 审计导出**：`host/src/audit-export.ts` 的 `serializeAudit` / `exportAudit`（CSV RFC 4180 转义 + JSON 稳定键序，固定列序仅含 `argumentsFingerprint`，每条记录先过 `redact`）。前置缺口已补齐：`StepStartEvent` / `ToolStartEvent` / `ToolEndEvent` 增可选 `at?`（epoch ms，由 runtime 在发射点补齐，additive minor）。测试见 `packages/core/test/otel.test.ts`（7 例）与 `packages/host/test/audit-export.test.ts`（7 例），`npm run ci` 六门全绿。
 
 ### 现状（代码锚点）
 
@@ -249,7 +248,7 @@
 | `StepSnapshot` / `Checkpoint` | 增 `toolSurface?` | minor |
 | `StepStartEvent` | 增 `declaredTools?` | minor |
 | `Logger` | 增可选 `child?()` | minor |
-| 新增导出 | `usageCost`/`PriceTable`/`compactMessages`（M7-1）· `compilePolicy`/`testPolicy`/`PRESETS`（M7-3）· `ToolIndex`/`createToolSearchTool`（M7-6a）已交付；`toOtelSpans`/`serializeAudit`（M7-2 OTEL/审计导出）待补 | minor |
+| 新增导出 | `usageCost`/`PriceTable`/`compactMessages`（M7-1）· `toOtelSpans`/`OtelSpan`（M7-2 OTEL）· `serializeAudit`/`exportAudit`/`AuditFormat`（M7-2 审计导出）· `compilePolicy`/`testPolicy`/`PRESETS`（M7-3）· `ToolIndex`/`createToolSearchTool`（M7-6a）**均已交付** | minor |
 | `RunOptions` | 增 `pricing?` / `traceId?` / `toolBudget?` | minor |
 
 **结论：首批无需 major。** 全部为可选字段与新增导出，符合「API 面冻结 + `check:api` 门禁」的兼容性口径。

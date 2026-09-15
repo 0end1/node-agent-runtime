@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T05:38:54.280Z",
+  "generatedAt": "2026-09-15T05:57:07.625Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -192,6 +192,9 @@
         "ModelRequestError",
         "ModelResponse",
         "ModelResponseEvent",
+        "OtelContext",
+        "OtelSpan",
+        "OtelSpanKind",
         "PermissionApprovedEvent",
         "PermissionDeniedEvent",
         "PermissionRequestEvent",
@@ -231,7 +234,8 @@
         "findDuplicateToolNames",
         "loadConfig",
         "redact",
-        "toLogger"
+        "toLogger",
+        "toOtelSpans"
       ],
       "forwards": [
         "@node-agent-runtime/artifact",
@@ -258,6 +262,7 @@
     },
     "@node-agent-runtime/host": {
       "symbols": [
+        "AuditFormat",
         "ChatOutcome",
         "RunRecord",
         "RunStatus",
@@ -268,7 +273,9 @@
         "SessionStatus",
         "StorageApprovalStore",
         "Task",
-        "TaskStatus"
+        "TaskStatus",
+        "exportAudit",
+        "serializeAudit"
       ],
       "forwards": []
     },

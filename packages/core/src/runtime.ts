@@ -347,7 +347,7 @@ export class AgentRuntime {
             });
           }
         }
-        emit({ type: "step:start", runId, step, declaredTools: declaredNames });
+        emit({ type: "step:start", runId, step, declaredTools: declaredNames, at: Date.now() });
         log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
         const response = await this.provider.chat({
@@ -434,6 +434,7 @@ export class AgentRuntime {
             type: "tool:start",
             runId,
             step,
+            at: Date.now(),
             // P3.2: 事件流脱敏——参数含 key/secret 时仅对订阅者暴露脱敏值；
             // 真实参数仍经 gate/沙箱/工具执行（不走事件）安全使用。
             toolCall: {
@@ -460,6 +461,7 @@ export class AgentRuntime {
             type: "tool:end",
             runId,
             step,
+            at: Date.now(),
             // P3.2: 脱敏事件参数（理由同 tool:start）。
             toolCall: {
               id: parsed.id,

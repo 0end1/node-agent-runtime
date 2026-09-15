@@ -80,6 +80,10 @@ export type { ToolDefinition, AnyTool, ToolExecutionContext, ToolKind, ToolMeta 
 export { ToolIndex, createToolSearchTool } from "./tool-search.js";
 export type { ToolSearchEntry } from "./tool-search.js";
 
+// ---- M7-2 收尾: OTEL span export (shape only, no transport) ----
+export { toOtelSpans } from "./otel.js";
+export type { OtelSpan, OtelSpanKind, OtelContext } from "./otel.js";
+
 // 内置基础工具集已外置（M6 P1 审查 P0）：
 //   import { builtinTools, evaluate, CURRENCY_ALIASES } from "@node-agent-runtime/tools-basic";
 

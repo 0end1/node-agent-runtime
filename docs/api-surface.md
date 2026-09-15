@@ -14,10 +14,10 @@
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 28 | C5 授权决策 + M7-3 声明式策略契约/编译/测试/预设 |
-| `@node-agent-runtime/core` | 0.2.0 | 66（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
+| `@node-agent-runtime/core` | 0.2.0 | 70（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade |
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
-| `@node-agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
+| `@node-agent-runtime/host` | 0.2.0 | 14 | C8 会话/任务生命周期 + 审批审计导出 |
 | `@node-agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
 | `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
@@ -52,7 +52,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
 
-## 2. `@node-agent-runtime/core`（C2 · 引擎 + facade，1005 行）
+## 2. `@node-agent-runtime/core`（C2 · 引擎 + facade，`runtime.ts` 689 行）
 
 **引擎与运行时**：`AgentRuntime`、`AgentRuntimeOptions`、`RunAbortedError`、`RunOptions`、`RunResult`、`StepSnapshot`、`EventBus`
 **Agent**：`Agent`、`AgentOptions`、`defineAgent`、`DEFAULT_AGENT_INSTRUCTIONS`
@@ -62,8 +62,11 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 **模型**：`ModelProvider`、`ModelRequest`、`ModelResponse`、`RawToolCall`、`FinishReason`、`ModelRequestError`
 **P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`LogContext`、`ConsoleLogger`、`toLogger`、`errorPayload`、`redact`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
+**M7-2 OTEL 导出**：`toOtelSpans`、`OtelSpan`、`OtelSpanKind`、`OtelContext`
 
 > **M7-2（2026-09-11，additive/minor）**：19 个事件接口统一增可选 `traceId?`（由 `emit()` 与 `redact()` 同点注入）；`run:start` 增 `startedAt`、`run:end` 增 `endedAt`（epoch ms）；`RunOptions` 增可选 `traceId?`，`RunResult` 增 `traceId`；`Logger` 增可选 `child?(ctx: LogContext): Logger`（`ConsoleLogger` 已实现，未绑定上下文时输出格式逐字不变）。`LogContext` 为本次新增导出。
+
+> **M7-2 收尾（2026-09-15，additive/minor）**：事件接口 `StepStartEvent` / `ToolStartEvent` / `ToolEndEvent` 增可选 `at?`（epoch ms，由 runtime 在发射点补齐），供 span 推导起止时间；新增 `toOtelSpans`（纯函数：确定性 id、`run→step→tool` 父子关系、`startTimeUnixNano` / `endTimeUnixNano` 单调递增）及类型 `OtelSpan`、`OtelSpanKind`、`OtelContext`。仅产出 span **数据形状**，不绑定任何 OTLP 传输/SDK、不引入运行时依赖。
 **facade 转发**：`export *` → `@node-agent-runtime/types`、`@node-agent-runtime/memory`（含 Checkpoint）、`@node-agent-runtime/artifact`、`@node-agent-runtime/sandbox`、`@node-agent-runtime/policy`
 
 > **事件总线可注入（2026-09-08）**：`AgentRuntimeOptions.events?: EventBus<RuntimeEvent>` —— 宿主可创建并注入总线（默认仍自建）。配合 `SessionManagerOptions.events`，host 不再需要借用 `runtime.events` 内部构件。
@@ -101,6 +104,10 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 `SessionManager`、`SessionManagerOptions`、`SessionError`、`Session`、`SessionStatus`、`Task`、`TaskStatus`、`RunRecord`、`RunStatus`、`ChatOutcome`
 
 > `SessionManager.events` 为公开只读字段（宿主注入或复用 runtime 总线）。
+
+**P3.3 审批审计 + 授权持久化**：`StorageApprovalStore`
+
+> **M7-2 审计导出（2026-09-15，additive/minor）**：`serializeAudit`（`ApprovalRecord[]` → CSV/JSON）、`exportAudit`（按 `ApprovalQuery` 从 `ApprovalStore` 拉取后序列化）、`AuditFormat`。固定列序仅含 `argumentsFingerprint`（不含工具参数原文），每条记录先过 `redact` 再落盘——导出物不得成为密钥的第二份副本（P3.2/P3.3 红线）。
 
 ## 10. `@node-agent-runtime/mcp`（C6）
 

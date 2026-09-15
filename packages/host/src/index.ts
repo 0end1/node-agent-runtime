@@ -16,3 +16,5 @@ export type {
 
 // ---- P3.3 approval audit + grant persistence ----
 export { StorageApprovalStore } from "./approval-store.js";
+export { serializeAudit, exportAudit } from "./audit-export.js";
+export type { AuditFormat } from "./audit-export.js";

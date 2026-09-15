@@ -66,6 +66,16 @@
 - **索引同步**：`docs/api-surface.md` §0（core 符号数 60→66）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §5。
 - **6b（MCP 只读资源）延后**：归入 M7-6b，不进首批。
 
+**M7-2 收尾：OTEL span 导出 + 审计导出（feat）**（2026-09-15）：
+
+- **前置补齐：步骤/工具级时间戳**：`types` 的 `StepStartEvent` / `ToolStartEvent` / `ToolEndEvent` 增可选 `at?`（epoch ms），由 `core` 在 `step:start` / `tool:start` / `tool:end` 发射点补齐（additive minor）—— 此前仅 `run:start` / `run:end` 带时间，span 无法推导 step / tool 起止，是 M7-2 目标 2 的已知前置缺口
+- **OTEL 导出（`packages/core/src/otel.ts` 新增）**：`toOtelSpans(event | event[], ctx?)` 纯函数产出 OTLP-JSON 形状（`traceId` 32 hex / `spanId` 16 hex / `parentSpanId` / `name` / `startTimeUnixNano` / `endTimeUnixNano` / `attributes` / `status`）；父子关系由 `runId` + `step` 推导（run → step → tool），id 由事件内容**确定性派生**（无随机数），故纯函数可测、同输入同输出。**只产出数据形状**：不绑定 OTLP 传输 / HTTP / gRPC、不引入任何第三方依赖、**不新增包**（守「12 包 / 零第三方运行时依赖」口径，见 `m7-base-governance.md` §8-3）；传输适配由宿主或 `examples/` 承担
+- **审计导出（`packages/host/src/audit-export.ts` 新增）**：`serializeAudit(records, { format })`（CSV / JSON）与 `exportAudit(store, query?, options?)`（按 `ApprovalQuery` 从 `ApprovalStore` 拉取后序列化）。归 `host` 的理由：导出环节须能兜底复用 `core` 的 `redact`（放 `types` 会因零依赖拿不到脱敏实现）
+- **导出确定性与脱敏红线**：CSV 列序固定且**只含 `argumentsFingerprint`、不含工具参数原文**，RFC 4180 转义（逗号 / 引号 / 换行）、ISO-8601 UTC 时间、`\n` 行尾；JSON 为稳定键序数组；**每条记录先过 `redact` 再落盘**，故 `sk-xxxx` 形态明文不会出现在导出物 —— 导出物不得成为密钥的第二份副本（P3.2 / P3.3 红线）
+- **测试**：新增 `packages/core/test/otel.test.ts`（7 例：父子结构、id 形态与确定性、时间戳单调、失败工具 `ERROR` 状态与属性、跨 run traceId 不同、`serviceName`；另含一次**真实 run** 验证 runtime 确实补齐 `at`）与 `packages/host/test/audit-export.test.ts`（7 例：表头固定、整串密钥被屏蔽、RFC 4180 转义、ISO 时间、JSON 稳定键序、行数与决策数一致、store 过滤）
+- **门禁**：`npm run ci` 六门全绿；已 `check:api:update` / `size:update` 重冻基线
+- **索引同步**：`docs/api-surface.md` §0（core 66→70、host 10→14）+ §2 / §9、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §2 / §3、`docs/architecture.md` §11
+
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 
 - **13 份 LICENSE 换正本**：根 `LICENSE` 与 12 个包的 `LICENSE` 替换为 Apache License 2.0 官方文本（含 `Copyright 2026 wangzhiyong` 附录）

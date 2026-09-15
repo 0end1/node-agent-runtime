@@ -5,14 +5,14 @@
     "entryCount": 10
   },
   "@node-agent-runtime/core": {
-    "packageSize": 109520,
-    "unpackedSize": 428581,
-    "entryCount": 114
+    "packageSize": 113038,
+    "unpackedSize": 441441,
+    "entryCount": 118
   },
   "@node-agent-runtime/host": {
-    "packageSize": 20469,
-    "unpackedSize": 78474,
-    "entryCount": 14
+    "packageSize": 22345,
+    "unpackedSize": 84303,
+    "entryCount": 18
   },
   "@node-agent-runtime/mcp": {
     "packageSize": 29248,
@@ -55,8 +55,8 @@
     "entryCount": 14
   },
   "@node-agent-runtime/types": {
-    "packageSize": 23800,
-    "unpackedSize": 76052,
+    "packageSize": 23882,
+    "unpackedSize": 76449,
     "entryCount": 50
   }
 }

@@ -234,6 +234,8 @@
 - `tool_search` 会改变模型可见工具面 → 需明确「检索是声明优化，不是权限收窄」，避免被误读为安全边界。
 - MCP 资源读取扩大攻击面（URI 由远端给出）→ 必须复用既有 SSRF 白名单与沙箱声明域，不新增旁路。
 
+> **落地状态（2026-09-15）**：**M7-6a 已交付** —— `packages/core/src/tool-search.ts` 新增 `ToolIndex`（倒排索引 + 子串打分，零依赖）+ `createToolSearchTool`（生成 `tool_search` 元工具）；`RunOptions.toolBudget`（opt-in，默认 `search: false`）按阈值裁剪声明面并注入 `tool_search`；`StepSnapshot.toolSurface` / `StepStartEvent.declaredTools` 记录本步工具面，`Checkpoint.toolSurface` 同步落库（host 接入）；`toolMap` 始终全量，故未声明工具仍可按名执行（**非权限收窄**）。测试见 `packages/core/test/tool-search.test.ts` + `m7-6.test.ts`（共 19 例），`npm run ci` 全绿。**6b（MCP 只读资源）延后**，不进首批。
+
 ---
 
 ## 6. API 面与发布影响
@@ -247,7 +249,7 @@
 | `StepSnapshot` / `Checkpoint` | 增 `toolSurface?` | minor |
 | `StepStartEvent` | 增 `declaredTools?` | minor |
 | `Logger` | 增可选 `child?()` | minor |
-| 新增导出 | `usageCost` / `PriceTable` / `compactMessages` / `toOtelSpans` / `serializeAudit` / `compilePolicy` / `testPolicy` / `PRESETS` / `ToolIndex` | minor |
+| 新增导出 | `usageCost`/`PriceTable`/`compactMessages`（M7-1）· `compilePolicy`/`testPolicy`/`PRESETS`（M7-3）· `ToolIndex`/`createToolSearchTool`（M7-6a）已交付；`toOtelSpans`/`serializeAudit`（M7-2 OTEL/审计导出）待补 | minor |
 | `RunOptions` | 增 `pricing?` / `traceId?` / `toolBudget?` | minor |
 
 **结论：首批无需 major。** 全部为可选字段与新增导出，符合「API 面冻结 + `check:api` 门禁」的兼容性口径。

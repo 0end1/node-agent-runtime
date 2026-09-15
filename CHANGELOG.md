@@ -11,7 +11,7 @@
 **M7 首批执行清单（docs）**（2026-09-10）：
 
 - **新增 `docs/m7-base-governance.md`（M7 首批执行清单草案）**：把 `docs/product-direction.md` §5 的首批四项拆到「包 / 文件 / API / 验收用例 / 量级」粒度，每项可直接开单。性质为**执行清单（草案）**，截至 2026-09-10 **7 项全部已定（无待拍板）**；不改口径，立项需先按 `development-checklist.md` §4 回填 `architecture.md` §11 + §13。**M7 状态已于 2026-09-11 转 🟡 进行中（见下方 M7-2 条目）**
-- **四项落点**：**M7-1** 成本与上下文治理（`types`·`memory`·`core`·`provider-openai`：`RunUsage` 扩展 + `PriceTable`/`usageCost` + `compactMessages` + `usage:update`/`context:compacted` 事件，`runtime.ts:108` 的宿主 `costUsd` 钩子降级为回退）；**M7-2** 可观测与合规导出（traceId 贯穿全部事件 + `startedAt`/`endedAt` + `toOtelSpans` 纯函数 + `serializeAudit` CSV/JSON）；**M7-3** 策略工程化（`PolicyDocument` 契约 + `compilePolicy`/`testPolicy` + ≥3 套组织预设，复用 `combinePolicies` 最严语义，glob 自实现）；**M7-6** 工具规模治理（已按 §8-7 拆为 **6a**：`tool_search` 检索式声明 + 步骤级 `toolSurface` 快照，**进首批**；**6b**：MCP `resources/list`·`read`，**延后**）
+- **四项落点**：**M7-1** 成本与上下文治理（`types`·`memory`·`core`·`provider-openai`：`RunUsage` 扩展 + `PriceTable`/`usageCost` + `compactMessages` + `usage:update`/`context:compacted` 事件，`runtime.ts:108` 的宿主 `costUsd` 钩子降级为回退）；**M7-2** 可观测与合规导出（traceId 贯穿全部事件 + `startedAt`/`endedAt`（OTEL 导出 `toOtelSpans` 与审计 `serializeAudit` 待补））；**M7-3** 策略工程化（`PolicyDocument` 契约 + `compilePolicy`/`testPolicy` + ≥3 套组织预设，复用 `combinePolicies` 最严语义，glob 自实现）；**M7-6** 工具规模治理（**6a 已交付**：`tool_search` 检索式声明 + 步骤级 `toolSurface` 快照；**6b** MCP `resources/list`·`read` **延后**）
 - **API 变更分级**：首批**全部 additive（minor）**，无需 major —— 以可选字段与新增导出为主；需 `npm run check:api:update` 重冻基线并同步 `api-surface.md`
 - **实施顺序**：批次 A **已定（2026-09-10 修订）：延后实发，改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」**（实发前置未具备：npm 组织 `node-agent-runtime` 未创建、本机 npm 10.9.4 未登录且 classic token 已被撤销；bump 只改 `package.json` 与 CHANGELOG、**完全可逆**，仍可避开「0.3.0 未发、0.4.0 成堆」的空档）→ 批次 B traceId 横切面 + M7-1 → 批次 C M7-3 → 批次 D **M7-6a**（不依赖 `mcp`）→ 批次 E **M7-6b**（MCP 只读资源，延后）；**M7-1 构成硬顺序约束** —— ACP 把 token 计量升级为协议义务（`usage_update` 的 `used` / `size` 必填），故 M7-1 须先于 ACP 协议包与流式输出（G2），顺序倒置将产生临时计量返工
 - **决策记录（§8：7 项全部已定，无待拍板）**：**已定** —— ① **延后实发；改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」后再叠 M7**（原为「先实发 0.3.0」；隔离不可回收的版本/tag 语义风险与可回滚的代码/API 风险，M7 落点仍为 0.3.0 → 0.4.0；剩余闸门**不阻塞 M7 写码、只阻塞实发**：npm 组织 `node-agent-runtime`、发布凭据 + npm ≥ 11.5.1、许可边界 `product-direction.md` §8-2）；② compact 采用**纯函数式确定性裁剪**（模型摘要仅作可选 `summarize` 注入钩子，默认关闭；`resume()` transcript 一致性与计量责任归宿主，配合结构化折叠保留用户原始目标与 `deny` 记录）；③ OTEL 导出采用 `core/src/otel.ts` **纯函数产出 OTLP 形状 + 宿主适配传输**（不新增 `@node-agent-runtime/otel` 包，守住「12 包 / 零第三方运行时依赖」口径，重评触发条件为多宿主重复实现传输）；④ **审计导出归 `host`**（导出环节须能兜底 `redact`，不能把「上游一定脱敏过」当唯一防线；格式常量随实现留 `host`）；⑤ **`policy:test` 进 `npm run ci`**（策略是外部输入，无门禁会退化成配置漂移）；⑥ **`tool_search` 默认 `maxDeclared: 50` / `search: false`（opt-in）**（默认关闭使现行为零变化）；⑦ **M7-6 拆为 6a / 6b，6a 进首批、6b 延后**（6a 只依赖 `types`/`core`/`memory`、不依赖 `mcp`；整体延后会缺「工具可控」这一角）
@@ -54,6 +54,17 @@
 - **测试**：新增 `packages/policy/test/document.test.ts`（33 例，覆盖校验拒绝、最严语义、与 `DefaultPermissionPolicy` 逐格等价、预设全绿/故意失败、glob、prod-strict 凭证全拒、`extends` 合并）
 - **门禁**：`npm run ci` 六门全绿；体积 policy +40.6%（阈值 +25%，有意增长，`npm run size:update` 重冻基线）；已 `check:api:update` 重冻基线
 - **索引同步**：`docs/api-surface.md` §0（policy 符号数 19→28）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §4
+
+**M7-6a 工具规模治理（feat）**（2026-09-15）：
+
+- **检索式工具声明（`tool_search`）**（`packages/core/src/tool-search.ts` 新增）：`ToolIndex` 按 name/description/kind 建倒排索引 + 子串打分（零依赖，整短语匹配加权）；`createToolSearchTool` 生成 `tool_search` 元工具（kind `harmless`），返回命中工具名/描述供模型按名调用——**非权限收窄**，执行仍走全量 `toolMap`（gate/sandbox 不变）。
+- **声明面裁剪（opt-in）**：`RunOptions.toolBudget?: { maxDeclared?: number; search?: boolean }`（默认 `maxDeclared: 50`、`search: false`）。仅当 `search: true` 且工具数 > `maxDeclared` 时向模型注入 `tool_search` + 前 `maxDeclared` 个工具；`toolMap` 始终全量，故未声明但被显式调用的工具仍可执行（验收已覆盖）。
+- **步骤级工具面快照**：`StepSnapshot.toolSurface?: { declared; used }` + `StepStartEvent.declaredTools?`（与实际注入一致，审计/对账用）；`memory` 的 `Checkpoint` 增 `toolSurface?`（additive），`host` 的 `onStepEnd` 已把 `StepSnapshot.toolSurface` 接进落库 Checkpoint。
+- **与 `toolsHash` 独立**：`toolSurface` 记录本步声明/执行面，`toolsHash` 校验配方指纹（续跑护栏），两者互不替换（验收已覆盖）。
+- **测试**：新增 `packages/core/test/tool-search.test.ts`（13 例：索引中文/英文/空查询/limit/重名/无命中、元工具返回）+ `packages/core/test/m7-6.test.ts`（声明面裁剪 ≤51、tool_search 发现、未声明工具仍可执行、toolSurface 快照）；`npm run ci` 全绿。
+- **门禁**：`npm run ci` 六门全绿；已 `check:api:update` / `size:update` 重冻基线。
+- **索引同步**：`docs/api-surface.md` §0（core 符号数 60→66）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §5。
+- **6b（MCP 只读资源）延后**：归入 M7-6b，不进首批。
 
 **许可证 MIT → Apache-2.0（chore，2026-09-12）**：
 

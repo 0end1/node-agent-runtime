@@ -76,6 +76,10 @@ export type { RunContext, RunContextSeed } from "./context.js";
 export { defineTool, findDuplicateToolNames } from "./tool.js";
 export type { ToolDefinition, AnyTool, ToolExecutionContext, ToolKind, ToolMeta } from "./tool.js";
 
+// ---- M7-6a: tool-scale governance (retrieval-style declaration) ----
+export { ToolIndex, createToolSearchTool } from "./tool-search.js";
+export type { ToolSearchEntry } from "./tool-search.js";
+
 // 内置基础工具集已外置（M6 P1 审查 P0）：
 //   import { builtinTools, evaluate, CURRENCY_ALIASES } from "@node-agent-runtime/tools-basic";
 

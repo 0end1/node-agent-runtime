@@ -14,7 +14,7 @@
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 28 | C5 授权决策 + M7-3 声明式策略契约/编译/测试/预设 |
-| `@node-agent-runtime/core` | 0.2.0 | 60（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
+| `@node-agent-runtime/core` | 0.2.0 | 66（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@node-agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |

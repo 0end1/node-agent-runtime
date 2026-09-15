@@ -1,5 +1,6 @@
 import type { Agent } from "./agent.js";
 import { buildRunContext } from "./context.js";
+import { ToolIndex, createToolSearchTool } from "./tool-search.js";
 import type { ToolExecutionContext } from "./tool.js";
 import {
   EventBus,
@@ -67,6 +68,12 @@ export interface StepSnapshot {
   messages: ChatMessage[];
   /** Usage accumulated up to and including this step. */
   usage: RunUsage;
+  /**
+   * M7-6a: the tool surface of this step — what was declared to the model and
+   * what was actually executed. Independent of `toolsHash` (which fingerprints
+   * the agent recipe for resume safety); used for audit/replay reconciliation.
+   */
+  toolSurface?: { declared: readonly string[]; used: readonly string[] };
 }
 
 export interface RunOptions {
@@ -100,6 +107,12 @@ export interface RunOptions {
     call: { name: string; arguments: unknown },
     ctx: ToolExecutionContext,
   ) => Promise<{ ok: boolean; reason?: string }>;
+  /**
+   * M7-6a: 检索式工具声明预算（opt-in，默认关闭）。
+   * `search: true` 且工具数 > `maxDeclared` 时，仅向模型声明 `maxDeclared` 个工具
+   * + `tool_search` 元工具，其余工具仍可通过 `tool_search` 发现后按名调用（权限面不变）。
+   */
+  toolBudget?: { maxDeclared?: number; search?: boolean };
   /**
    * Whether `input` becomes a new user turn in the transcript (default true).
    * M2 resume sets this to false when continuing without a new instruction,
@@ -229,6 +242,27 @@ export class AgentRuntime {
     for (const tool of agent.tools) toolMap.set(tool.name, tool);
     const canUseTools = toolMap.size > 0;
 
+    // M7-6a: 检索式工具声明（opt-in）。构建全量索引；仅当开启检索且工具数超过
+    // `maxDeclared` 时，才向 provider 注入 `tool_search` 元工具并裁剪「声明面」。
+    // `toolMap` 始终保留全量，故未声明但被模型显式调用的工具仍能执行（gate/sandbox 不变）。
+    const budget = options.toolBudget;
+    const maxDeclared = budget?.maxDeclared ?? 50;
+    const searchEnabled = budget?.search ?? false;
+    const toolIndex = new ToolIndex(toolMap.values());
+    let searchTool: AnyTool | undefined;
+    if (searchEnabled && toolMap.size > maxDeclared) {
+      searchTool = createToolSearchTool(toolIndex);
+      toolMap.set(searchTool.name, searchTool); // 让 executeTool 能按名找到它
+    }
+    const realTools = [...toolMap.values()].filter((t) => t !== searchTool);
+    const declaredTools = searchTool
+      ? [...realTools.slice(0, maxDeclared), searchTool]
+      : realTools;
+    const declaredNames = declaredTools.map((t) => t.name);
+    const requestTools = declaredTools.length > 0 ? declaredTools : undefined;
+    // 本步实际执行的工具（含 tool_search 本身），用于 toolSurface 快照。
+    const usedTools = new Set<string>();
+
     let history: ChatMessage[] = [...(options.history ?? [])];
     const userMessage: ChatMessage = { role: "user", content: input };
     if (options.appendUserMessage !== false) history.push(userMessage);
@@ -291,7 +325,7 @@ export class AgentRuntime {
       if (violation) throw new LimitExceededError(violation);
     };
 
-    const requestTools = canUseTools ? [...toolMap.values()] : undefined;
+
 
     try {
       for (let step = 1; step <= maxSteps; step++) {
@@ -313,7 +347,7 @@ export class AgentRuntime {
             });
           }
         }
-        emit({ type: "step:start", runId, step });
+        emit({ type: "step:start", runId, step, declaredTools: declaredNames });
         log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
         const response = await this.provider.chat({
@@ -379,7 +413,7 @@ export class AgentRuntime {
         if (toolCalls.length === 0) {
           // Natural end: the model answered. Snapshot once more so the final
           // answer is replayable and a follow-up can resume from this state.
-          await this.snapshotStep(options, runId, step, history, usage);
+          await this.snapshotStep(options, runId, step, history, usage, declaredNames, [...usedTools]);
           break;
         }
 
@@ -420,6 +454,7 @@ export class AgentRuntime {
             ...(options.taskId ? { taskId: options.taskId } : {}),
           });
           const outcome = await this.executeTool(toolMap, parsed, ctx, options.gate);
+          usedTools.add(parsed.name);
 
           const endEvt: ToolEndEvent = {
             type: "tool:end",
@@ -448,7 +483,7 @@ export class AgentRuntime {
           history.push(toolResult);
         }
 
-        await this.snapshotStep(options, runId, step, history, usage);
+        await this.snapshotStep(options, runId, step, history, usage, declaredNames, [...usedTools]);
       }
       // Exhausted steps without the model finishing -> leave a graceful marker.
       const finishedNaturally = history.at(-1)?.role !== "tool";
@@ -529,6 +564,8 @@ export class AgentRuntime {
     step: number,
     history: ChatMessage[],
     usage: RunUsage,
+    declared: readonly string[],
+    used: readonly string[],
   ): Promise<void> {
     if (!options.onStepEnd) return;
     await options.onStepEnd({
@@ -536,6 +573,7 @@ export class AgentRuntime {
       step,
       messages: [...history],
       usage: { ...usage },
+      toolSurface: { declared: [...declared], used: [...used] },
     });
   }
 

@@ -44,6 +44,12 @@ export interface Checkpoint {
   messages: ChatMessage[];
   usage: RunUsage;
   agentSnapshot: AgentSnapshot;
+  /**
+   * M7-6a: the tool surface of the step that produced this checkpoint
+   * (`declared` / `used`). Independent of `toolsHash` (which fingerprints the
+   * agent recipe for resume safety) — a change here must not trip resumability.
+   */
+  toolSurface?: { declared: readonly string[]; used: readonly string[] };
   createdAt: number;
 }
 

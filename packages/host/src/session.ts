@@ -582,6 +582,7 @@ export class SessionManager {
         input: args.input,
         messages: snapshot.messages,
         usage: snapshot.usage,
+        ...(snapshot.toolSurface ? { toolSurface: snapshot.toolSurface } : {}),
         agentSnapshot: { agentId: agent.name, toolsHash },
       });
       checkpointId = checkpoint.id;

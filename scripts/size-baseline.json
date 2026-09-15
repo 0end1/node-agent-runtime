@@ -5,13 +5,13 @@
     "entryCount": 10
   },
   "@node-agent-runtime/core": {
-    "packageSize": 105268,
-    "unpackedSize": 416057,
-    "entryCount": 110
+    "packageSize": 109520,
+    "unpackedSize": 428581,
+    "entryCount": 114
   },
   "@node-agent-runtime/host": {
-    "packageSize": 20435,
-    "unpackedSize": 78279,
+    "packageSize": 20469,
+    "unpackedSize": 78474,
     "entryCount": 14
   },
   "@node-agent-runtime/mcp": {
@@ -20,8 +20,8 @@
     "entryCount": 26
   },
   "@node-agent-runtime/memory": {
-    "packageSize": 18126,
-    "unpackedSize": 58849,
+    "packageSize": 18273,
+    "unpackedSize": 59315,
     "entryCount": 22
   },
   "@node-agent-runtime/mock": {
@@ -55,8 +55,8 @@
     "entryCount": 14
   },
   "@node-agent-runtime/types": {
-    "packageSize": 23666,
-    "unpackedSize": 75743,
+    "packageSize": 23800,
+    "unpackedSize": 76052,
     "entryCount": 50
   }
 }

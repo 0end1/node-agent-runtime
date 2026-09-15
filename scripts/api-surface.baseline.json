@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T05:18:22.193Z",
+  "generatedAt": "2026-09-15T05:38:54.280Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -217,11 +217,14 @@
         "ToolDefinition",
         "ToolEndEvent",
         "ToolExecutionContext",
+        "ToolIndex",
         "ToolKind",
         "ToolMeta",
+        "ToolSearchEntry",
         "ToolStartEvent",
         "UserMessageEvent",
         "buildRunContext",
+        "createToolSearchTool",
         "defineAgent",
         "defineTool",
         "errorPayload",

@@ -29,6 +29,12 @@ export interface StepStartEvent {
   /** 1-based model round-trip index */
   step: number;
   traceId?: string;
+  /**
+   * M7-6a: the names of tools actually declared to the model this step
+   * (after `toolBudget` trimming / `tool_search` injection). Mirrors what the
+   * provider received, for audit/replay reconciliation.
+   */
+  declaredTools?: string[];
 }
 
 export interface ModelResponseEvent {

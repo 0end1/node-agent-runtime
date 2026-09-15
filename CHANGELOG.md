@@ -8,11 +8,56 @@
 
 ## [Unreleased]
 
+**M7 首批执行清单（docs）**（2026-09-10）：
+
+- **新增 `docs/m7-base-governance.md`（M7 首批执行清单草案）**：把 `docs/product-direction.md` §5 的首批四项拆到「包 / 文件 / API / 验收用例 / 量级」粒度，每项可直接开单。性质为**执行清单（草案）**，截至 2026-09-10 **7 项全部已定（无待拍板）**；不改口径，立项需先按 `development-checklist.md` §4 回填 `architecture.md` §11 + §13。**M7 状态已于 2026-09-11 转 🟡 进行中（见下方 M7-2 条目）**
+- **四项落点**：**M7-1** 成本与上下文治理（`types`·`memory`·`core`·`provider-openai`：`RunUsage` 扩展 + `PriceTable`/`usageCost` + `compactMessages` + `usage:update`/`context:compacted` 事件，`runtime.ts:108` 的宿主 `costUsd` 钩子降级为回退）；**M7-2** 可观测与合规导出（traceId 贯穿全部事件 + `startedAt`/`endedAt` + `toOtelSpans` 纯函数 + `serializeAudit` CSV/JSON）；**M7-3** 策略工程化（`PolicyDocument` 契约 + `compilePolicy`/`testPolicy` + ≥3 套组织预设，复用 `combinePolicies` 最严语义，glob 自实现）；**M7-6** 工具规模治理（已按 §8-7 拆为 **6a**：`tool_search` 检索式声明 + 步骤级 `toolSurface` 快照，**进首批**；**6b**：MCP `resources/list`·`read`，**延后**）
+- **API 变更分级**：首批**全部 additive（minor）**，无需 major —— 以可选字段与新增导出为主；需 `npm run check:api:update` 重冻基线并同步 `api-surface.md`
+- **实施顺序**：批次 A **已定（2026-09-10 修订）：延后实发，改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」**（实发前置未具备：npm 组织 `node-agent-runtime` 未创建、本机 npm 10.9.4 未登录且 classic token 已被撤销；bump 只改 `package.json` 与 CHANGELOG、**完全可逆**，仍可避开「0.3.0 未发、0.4.0 成堆」的空档）→ 批次 B traceId 横切面 + M7-1 → 批次 C M7-3 → 批次 D **M7-6a**（不依赖 `mcp`）→ 批次 E **M7-6b**（MCP 只读资源，延后）；**M7-1 构成硬顺序约束** —— ACP 把 token 计量升级为协议义务（`usage_update` 的 `used` / `size` 必填），故 M7-1 须先于 ACP 协议包与流式输出（G2），顺序倒置将产生临时计量返工
+- **决策记录（§8：7 项全部已定，无待拍板）**：**已定** —— ① **延后实发；改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」后再叠 M7**（原为「先实发 0.3.0」；隔离不可回收的版本/tag 语义风险与可回滚的代码/API 风险，M7 落点仍为 0.3.0 → 0.4.0；剩余闸门**不阻塞 M7 写码、只阻塞实发**：npm 组织 `node-agent-runtime`、发布凭据 + npm ≥ 11.5.1、许可边界 `product-direction.md` §8-2）；② compact 采用**纯函数式确定性裁剪**（模型摘要仅作可选 `summarize` 注入钩子，默认关闭；`resume()` transcript 一致性与计量责任归宿主，配合结构化折叠保留用户原始目标与 `deny` 记录）；③ OTEL 导出采用 `core/src/otel.ts` **纯函数产出 OTLP 形状 + 宿主适配传输**（不新增 `@node-agent-runtime/otel` 包，守住「12 包 / 零第三方运行时依赖」口径，重评触发条件为多宿主重复实现传输）；④ **审计导出归 `host`**（导出环节须能兜底 `redact`，不能把「上游一定脱敏过」当唯一防线；格式常量随实现留 `host`）；⑤ **`policy:test` 进 `npm run ci`**（策略是外部输入，无门禁会退化成配置漂移）；⑥ **`tool_search` 默认 `maxDeclared: 50` / `search: false`（opt-in）**（默认关闭使现行为零变化）；⑦ **M7-6 拆为 6a / 6b，6a 进首批、6b 延后**（6a 只依赖 `types`/`core`/`memory`、不依赖 `mcp`；整体延后会缺「工具可控」这一角）
+- **口径修正**：`docs/product-direction.md` §0 原「第一批（建议）」仍列审批体验，与 §5 的降级归类矛盾 —— 已对齐为 M7-1/2/3/6 并标注 M7-4 降级
+- **索引同步**：`docs/product-direction.md`（§0 / §5 / §9）、`docs/development-checklist.md`（§0 M7 行 / §3.3 注记 / §5 相关文档）、`docs/architecture.md`（§11 M7 行 + §13 v1.13）
+
+**批次 A：版本 bump 到 0.3.0（chore，未发布）**（2026-09-11）：
+
+- 消费 `.changeset/p4-sdk-publishing.md`，12 包 `0.2.0 → 0.3.0`；包间 `dependencies` / `devDependencies` / `peerDependencies` 同步为 `^0.3.0`，并生成 12 份包级 CHANGELOG
+- 同步 `package-lock.json` —— `changeset version` 不同步 lockfile，而 CI 用 `npm ci`，不同步会以「out of sync」直接失败
+- **未发布、未打 tag**：本次只 bump，M7 的 changeset 因此干净落在 0.3.0 → 0.4.0
+
+**M7-2 traceId 贯穿（feat，横切面先行）**（2026-09-11）：
+
+- **traceId 成为事件横切面**：`types` 的 19 个事件接口统一增可选 `traceId?`；`run:start` 增 `startedAt`、`run:end` 增 `endedAt`（epoch ms）；`core` 的 `RunOptions` 增可选 `traceId?`（缺省 `newId("trace")`，宿主可注入以对齐外部链路），`RunResult` 增 `traceId` 以回显
+- **注入点收口且并发安全**：traceId 在 `emit()` 内注入（与 `redact()` 同处，故不可能被绕过），但以 **run 内闭包**传递而非实例字段 —— 同一 `AgentRuntime` 上并发的 run 互不串扰；事件已自带 `traceId` 时不被覆盖
+- **日志可关联**：`Logger` 增可选 `child?(ctx: LogContext): Logger`，`ConsoleLogger` 已实现（`child` 继承 level 与 stream，并逐层合并上下文）；**未绑定上下文时输出格式与改动前逐字一致**，既有日志解析脚本不受影响。注：`toLogger` 兼容层不变，故传入 legacy 回调型 logger 时日志不带 trace 上下文
+- **测试**：新增 `packages/core/test/trace.test.ts`（12 例）—— 一次 run 事件 traceId 一致 / 跨 run 不同 / 宿主注入被沿用 / 并发 run 不串扰 / 时间戳单调 / `child` 上下文与格式回归 / run 级日志带 traceId
+- **门禁**：`npm run ci` 六门全绿；core 行覆盖 90.92%；体积 core +2.1% / types +0.4%（阈值 +25%）；`docs/api-surface.md` §2 增 `LogContext` 与 M7-2 注记，并已 `--update` 重冻基线
+- **已知缺口**：步骤/工具级事件尚无时间戳 —— `toOtelSpans` 要给 step / tool span 填 `startTimeUnixNano` / `endTimeUnixNano`，届时须先补 `at?: number`（additive minor）
+- **索引同步**：`docs/architecture.md`（§11 M7 行 ☐ → 🟡、§13 v1.14）、`docs/development-checklist.md` §0 M7 行、`docs/m7-base-governance.md` §3、`docs/api-surface.md` §2
+
+**许可证 MIT → Apache-2.0（chore，2026-09-12）**：
+
+- **13 份 LICENSE 换正本**：根 `LICENSE` 与 12 个包的 `LICENSE` 替换为 Apache License 2.0 官方文本（含 `Copyright 2026 wangzhiyong` 附录）
+- **13 份 `package.json`**：`license: "MIT"` → `"Apache-2.0"`（根 + 12 包）；`package-lock.json` 同步（`npm install --package-lock-only`）
+- **文档口径**：`README.md`（badge + 许可证链接）、`docs/product-direction.md` §8-2（许可策略由「全仓 MIT」改为「全仓 Apache-2.0」，标注 2026-09-12 切换）、`docs/m7-base-governance.md` §6（「与 Apache-2.0 口径一致」「Apache-2.0 不可回收」）同步
+- **刻意未改历史记录**：`CHANGELOG.md` / `docs/architecture.md` §13 v1.10 / `docs/development-checklist.md` P4 行 / `docs/m6-productionization.md` 中「MIT LICENSE」均为 2026-09-08/09 的既成事实（Gate 4 落地记录），不改写
+- **代价（预期且不可避免）**：Apache-2.0 文本约 202 行（~11KB）vs MIT ~1KB；npm 把 `LICENSE` 打进每个包 tarball，故 12 包体积整体 +~10KB（最小包 artifact +63.8% 最敏感）。已 `npm run size:update` 重冻基线并说明——属许可证切换固有成本，非代码膨胀
+- **Apache-2.0 相对 MIT 的取舍**：增**显式专利授权**（对企业友好）；要求保留 NOTICE、修改文件标注变更（下游义务更重）；**不兼容 GPLv2**（GPLv3 兼容），MIT 两者皆兼容；同样**无 copyleft**，open-core（闭源增值）形态不受影响
+- **未做（可选）**：未新增 `NOTICE` 文件——Apache-2.0 仅在有 NOTICE 时才要求随衍生作品分发，当前无 NOTICE 即无此义务（日后引入第三方代码再补）
+
+**项目全量改名 `agent-runtime` → `node-agent-runtime`（chore）**（2026-09-12）：
+
+- **npm scope**：12 个包 `@agent-runtime/*` → `@node-agent-runtime/*`（711 处引用全量替换 —— 源码 import、`dependencies`/`devDependencies`/`peerDependencies`、tsconfig paths、`.changeset/config.json` 的 `fixed` 组、`api-surface` 与 `size` 基线、`package-lock.json`）
+- **小写标识同步**：根包名 `agent-runtime` → `node-agent-runtime`；日志前缀 `[agent-runtime]` → `[node-agent-runtime]`；`deploy/systemd/agent-runtime.service` 与 `deploy/nginx/agent-runtime.conf` 两个文件一并重命名
+- **仓库引用同步**：13 份 `package.json` 的 `repository` / `homepage` / `bugs` 指向 `https://github.com/0end1/node-agent-runtime`（配合 GitHub 仓库改名）
+- **刻意未改**：① 类名 `AgentRuntime`（公共 API，改动即破坏性变更，本次未要求）；② CHANGELOG 与 `docs/codex-reference.md` 中 M5-8 的**历史记述**（`0end1/nodeRuntimes → 0end1/nodeRuntime` 是既成事实，不应改写）
+- **验证**：`npm install` 重建 workspace 软链后 `npm run ci` 六门全绿；无 `node-node-agent-` 双重前缀残留
+- **待办（需你操作）**：① 在 GitHub 将仓库 `nodeRuntime` 改名为 `node-agent-runtime`，随后本地 `git remote set-url origin https://github.com/0end1/node-agent-runtime.git`；② 在 npmjs.com 创建**免费组织 `node-agent-runtime`**（组织名是否已被占用无法离线判定）
+
 **产品落地路径评估与 ACP 路径（docs）**（2026-09-10）：
 
 - **新增 `docs/product-build-paths.md`（产品落地路径评估，对照 6 个同类产品）**：以 AionUi / DeepChat / opencode / Codex / MonkeyCode / CodeBuddy 为参照归纳四种原型，回答「用底座的哪个子集、以什么产品形态、需要补什么，才能做出一个完整产品」。结论：能做且底座复用率很高，但**缺的是工具面与交互面，不是引擎**——差异不在引擎（审批 / 沙箱 / 续跑在同类产品里已是"已解决的问题"），治理能力是唯一可做深的卖点
-- **v2 新增 ACP 路径（结论相比 v1 有实质变化）**：**做 ACP Agent Server、接入已存在的壳**（DeepChat / Zed / JetBrains）为最短路径，一次适配即获得桌面与编辑器形态；论证 `@agent-runtime/acp` 协议适配包满足 `base-convergence.md` §2.1 四条底座判定，**可立项而不触碰 §2.4「应用层出局」**；并指出 ACP 只定义"能请求权限"，**未定义**审计留痕与参数指纹、步级快照与指纹校验续跑、三档沙箱强制语义、密钥脱敏——空白处正是现有资产
-- **缺口与动作**：G1 编码工具集 / G2 流式 / G3 交互层 / G9 无 ACP 适配等缺口表 + 路径排序（v2：G9 成本最低且收益最大，G1 在 ACP 路径下非必需、G3 完全免做）；P0 动作为 `@agent-runtime/acp`（`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译）与权限桥接（`session/request_permission` ↔ `PermissionManager`、`session/set_mode` ↔ `SandboxMode`）
+- **v2 新增 ACP 路径（结论相比 v1 有实质变化）**：**做 ACP Agent Server、接入已存在的壳**（DeepChat / Zed / JetBrains）为最短路径，一次适配即获得桌面与编辑器形态；论证 `@node-agent-runtime/acp` 协议适配包满足 `base-convergence.md` §2.1 四条底座判定，**可立项而不触碰 §2.4「应用层出局」**；并指出 ACP 只定义"能请求权限"，**未定义**审计留痕与参数指纹、步级快照与指纹校验续跑、三档沙箱强制语义、密钥脱敏——空白处正是现有资产
+- **缺口与动作**：G1 编码工具集 / G2 流式 / G3 交互层 / G9 无 ACP 适配等缺口表 + 路径排序（v2：G9 成本最低且收益最大，G1 在 ACP 路径下非必需、G3 完全免做）；P0 动作为 `@node-agent-runtime/acp`（`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译）与权限桥接（`session/request_permission` ↔ `PermissionManager`、`session/set_mode` ↔ `SandboxMode`）
 - **性质与待决**：本文为**待拍板评估**，不单方面改变现有口径（与 §2.4 的冲突范围与解法见 §7）；待核对 ACP 传输方式与 `session/update` 是否要求 token 级分块（决定 G2 是否为前置），待决策是否先走路径 D 与 `tools-code` 优先级
 - **索引同步**：`docs/base-convergence.md`（§2.3 移出说明与文末相关文档增链）、`docs/product-direction.md`（§3-D / §4 产品侧形态候选 / §7 风险 / §8-3 决策项 / §9 增链）
 - **范围**：本次仅新增文档与索引链接，未触碰 `packages/*`、测试与脚本逻辑
@@ -67,8 +112,8 @@
 
 - **P5.5 store-sqlite 生产基线**：schema 版本化（导出 `SCHEMA_VERSION` = 2，存于 `PRAGMA user_version`），`MIGRATIONS` 前向迁移幂等可重复（数据库版本高于程序支持时直接报错）；v2 新增表达式索引（session/task/run 查询路径 + 审计 `decidedAt` 排序），`listDocs` 把索引字段下推到 SQL（白名单字段 + 预编译语句缓存），其余走内存过滤；新增 `backup()`（`VACUUM INTO` 在线快照，拒绝覆盖）；开启 WAL 与 `synchronous=NORMAL`
 - **测试**：新增 `packages/store-sqlite/test/sqlite-baseline.test.ts` —— 迁移可重复、v2 索引存在、索引与非索引字段组合过滤结果一致、1k 记录下按 run 查询 20 次 < 500ms、备份可恢复且拒绝覆盖
-- **P5.6 Web 部署形态样例**：新增 `deploy/` —— 多阶段 `Dockerfile`（非 root + `HEALTHCHECK` 探 `/healthz`）、`docker-compose.yml`（含可选 nginx `edge` profile）、`systemd/agent-runtime.service`（最小权限）、`nginx/agent-runtime.conf`（SSE 必需的 `proxy_buffering off` 与放宽读超时）、`env/{dev,staging,prod}.env.example`、`README.md`（三种形态、环境分层表、备份恢复、生产检查清单）；控制台新增 `GET /healthz`（不经鉴权、不暴露运行时信息）；新增 `scripts/smoke-web.mjs` 与 `npm run smoke:web`（启动 → 轮询探活 → 关闭）
-- **体积基线**：`@agent-runtime/store-sqlite` 4.6 → 7.1 kB（+56.3%，P5.5 新增迁移/索引/备份代码所致，已重新冻结）
+- **P5.6 Web 部署形态样例**：新增 `deploy/` —— 多阶段 `Dockerfile`（非 root + `HEALTHCHECK` 探 `/healthz`）、`docker-compose.yml`（含可选 nginx `edge` profile）、`systemd/node-agent-runtime.service`（最小权限）、`nginx/node-agent-runtime.conf`（SSE 必需的 `proxy_buffering off` 与放宽读超时）、`env/{dev,staging,prod}.env.example`、`README.md`（三种形态、环境分层表、备份恢复、生产检查清单）；控制台新增 `GET /healthz`（不经鉴权、不暴露运行时信息）；新增 `scripts/smoke-web.mjs` 与 `npm run smoke:web`（启动 → 轮询探活 → 关闭）
+- **体积基线**：`@node-agent-runtime/store-sqlite` 4.6 → 7.1 kB（+56.3%，P5.5 新增迁移/索引/备份代码所致，已重新冻结）
 - **Docs**：`docs/api-surface.md` 补 `SCHEMA_VERSION` 快照；`docs/m6-productionization.md` P5.5 / P5.6 勾选
 
 **M6-23 · 治理文件与 README 生产用法（P6.1 / P6.2）**（2026-09-09）：
@@ -83,7 +128,7 @@
 - **P4.2 去 private + 发布元数据**：12 个包移除 `private`，补全 `publishConfig.access=public`、`sideEffects:false`、`author`、`repository`（含 `directory`）、`homepage`、`bugs`、`keywords`；`npm pack --dry-run` 产物为 dist + package.json + LICENSE
 - **P4.3 engines 与打包决策**：全仓 `engines.node` 统一 `>=22.13.0`（随 `node:sqlite`），新增 `.nvmrc`（22.22.1）与根 `packageManager`（npm@10.9.4）；维持 ESM-only
 - **P4.4 版本与发布编排**：引入 changesets（`.changeset/config.json`，12 包 `fixed` 统一版本）与 `changeset`/`version-packages`/`release` 脚本；新增 `.github/workflows/release.yml`（push main 走 changesets/action，tag `v*` 走 `npm publish --workspaces --provenance`）；首个 changeset 标记 0.2.0 → 0.3.0
-- **P4.5 依赖策略**：内部互依统一 `^0.2.0`（`workspace:` 协议在当前 npm/arborist 下报 `EUNSUPPORTEDPROTOCOL`，改用版本对齐由 changesets 发版时 bump）；`@agent-runtime/core` 与 `@agent-runtime/types` 提为插件包 `peerDependencies`；新增 `types` `ProcessEnv`，使发布产物 `.d.ts` 不依赖消费者安装 `@types/node`
+- **P4.5 依赖策略**：内部互依统一 `^0.2.0`（`workspace:` 协议在当前 npm/arborist 下报 `EUNSUPPORTEDPROTOCOL`，改用版本对齐由 changesets 发版时 bump）；`@node-agent-runtime/core` 与 `@node-agent-runtime/types` 提为插件包 `peerDependencies`；新增 `types` `ProcessEnv`，使发布产物 `.d.ts` 不依赖消费者安装 `@types/node`
 - **P4.6 包体积基线**：新增 `scripts/size-report.mjs`（`npm run size` / `size:update`）与 `scripts/size-baseline.json`，包体积增长 >+25% 阻断；纳入 `npm run ci`，报告写入 `coverage/size-report.txt`
 - **Gate 4 验证**：12 包 `npm pack` → 全新项目安装 → 最小 demo 运行通过（输出 `= 14`）→ `tsc --noEmit` 在"含 / 不含 `@types/node`"两种场景均通过
 - **Fixed**：`packages/types/test/limits.test.ts` 改从 `../src/types.js` 导入 `RunUsage`（原从 `limits.js` 导入未导出符号，阻断根 typecheck）；移除 `StorageApprovalStore` 未使用的 `now` 参数；新增 `packages/host/test/approval-store.test.ts`，host 行覆盖回到门禁线以上（92.25% 全仓均值）
@@ -212,7 +257,7 @@
 
 **M6-14 · 工程护栏（P2.1 / P2.2 / P2.5 / P2.6，含 P2.3 水位）**（2026-09-08）：
 
-- **P2.1 CI 主流程**：新增 `.github/workflows/ci.yml`，三个 job —— `quality`（typecheck → lint → test → build → `check:api`，Node 22.x）、`coverage`（仅出报告，不阻断）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3）
+- **P2.1 CI 主流程**：新增 `.github/workflows/ci.yml`，三个 job —— `quality`（typecheck → lint → test → build → `check:api`，Node 22.x）、`coverage`（仅出报告，不阻断）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@node-agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3）
 - **P2.2 Lint/Format 基线**：新增 `eslint.config.js`（ESLint 9 flat config + typescript-eslint）与 `.prettierrc` / `.prettierignore`；根脚本 `lint` / `lint:fix` / `format` / `format:check`；已执行一次全仓格式化（52 文件）
 - **P2.3 覆盖率（先出水位）**：新增 `scripts/coverage.mjs` 与 `npm run coverage`，逐包跑 `node --import tsx --test --experimental-test-coverage` 并汇总，完整输出落 `coverage/report.txt`（已入 `.gitignore`）；**暂不设门槛**
 - **P2.5 依赖审计门**：CI `audit` job；`package-lock.json` 在库，当前 0 vulnerabilities
@@ -234,14 +279,14 @@
 
 **M6-13 · 文档同步收口（P0/P1 修正）**（2026-09-08）：基于 `docs/docmap-audit.md`（M6-12 文档盘点）执行其 §6 的 P0/P1 修正清单，把拆包后仍残留的单包时代/中间态描述对齐到 **12 包终局**：
 
-- `README.md`：项目结构树改为 12 包依赖分层布局（含 `core/src/store/` 与真实源码文件，去掉拆包前旧树）；核心代码示例与会话示例导入源由 `./src/index.js` 改按包导入（`@agent-runtime/core` / `mock` / `tools-basic` / `provider-openai` / `host`）；概念表补包名；内置工具节注明源自 `@agent-runtime/tools-basic`；兼容注改为「core = facade 聚合出口，导出面以 api-surface + check:api 为准」
+- `README.md`：项目结构树改为 12 包依赖分层布局（含 `core/src/store/` 与真实源码文件，去掉拆包前旧树）；核心代码示例与会话示例导入源由 `./src/index.js` 改按包导入（`@node-agent-runtime/core` / `mock` / `tools-basic` / `provider-openai` / `host`）；概念表补包名；内置工具节注明源自 `@node-agent-runtime/tools-basic`；兼容注改为「core = facade 聚合出口，导出面以 api-surface + check:api 为准」
 - `docs/crate-split-todo.md`：新增「归档注记」（12 包终局：artifact 独立拆包、checkpoint 归位 memory、§5 决策 C1/C4 修订）；§1 标注为历史快照；C3 状态格与 §6 文档同步项收尾勾选
 - `docs/m6-productionization.md`：P1.6 改 12 包导出面、P1.1 追注 Artifact 独立成包、进度段加「12 包终局」追注
 - `docs/development-checklist.md`：§0 M6 行与 P1/P2 行对齐 12 包终局，P2.7 ✅ 标注
 - `docs/remaining-tasks.md`：头部决策状态、建议顺序/当前状态改为「已收口」；B2（C8 host）行改为已完成（C1 重评为「拆」）；§3 补决策修订注记
 - `docs/crate-architecture.md`：头部状态刷新为 12 包终局；新增 **v0.11** 修订行（M6-9~12 自查整改闭环）；§3 Artifact 归属落定为独立包；§8 待决 2/4/5 补 `[已定]` 标注
 - `examples/desktop-tauri/README.md`：「与拆包（C8 host）的关系」由未来态改写为现状（host 已拆且示例已接线）
-- `docs/architecture.md`：§5.3 / §6.1 / §6.2 / §8.1 / §8.2 / §9 的 M2~M4 实现注记补「M6 已迁出至 `@agent-runtime/*`」追注（mcp / policy / sandbox / artifact / memory+checkpoint / host），避免按旧路径 `packages/core/src/*` 检索被误导
+- `docs/architecture.md`：§5.3 / §6.1 / §6.2 / §8.1 / §8.2 / §9 的 M2~M4 实现注记补「M6 已迁出至 `@node-agent-runtime/*`」追注（mcp / policy / sandbox / artifact / memory+checkpoint / host），避免按旧路径 `packages/core/src/*` 检索被误导
 - `docs/m5-productization.md`：原则与 Desktop 明细中「未来若拆 C8 host」的未来态表述改为现状（host 已拆、示例已切子包导入）
 
 **新增**：`docs/docmap-audit.md`（16 篇文档地图与一致性/缺失审计，含目录树、逐文档档案与交叉引用关系）。
@@ -250,13 +295,13 @@
 
 ---
 
-**M6-12 · 包元数据名实对齐**（2026-09-08，split 分支）：修正拆包（M6-9 / M6-10）后残留的过时描述——`@agent-runtime/memory` 的产物职责已归 `@agent-runtime/artifact`、`@agent-runtime/core` 已不含 session 与 provider 实现，两个包的 `description` 与 core facade 注释块同步至真实构成（memory = SessionMemory + Checkpoint/ToolSurface 契约；artifact 独立一行；core = 引擎 + 聚合出口）。
+**M6-12 · 包元数据名实对齐**（2026-09-08，split 分支）：修正拆包（M6-9 / M6-10）后残留的过时描述——`@node-agent-runtime/memory` 的产物职责已归 `@node-agent-runtime/artifact`、`@node-agent-runtime/core` 已不含 session 与 provider 实现，两个包的 `description` 与 core facade 注释块同步至真实构成（memory = SessionMemory + Checkpoint/ToolSurface 契约；artifact 独立一行；core = 引擎 + 聚合出口）。
 **验收**：纯描述/注释变更，无代码与公共 API 变化；`npm run typecheck` 绿，`npm run check:api` 0 差异。
 
 ### Changed（M6-12）
-- `packages/memory/package.json`：description 去掉 ArtifactManager，改为 SessionMemory + checkpoint 设施，并注明产物归属 `@agent-runtime/artifact`
+- `packages/memory/package.json`：description 去掉 ArtifactManager，改为 SessionMemory + checkpoint 设施，并注明产物归属 `@node-agent-runtime/artifact`
 - `packages/core/package.json`：description 改为引擎真实构成（run loop / agent / context / EventBus / tool-model 契约 / 零依赖默认存储 / facade），去掉 session、providers
-- `packages/core/src/index.ts`：facade 注释块对齐实际转发——memory 行改为 SessionMemory / Checkpoint（ToolSurface 契约），新增 `@agent-runtime/artifact` 独立行
+- `packages/core/src/index.ts`：facade 注释块对齐实际转发——memory 行改为 SessionMemory / Checkpoint（ToolSurface 契约），新增 `@node-agent-runtime/artifact` 独立行
 
 ---
 
@@ -290,14 +335,14 @@
 ---
 
 **M6-10 · P1 审查整改（P2）**（2026-09-08，split 分支）：收尾 `docs/p1-review.md` 的 P2 级建议。
-**P2-a checkpoint 归位**：`checkpoint.ts` 解耦 `Agent` 类——新增结构化契约 `ToolSurface { name, tools }` 取代 `computeToolsHash(agent: Agent)` / `assertResumable(ckpt, agent)` 对引擎类的依赖（`Agent` 结构上兼容，现有调用点无需改写）；随后迁入 C3 `@agent-runtime/memory`，测试随迁。core 由 1146 → **1005 行**，且因 facade 转发 memory，**从 core 导入 Checkpoint 符号仍可用（非破坏性）**。
+**P2-a checkpoint 归位**：`checkpoint.ts` 解耦 `Agent` 类——新增结构化契约 `ToolSurface { name, tools }` 取代 `computeToolsHash(agent: Agent)` / `assertResumable(ckpt, agent)` 对引擎类的依赖（`Agent` 结构上兼容，现有调用点无需改写）；随后迁入 C3 `@node-agent-runtime/memory`，测试随迁。core 由 1146 → **1005 行**，且因 facade 转发 memory，**从 core 导入 Checkpoint 符号仍可用（非破坏性）**。
 **P2-b 事件总线可注入**：`AgentRuntimeOptions.events?` 与 `SessionManagerOptions.events?` 支持宿主创建并注入 `EventBus`（默认仍自建/复用 runtime 总线）；host 内部统一改用 `this.events`，不再借用 `runtime.events` 内部构件。
 **P2-c 快照复核脚本化**：⏸ 未实施，随 P2（工程护栏）的 CI 作业落地。
 **验收**：`npm run typecheck` 绿；全仓 `npm test` 0 fail（types 4 / memory 19 / artifact 8 / sandbox 13 / policy 13 / core 21+1skip / tools-basic 2 / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-10）
 - `AgentRuntimeOptions.events` / `SessionManagerOptions.events` / `SessionManager.events`：宿主可注入并持有事件总线
-- `@agent-runtime/memory`：`CheckpointStore` 等 9 个 Checkpoint 符号 + `ToolSurface` 契约
+- `@node-agent-runtime/memory`：`CheckpointStore` 等 9 个 Checkpoint 符号 + `ToolSurface` 契约
 
 ### Changed（M6-10）
 - `packages/core/src/checkpoint.ts` → `packages/memory/src/checkpoint.ts`（解耦 `Agent` 后归位 C3）
@@ -311,22 +356,22 @@
 ---
 
 **M6-9 · P1 审查整改（P0 + P1）**（2026-09-08，split 分支）：依据 `docs/p1-review.md` 执行架构整改，解决「core 过重」「为拆包而人为分层」两类问题。
-**P0 演示资产外置**：`MockProvider` → 新包 `@agent-runtime/mock`；`builtinTools` / `calculator` / `CURRENCY_ALIASES` / `CurrencyCode` / `evaluate` → 新包 `@agent-runtime/tools-basic`；core 移除对应实现与导出（公共面 -5、**1804 → 1146 行，-36%**）。
+**P0 演示资产外置**：`MockProvider` → 新包 `@node-agent-runtime/mock`；`builtinTools` / `calculator` / `CURRENCY_ALIASES` / `CurrencyCode` / `evaluate` → 新包 `@node-agent-runtime/tools-basic`；core 移除对应实现与导出（公共面 -5、**1804 → 1146 行，-36%**）。
 **P1-a 工具分类下沉**：`classifyToolName` / `toolKind` 由 sandbox 下沉 C1（`types/src/tools.ts`，属工具元数据推断而非执行域），sandbox 以 re-export 保持 API 不变；`mcp` 因此去掉对 sandbox 的依赖（现只依赖 core + types）。
-**P1-b 产物独立**：`artifact.ts` 从 memory 包拆出为 `@agent-runtime/artifact`（memory 导出由 13 → 5，一包一职责），host 与 core facade 同步接线。
+**P1-b 产物独立**：`artifact.ts` 从 memory 包拆出为 `@node-agent-runtime/artifact`（memory 导出由 13 → 5，一包一职责），host 与 core facade 同步接线。
 **破坏性变更**：从 core 导入 `MockProvider` / `builtinTools` / `evaluate` / `CURRENCY_ALIASES` / `CurrencyCode` 失效（改从 `mock` / `tools-basic`）；从 `memory` 导入 `Artifact*` 失效（改从 `artifact`）。
 **验收**：`npm run typecheck` 绿；全仓 `npm test` 0 fail（types 4 / memory 9 / artifact 8 / sandbox 13 / policy 13 / core 31+1skip / tools-basic 2 / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-9 · 整改新包）
-- `packages/mock/`：`@agent-runtime/mock`（MockProvider 演示/测试模型后端）
-- `packages/tools-basic/`：`@agent-runtime/tools-basic`（builtinTools / evaluate / CURRENCY_ALIASES / CurrencyCode）
-- `packages/artifact/`：`@agent-runtime/artifact`（ArtifactManager 产物管理，原属 memory）
+- `packages/mock/`：`@node-agent-runtime/mock`（MockProvider 演示/测试模型后端）
+- `packages/tools-basic/`：`@node-agent-runtime/tools-basic`（builtinTools / evaluate / CURRENCY_ALIASES / CurrencyCode）
+- `packages/artifact/`：`@node-agent-runtime/artifact`（ArtifactManager 产物管理，原属 memory）
 - `packages/types/src/tools.ts`：`classifyToolName` / `toolKind`（由 sandbox 下沉）
 
 ### Changed（M6-9 · 整改接线）
 - `packages/core`：`providers/`、`tools/` 目录移出（演示资产）；facade 增加 artifact 转发
 - `packages/memory`：仅保留会话记忆（剥离产物）
-- `packages/mcp`：去掉 `@agent-runtime/sandbox` 依赖
+- `packages/mcp`：去掉 `@node-agent-runtime/sandbox` 依赖
 - `packages/host`、`examples/cli.ts`、`examples/web/server.ts`、四处测试：导入源更新
 - 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 3 个新包（共 12 个 workspace 包）
 
@@ -348,14 +393,14 @@
 
 ---
 
-**M6-7 · 拆包批次 B2（C8 host）**（2026-09-07，split 分支）：**修订 C1 决策**——原判定「不拆 host」的前提（memory/permission/artifact/sandbox 在 core 内与 session 互引）已随 B3/B4 消失，实测 core 内**无任何模块依赖 `session.ts`**，故恢复 C8：`session.ts`(721 行) + `session.test.ts` 外置为 `@agent-runtime/host`（`packages/host/`），依赖方向 **host → {core, memory, sandbox, policy, types}**，单向无环；`core/src/index.ts` 移除 Session/Task 导出（host → core，core 不可反向 re-export，与 mcp 同理）。**破坏性变更**：`import { SessionManager } from "@agent-runtime/core"` 失效，宿主需改从 `@agent-runtime/host` 导入——当前 0.x 且全部包 `private`（无外部消费者），为成本最低窗口。引用点已更新：`examples/cli.ts`、`examples/web/server.ts`、core/memory/mcp/sandbox 四处测试。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / **host 8** / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；`examples/` 与四处测试的导入已全部切换到新包（运行时冒烟随 M6 P2 的自动化 E2E 覆盖）。
+**M6-7 · 拆包批次 B2（C8 host）**（2026-09-07，split 分支）：**修订 C1 决策**——原判定「不拆 host」的前提（memory/permission/artifact/sandbox 在 core 内与 session 互引）已随 B3/B4 消失，实测 core 内**无任何模块依赖 `session.ts`**，故恢复 C8：`session.ts`(721 行) + `session.test.ts` 外置为 `@node-agent-runtime/host`（`packages/host/`），依赖方向 **host → {core, memory, sandbox, policy, types}**，单向无环；`core/src/index.ts` 移除 Session/Task 导出（host → core，core 不可反向 re-export，与 mcp 同理）。**破坏性变更**：`import { SessionManager } from "@node-agent-runtime/core"` 失效，宿主需改从 `@node-agent-runtime/host` 导入——当前 0.x 且全部包 `private`（无外部消费者），为成本最低窗口。引用点已更新：`examples/cli.ts`、`examples/web/server.ts`、core/memory/mcp/sandbox 四处测试。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / **host 8** / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；`examples/` 与四处测试的导入已全部切换到新包（运行时冒烟随 M6 P2 的自动化 E2E 覆盖）。
 
 ### Added（M6-7 · 拆包 B2）
-- `packages/host/`：C8 `@agent-runtime/host`（`SessionManager` / `SessionError` 与 Session/Task/Run 类型）
+- `packages/host/`：C8 `@node-agent-runtime/host`（`SessionManager` / `SessionError` 与 Session/Task/Run 类型）
 
 ### Changed（M6-7 · 拆包 B2 接线）
 - `packages/core/src/index.ts`：移除 Session/Task 导出段（改指引注释）
-- `examples/cli.ts` / `examples/web/server.ts`：`SessionManager` / `Session` 改从 `@agent-runtime/host` 导入
+- `examples/cli.ts` / `examples/web/server.ts`：`SessionManager` / `Session` 改从 `@node-agent-runtime/host` 导入
 - `packages/{core,memory,mcp,sandbox}/test/*.test.ts`：`SessionManager` 改从 host 导入
 - 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 host（序 …→core→host→mcp→…）
 - `README.md`：会话管理示例与包结构同步
@@ -366,7 +411,7 @@
 
 ---
 
-**M6-6 · 拆包批次 B4（core facade 收窄）**（2026-09-07，split 分支）：`core/src/index.ts` 由各模块直出改为 **facade 聚合出口**——统一 `export *` 转发 C3 `@agent-runtime/memory`、C4 `@agent-runtime/sandbox`、C5 `@agent-runtime/policy`（**C6 mcp 不在此列**：其依赖方向为 mcp → core，反向 re-export 会形成循环，仍需 `import { McpRegistry } from "@agent-runtime/mcp"`）。宿主既可继续从 `@agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。`checkpoint.ts` 经评估仍留 core：`computeToolsHash` / `assertResumable` 依赖 core 的 `Agent` 类。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+**M6-6 · 拆包批次 B4（core facade 收窄）**（2026-09-07，split 分支）：`core/src/index.ts` 由各模块直出改为 **facade 聚合出口**——统一 `export *` 转发 C3 `@node-agent-runtime/memory`、C4 `@node-agent-runtime/sandbox`、C5 `@node-agent-runtime/policy`（**C6 mcp 不在此列**：其依赖方向为 mcp → core，反向 re-export 会形成循环，仍需 `import { McpRegistry } from "@node-agent-runtime/mcp"`）。宿主既可继续从 `@node-agent-runtime/core` 单点导入（兼容面不变），也可按需直连子包（推荐新代码）。`checkpoint.ts` 经评估仍留 core：`computeToolsHash` / `assertResumable` 依赖 core 的 `Agent` 类。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Changed（M6-6 · facade 收窄）
 - `packages/core/src/index.ts`：新增 facade re-export 块（`export *` 转发 memory / sandbox / policy），移除原 memory/artifact/governance 指引注释
@@ -378,32 +423,32 @@
 
 ---
 
-**M6-5 · 拆包批次 B3（C4 sandbox + C5 policy）**（2026-09-07，split 分支）：`sandbox.ts` 外置为 `@agent-runtime/sandbox`、`permission.ts` 外置为 `@agent-runtime/policy`（C2 决策：独立两包），两个测试随迁。本批**触发 C4 决策的「出现循环即下沉」条件**：把工具契约（`ToolDefinition`/`AnyTool`/`ToolKind`/`ToolMeta`/`ToolExecutionContext`）与事件契约（`RuntimeEvent` 及全部事件接口）下沉 C1（新增 `packages/types/src/tools.ts` / `events.ts`）；core 对应文件改为「re-export 类型 + 保留实现」（`defineTool` / `EventBus` 仍在 core，core 内部与公共导入面不变）；`permission.ts` 对 `EventBus<RuntimeEvent>` 的依赖改为 C1 新增的 `EventEmitter<E>` 结构接口，避免 policy 反向依赖 core；`mcp` 的 `classifyToolName` 改由 `@agent-runtime/sandbox` 提供。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+**M6-5 · 拆包批次 B3（C4 sandbox + C5 policy）**（2026-09-07，split 分支）：`sandbox.ts` 外置为 `@node-agent-runtime/sandbox`、`permission.ts` 外置为 `@node-agent-runtime/policy`（C2 决策：独立两包），两个测试随迁。本批**触发 C4 决策的「出现循环即下沉」条件**：把工具契约（`ToolDefinition`/`AnyTool`/`ToolKind`/`ToolMeta`/`ToolExecutionContext`）与事件契约（`RuntimeEvent` 及全部事件接口）下沉 C1（新增 `packages/types/src/tools.ts` / `events.ts`）；core 对应文件改为「re-export 类型 + 保留实现」（`defineTool` / `EventBus` 仍在 core，core 内部与公共导入面不变）；`permission.ts` 对 `EventBus<RuntimeEvent>` 的依赖改为 C1 新增的 `EventEmitter<E>` 结构接口，避免 policy 反向依赖 core；`mcp` 的 `classifyToolName` 改由 `@node-agent-runtime/sandbox` 提供。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 41+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-5 · 拆包 B3）
-- `packages/sandbox/`：C4 `@agent-runtime/sandbox`（`LocalSandbox` + `classifyToolName`/`toolKind`/`isPathAllowed`/`simpleDiff` 与 Sandbox 契约类型）
-- `packages/policy/`：C5 `@agent-runtime/policy`（`PermissionManager` + `DefaultPermissionPolicy`/`StaticPolicy`/`combinePolicies`/`toolListPolicy`）
+- `packages/sandbox/`：C4 `@node-agent-runtime/sandbox`（`LocalSandbox` + `classifyToolName`/`toolKind`/`isPathAllowed`/`simpleDiff` 与 Sandbox 契约类型）
+- `packages/policy/`：C5 `@node-agent-runtime/policy`（`PermissionManager` + `DefaultPermissionPolicy`/`StaticPolicy`/`combinePolicies`/`toolListPolicy`）
 - `packages/types/src/tools.ts` / `events.ts`：工具契约与事件契约下沉 C1（含新增 `EventEmitter<E>` 最小发射接口）
 
 ### Changed（M6-5 · 拆包 B3 接线）
 - `packages/core/src/tool.ts` / `events.ts`：类型改为从 C1 re-export，实现保留
 - `packages/core/src/session.ts`：`LocalSandbox` / `PermissionManager` 改从新包导入
 - `packages/core/src/index.ts`：移除治理实现导出，保留指引注释
-- `packages/mcp/`：`classifyToolName` 改依赖 `@agent-runtime/sandbox`
+- `packages/mcp/`：`classifyToolName` 改依赖 `@node-agent-runtime/sandbox`
 - 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入两个新包（序 types→memory→sandbox→policy→core→mcp→provider-openai→store-sqlite）
 
 ---
 
-**M6-4 · 拆包批次 B3（C3 memory + artifact）**（2026-09-07，split 分支）：`memory.ts` + `artifact.ts` 外置为 `@agent-runtime/memory`（`packages/memory/`，仅依赖 types），`memory.test.ts` / `artifact.test.ts` 随迁；按 C3 决策把 `Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型下沉 C1（新增 `packages/types/src/artifacts.ts`）；`session.ts` 改从新包导入，core `index.ts` 移除 memory/artifact 实现导出（类型经顶部 `export *` 转发，公共导入面不变）。**`checkpoint.ts` 暂留 core**：`computeToolsHash` / `assertResumable` 依赖 `Agent` 与工具契约（C4 决策未下沉），外置会形成 core ↔ C3 包级循环，待契约下沉或 B4 facade 收窄时再迁。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / core 67+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+**M6-4 · 拆包批次 B3（C3 memory + artifact）**（2026-09-07，split 分支）：`memory.ts` + `artifact.ts` 外置为 `@node-agent-runtime/memory`（`packages/memory/`，仅依赖 types），`memory.test.ts` / `artifact.test.ts` 随迁；按 C3 决策把 `Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型下沉 C1（新增 `packages/types/src/artifacts.ts`）；`session.ts` 改从新包导入，core `index.ts` 移除 memory/artifact 实现导出（类型经顶部 `export *` 转发，公共导入面不变）。**`checkpoint.ts` 暂留 core**：`computeToolsHash` / `assertResumable` 依赖 `Agent` 与工具契约（C4 决策未下沉），外置会形成 core ↔ C3 包级循环，待契约下沉或 B4 facade 收窄时再迁。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / memory 17 / core 67+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-4 · 拆包 B3）
-- `packages/memory/`：新增 C3 `@agent-runtime/memory` 包（package.json / tsconfig.json / `src/index.ts`），承载 `SessionMemory` 与 `ArtifactManager`；依赖仅 @agent-runtime/types
+- `packages/memory/`：新增 C3 `@node-agent-runtime/memory` 包（package.json / tsconfig.json / `src/index.ts`），承载 `SessionMemory` 与 `ArtifactManager`；依赖仅 @node-agent-runtime/types
 - `packages/types/src/artifacts.ts`：`Artifact` / `ArtifactKind` / `ArtifactInput` 契约类型（C3 决策下沉）
 
 ### Changed（M6-4 · 拆包 B3 接线）
-- `packages/core/src/session.ts`：`SessionMemory` / `Memory` / `ArtifactManager` / `Artifact` 改从 `@agent-runtime/memory` 导入
+- `packages/core/src/session.ts`：`SessionMemory` / `Memory` / `ArtifactManager` / `Artifact` 改从 `@node-agent-runtime/memory` 导入
 - `packages/core/src/index.ts`：移除 memory / artifact 实现导出，保留指引注释（类型面不变）
-- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 `@agent-runtime/memory`（build 序 types→memory→core→mcp→provider-openai→store-sqlite）
+- 根 `package.json` / `tsconfig.json`：build/test 与 paths 接入 `@node-agent-runtime/memory`（build 序 types→memory→core→mcp→provider-openai→store-sqlite）
 
 ### Docs（M6-4）
 - `docs/remaining-tasks.md`：B3 完成 + checkpoint 留 core 说明
@@ -411,27 +456,27 @@
 
 ---
 
-**M6-3 · Storage 契约下沉 C1（拆包 B3 前置）**（2026-09-07，split 分支）：把 `Storage` / `DocDomain` / `StreamDomain` 契约从 `core/src/store/types.ts` 下沉至 `@agent-runtime/types`（新增 `packages/types/src/storage.ts` 并由 index 导出），删除 core 内契约文件；core 内 6 处引用（`session` / `memory` / `checkpoint` / `artifact` / `store/memory` / `store/file`）改为从 types 导入，`core/src/index.ts` 经 `export * from "@agent-runtime/types"` 转发，**公共导入面不变**。目的：让 C3（memory/artifact）等外置包只依赖 types，消除 core ↔ 子包循环（C1/C3 决策的落地手段）。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+**M6-3 · Storage 契约下沉 C1（拆包 B3 前置）**（2026-09-07，split 分支）：把 `Storage` / `DocDomain` / `StreamDomain` 契约从 `core/src/store/types.ts` 下沉至 `@node-agent-runtime/types`（新增 `packages/types/src/storage.ts` 并由 index 导出），删除 core 内契约文件；core 内 6 处引用（`session` / `memory` / `checkpoint` / `artifact` / `store/memory` / `store/file`）改为从 types 导入，`core/src/index.ts` 经 `export * from "@node-agent-runtime/types"` 转发，**公共导入面不变**。目的：让 C3（memory/artifact）等外置包只依赖 types，消除 core ↔ 子包循环（C1/C3 决策的落地手段）。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-3 · 契约下沉）
 - `packages/types/src/storage.ts`：`Storage` / `DocDomain` / `StreamDomain` 契约（原 `core/src/store/types.ts`，零依赖纯类型），`types/index.ts` 已导出
 
 ### Changed（M6-3 · 契约下沉接线）
-- `packages/core/src/{session,memory,checkpoint,artifact}.ts` 与 `store/{memory,file}.ts`：Storage 契约改从 `@agent-runtime/types` 导入
-- `packages/core/src/index.ts`：移除本地 Storage 导出（改由 `export * from "@agent-runtime/types"` 转发）
+- `packages/core/src/{session,memory,checkpoint,artifact}.ts` 与 `store/{memory,file}.ts`：Storage 契约改从 `@node-agent-runtime/types` 导入
+- `packages/core/src/index.ts`：移除本地 Storage 导出（改由 `export * from "@node-agent-runtime/types"` 转发）
 - `packages/core/src/store/types.ts`：删除（契约已下沉 C1）
 
 ---
 
-**M6-2 · 决策落定 + 拆包批次 B1（C6 mcp）**（2026-09-07，split 分支）：落定 `remaining-tasks` C1~C4 四项开放决策——**C1** 不拆 C8 host（Session/Task 留 core，改以「Storage 契约下沉 C1」消除 core↔子包循环，B2 移出 M6）；**C2** sandbox/policy 独立两包（C4/C5，不合成 governance）；**C3** `Artifact` 类型下沉 C1、实现并入 C3（memory 包）；**C4** 工具契约 M6 暂不下沉（外置包依赖 core 的 `defineTool`/`ToolDefinition`）。据此执行批次 B1：`core/src/mcp/`（client/jsonrpc/registry/transport/types）与 `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁为 `packages/mcp/`（`@agent-runtime/mcp`），`registry.ts` 改从 core 取 `defineTool`/`classifyToolName`，core `index.ts` 移除 mcp 导出（避免 core↔mcp 循环），根 tsconfig paths / build / test 与 `examples/cli.ts` 接线。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
+**M6-2 · 决策落定 + 拆包批次 B1（C6 mcp）**（2026-09-07，split 分支）：落定 `remaining-tasks` C1~C4 四项开放决策——**C1** 不拆 C8 host（Session/Task 留 core，改以「Storage 契约下沉 C1」消除 core↔子包循环，B2 移出 M6）；**C2** sandbox/policy 独立两包（C4/C5，不合成 governance）；**C3** `Artifact` 类型下沉 C1、实现并入 C3（memory 包）；**C4** 工具契约 M6 暂不下沉（外置包依赖 core 的 `defineTool`/`ToolDefinition`）。据此执行批次 B1：`core/src/mcp/`（client/jsonrpc/registry/transport/types）与 `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁为 `packages/mcp/`（`@node-agent-runtime/mcp`），`registry.ts` 改从 core 取 `defineTool`/`classifyToolName`，core `index.ts` 移除 mcp 导出（避免 core↔mcp 循环），根 tsconfig paths / build / test 与 `examples/cli.ts` 接线。验收：`npm run typecheck` 绿，全仓 `npm test` 0 fail（types 4 / core 84+1skip / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）。
 
 ### Added（M6-2 · 拆包 B1）
-- `packages/mcp/`：新增 C6 `@agent-runtime/mcp` 包（package.json / tsconfig.json / `src/index.ts`），承载 MCP client、JSON-RPC、stdio+streamable HTTP 传输与 `McpRegistry` 物化；依赖 core 工具契约，方向单向
+- `packages/mcp/`：新增 C6 `@node-agent-runtime/mcp` 包（package.json / tsconfig.json / `src/index.ts`），承载 MCP client、JSON-RPC、stdio+streamable HTTP 传输与 `McpRegistry` 物化；依赖 core 工具契约，方向单向
 
 ### Changed（M6-2 · 拆包 B1 接线）
-- `packages/core/src/index.ts`：移除 MCP adapter 导出段（改由 `@agent-runtime/mcp` 提供），避免 core↔mcp 循环
-- `examples/cli.ts`：`McpClient`/`McpRegistry`/`StdioTransport`/`StreamableHttpTransport`/`McpServerHandle` 改从 `@agent-runtime/mcp` 导入
-- 根 `package.json` / `tsconfig.json`：`build`/`test` 脚本与 paths 接入 `@agent-runtime/mcp`（build 序 types→core→mcp→provider-openai→store-sqlite）
+- `packages/core/src/index.ts`：移除 MCP adapter 导出段（改由 `@node-agent-runtime/mcp` 提供），避免 core↔mcp 循环
+- `examples/cli.ts`：`McpClient`/`McpRegistry`/`StdioTransport`/`StreamableHttpTransport`/`McpServerHandle` 改从 `@node-agent-runtime/mcp` 导入
+- 根 `package.json` / `tsconfig.json`：`build`/`test` 脚本与 paths 接入 `@node-agent-runtime/mcp`（build 序 types→core→mcp→provider-openai→store-sqlite）
 
 ### Docs（M6-2 · 决策与状态回填）
 - `docs/remaining-tasks.md`：C1~C4 决策结论与触发条件；B1 进行中→已完、B2 移出
@@ -528,8 +573,8 @@
 
 ### Added（M5-1 · 外置包）
 
-- **C7 `@agent-runtime/provider-openai`**（`packages/provider-openai/`）：`OpenAIClientProvider`/`OpenAIClientOptions` 从 core 迁出（`packages/core/src/providers/openai-compatible.ts` 删除），core `providers/` 仅留 `MockProvider`；`examples/cli.ts`、`examples/web/server.ts` 改用新包导入
-- **C9 `@agent-runtime/store-sqlite`**（`packages/store-sqlite/`）：`SQLiteStorage`（`node:sqlite` `DatabaseSync`，docs/blobs/streams 三表）按 `Storage` trait 实现，作为可选存储后端（`engines: node >=22.13.0`）
+- **C7 `@node-agent-runtime/provider-openai`**（`packages/provider-openai/`）：`OpenAIClientProvider`/`OpenAIClientOptions` 从 core 迁出（`packages/core/src/providers/openai-compatible.ts` 删除），core `providers/` 仅留 `MockProvider`；`examples/cli.ts`、`examples/web/server.ts` 改用新包导入
+- **C9 `@node-agent-runtime/store-sqlite`**（`packages/store-sqlite/`）：`SQLiteStorage`（`node:sqlite` `DatabaseSync`，docs/blobs/streams 三表）按 `Storage` trait 实现，作为可选存储后端（`engines: node >=22.13.0`）
 
 ### Changed（M5-1 · 拆包）
 
@@ -613,7 +658,7 @@
 
 ## [v0.2.0] - 2026-09-05
 
-**M1 · 生命周期 + C1/C2 workspace 收敛**（正式发布，dev 合并 main，commit `06edd1a`）：M1 完成 Session/Task/Run 实体化、统一持久化层与运行时上下文注入；在此基础上把代码收敛为 npm workspaces monorepo（C1 `@agent-runtime/types` 叶子包 + C2 `@agent-runtime/core` 引擎包）。`npm test` 35 通过 0 失败。
+**M1 · 生命周期 + C1/C2 workspace 收敛**（正式发布，dev 合并 main，commit `06edd1a`）：M1 完成 Session/Task/Run 实体化、统一持久化层与运行时上下文注入；在此基础上把代码收敛为 npm workspaces monorepo（C1 `@node-agent-runtime/types` 叶子包 + C2 `@node-agent-runtime/core` 引擎包）。`npm test` 35 通过 0 失败。
 
 ### Added（M1 · 生命周期）
 
@@ -629,7 +674,7 @@
 
 - 运行时版本升至 `v0.2.0`，代码迁移至 npm workspaces monorepo 包（C1/C2）
 - `src/` 死代码清理（2026-09-05）：移除无消费方的 `prettyJson` 与演示工厂 `createDemoAgent`；`builtin.ts` 5 个内置工具改为模块私有常量（仅经 `builtinTools` 暴露）、`CURRENCY_ALIASES` 改 `export const` 消除重复导出；`schema.ts` 精简恒等三元判断；公共 API 其余导出不变
-- **C1/C2 收敛为 npm workspaces monorepo**（v0.2-with-workspaces，2026-09-05）：根包改 workspace 容器（`workspaces: ["packages/*"]`），按 `docs/crate-architecture.md` §7.1 方案 A 拆分——契约层（`schema/types/util`）入 C1 叶子包 `@agent-runtime/types`（零依赖），引擎实现（runtime/agent/context/events/session/tool/provider/tools/providers/store）入 C2 `@agent-runtime/core`（显式依赖 C1）；`packages/core/src/index.ts` 顶部 `export * from "@agent-runtime/types"` 保持公共 API 兼容；`examples` 与各包测试改为从包名导入；测试随包迁移（schema→types/test，runtime/session/store/calculator→core/test）；删除旧根 `test/`、`src/`、`tsconfig.examples.json`；`npm run typecheck` / `npm run build` / `npm test`（types 4 + core 31，1 有意 skip）全绿
+- **C1/C2 收敛为 npm workspaces monorepo**（v0.2-with-workspaces，2026-09-05）：根包改 workspace 容器（`workspaces: ["packages/*"]`），按 `docs/crate-architecture.md` §7.1 方案 A 拆分——契约层（`schema/types/util`）入 C1 叶子包 `@node-agent-runtime/types`（零依赖），引擎实现（runtime/agent/context/events/session/tool/provider/tools/providers/store）入 C2 `@node-agent-runtime/core`（显式依赖 C1）；`packages/core/src/index.ts` 顶部 `export * from "@node-agent-runtime/types"` 保持公共 API 兼容；`examples` 与各包测试改为从包名导入；测试随包迁移（schema→types/test，runtime/session/store/calculator→core/test）；删除旧根 `test/`、`src/`、`tsconfig.examples.json`；`npm run typecheck` / `npm run build` / `npm test`（types 4 + core 31，1 有意 skip）全绿
 
 ### Docs
 

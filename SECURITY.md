@@ -15,7 +15,7 @@
 
 **请优先使用私密渠道**，不要在公开 issue 中披露细节：
 
-1. GitHub Security Advisories：<https://github.com/0end1/nodeRuntime/security/advisories/new>（推荐，可直接起草修复与 CVE）
+1. GitHub Security Advisories：<https://github.com/0end1/node-agent-runtime/security/advisories/new>（推荐，可直接起草修复与 CVE）
 2. 邮件：<y1378379002@gmail.com>，标题以 `[SECURITY]` 开头
 
 请尽量提供：

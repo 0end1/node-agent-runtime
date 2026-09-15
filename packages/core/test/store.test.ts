@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { FileStorage, MemoryStorage, type Storage } from "@agent-runtime/core";
+import { FileStorage, MemoryStorage, type Storage } from "@node-agent-runtime/core";
 
 interface Doc {
   id: string;
@@ -103,7 +103,7 @@ exerciseStore("MemoryStorage", async () => new MemoryStorage(), false);
 describe("FileStorage", () => {
   let root: string;
   beforeEach(async () => {
-    root = await mkdtemp(join(tmpdir(), "agent-runtime-store-"));
+    root = await mkdtemp(join(tmpdir(), "node-agent-runtime-store-"));
   });
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });

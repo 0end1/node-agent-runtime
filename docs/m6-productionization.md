@@ -30,8 +30,8 @@
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
 | P1.1 | 落定 remaining-tasks C1~C4 四项开放决策 | 决策记录回填 `remaining-tasks.md` §3 + `crate-architecture.md` §8 | 四项各有结论与影响行 | ✅（2026-09-07：C1 经重评**修订为拆 host** / C2 独立两包 / C3 类型下沉 C1 + 实现并 C3 / C4 **已触发下沉**：工具 + 事件契约入 C1；2026-09-08 追注：C3 的 Artifact 实现于 M6-9 自查后**独立成包**，见 `p1-review.md` §3.1） |
-| P1.2 | 拆包批次 B1：C6 `@agent-runtime/mcp` | 迁移 `core/src/mcp/` + `core/test/mcp.test.ts` | 新包独立 typecheck/测试绿 | ✅（mcp 15 pass） |
-| P1.3 | 拆包批次 B2：C8 `@agent-runtime/host` | 迁移 `core/src/session.ts`(721 行) + `session.test.ts` | 单向依赖 host → core，无环 | ✅（原「移出」经重评恢复并完成：host 8 pass，`SessionManager` 导入源变更为破坏性变更并已切换全部引用点） |
+| P1.2 | 拆包批次 B1：C6 `@node-agent-runtime/mcp` | 迁移 `core/src/mcp/` + `core/test/mcp.test.ts` | 新包独立 typecheck/测试绿 | ✅（mcp 15 pass） |
+| P1.3 | 拆包批次 B2：C8 `@node-agent-runtime/host` | 迁移 `core/src/session.ts`(721 行) + `session.test.ts` | 单向依赖 host → core，无环 | ✅（原「移出」经重评恢复并完成：host 8 pass，`SessionManager` 导入源变更为破坏性变更并已切换全部引用点） |
 | P1.4 | 拆包批次 B3：C3 memory / C4 sandbox / C5 policy | 迁移对应 src+test | 同上 | ✅（memory 17 / sandbox 13 / policy 13 pass） |
 | P1.5 | 拆包批次 B4：core facade 收窄 | `core/src/index.ts` 改逐包 re-export | 全仓测试绿、examples 导入经 facade 兼容 | ✅（re-export memory/sandbox/policy；mcp 与 host 因方向所限不反向 re-export） |
 | P1.6 | 公共 API 冻结快照 | 记录每包对外导出清单（人工清单或 api-extractor 报告）至 docs | 后续变更需走 break-change 评审 | ✅（`docs/api-surface.md`：12 包导出面 + 变更规则 + 发布前复核要求；M6-11 起由 `npm run check:api` 脚本比对基线，见 P2.7） |
@@ -40,7 +40,7 @@
 
 > **进度（2026-09-07，split 分支）——Gate 1 已关闭**：P1.1~P1.6 全部完成。9 个 workspace 包（types / memory / sandbox / policy / core / host / mcp / provider-openai / store-sqlite，含 C1 重评后新增的 C8 host），依赖单向无环；全仓 `typecheck` 绿、`npm test` 0 fail（types 4 / memory 17 / sandbox 13 / policy 13 / core 33+1skip / host 8 / mcp 15 / provider-openai 8 / store-sqlite 14+2skip）；公共 API 冻结快照已入库 `docs/api-surface.md`。后续进入 **P2 工程护栏**。
 >
-> **追注（2026-09-08，M6-12）——12 包终局**：M6-9~11 自查整改在 P1 拆包基础上又完成两件外置与两处归位——`Artifact` 自 memory 拆为独立包 `@agent-runtime/artifact`（M6-9）、`MockProvider` 与内置工具分别外置为 `@agent-runtime/mock` / `@agent-runtime/tools-basic`（M6-9）、checkpoint 归位 memory（M6-10）、`classifyToolName` 下沉 C1（M6-9/11）；`core` 收窄至 1005 行。Gate 1 口径现按 **12 包** 计（新增 artifact/tools-basic/mock），依赖仍单向无环，`npm run check:api` 0 差异。P2.7 快照复核脚本已随之落地（M6-11）。
+> **追注（2026-09-08，M6-12）——12 包终局**：M6-9~11 自查整改在 P1 拆包基础上又完成两件外置与两处归位——`Artifact` 自 memory 拆为独立包 `@node-agent-runtime/artifact`（M6-9）、`MockProvider` 与内置工具分别外置为 `@node-agent-runtime/mock` / `@node-agent-runtime/tools-basic`（M6-9）、checkpoint 归位 memory（M6-10）、`classifyToolName` 下沉 C1（M6-9/11）；`core` 收窄至 1005 行。Gate 1 口径现按 **12 包** 计（新增 artifact/tools-basic/mock），依赖仍单向无环，`npm run check:api` 0 差异。P2.7 快照复核脚本已随之落地（M6-11）。
 
 ## 2. P2 · 工程护栏与质量门（Gate 2）
 
@@ -48,7 +48,7 @@
 
 | # | 任务 | 交付物 / 动作 | 验收口径 | 状态 |
 |---|---|---|---|---|
-| P2.1 | GitHub Actions CI 主流程 | `.github/workflows/ci.yml`：PR/推送触发，job=typecheck→lint→test→build（matrix Node 覆盖支持区间） | 每个 PR 全绿才可合并 | ✅（2026-09-08）：`.github/workflows/ci.yml` 三个 job —— `quality`（typecheck→lint→test→build→`check:api`，Node 22.x）、`coverage`（报告，不设门槛）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3） |
+| P2.1 | GitHub Actions CI 主流程 | `.github/workflows/ci.yml`：PR/推送触发，job=typecheck→lint→test→build（matrix Node 覆盖支持区间） | 每个 PR 全绿才可合并 | ✅（2026-09-08）：`.github/workflows/ci.yml` 三个 job —— `quality`（typecheck→lint→test→build→`check:api`，Node 22.x）、`coverage`（报告，不设门槛）、`audit`（`npm audit --omit=dev --audit-level=high`）；matrix 暂固定 22.x（`@node-agent-runtime/store-sqlite` 依赖 `node:sqlite` ≥22.5，engines 统一待 P4.3） |
 | P2.2 | Lint/Format 基线 | ESLint + Prettier 配置 + `lint`/`format` 脚本入根与各包 | CI 含 lint job；`npm run lint` 0 error | ✅（2026-09-08）：`eslint.config.js`（ESLint 9 flat config + typescript-eslint）+ `.prettierrc`/`.prettierignore`；脚本 `lint`/`lint:fix`/`format`/`format:check` 入根（一次跑全仓，避免 12 包重复配置）；首次全仓格式化已执行，`npm run lint` 0 error 0 warning |
 | P2.3 | 覆盖率门禁 | 每包 `node --experimental-test-coverage`（或 c8）阈值 ≥ 80%（语句/分支），低水位区经评审豁免 | CI 覆盖 job 全绿 | ✅（2026-09-08，M6-16）：① 统计口径修正为**只统计本包**（`--test-coverage-include=src/**\|dist/**`，消除依赖包 dist 拉低）；② 补齐 `types`（util/tools 纯函数）与 `tools-basic`（now/geocode/weather/exchange）测试；③ 阈值定档 —— 逐包 行≥80 / 分支≥60 / 函数≥55，全仓均值 行≥90 / 分支≥78 / 函数≥85；④ `npm run coverage:gate` 阻断，已接入 `npm run ci` 与 CI `coverage` job（纯报告仍用 `npm run coverage`） |
 | P2.4 | 跨形态自动化 E2E（吸收 A2） | `scripts/e2e/`：CLI → Web → Desktop 全流程脚本化（新会话→对话→ask 审批→approve 落盘→artifact→续跑）；作为 CI 独立 job（Desktop 用 headless/受控启动） | CI E2E job 通过；本机脚本 `npm run e2e` 可跑 | ✅（2026-09-08，M6-17）：`scripts/e2e/`（lib + cli/web/desktop + run-all）；CLI + Web 两形态全流程验证通过（14 步），`npm run e2e` 可跑并接入 CI `e2e` job；Desktop 形态默认跳过（需 Tauri/Rust 环境，设 `E2E_DESKTOP=1` 启用，见 `scripts/e2e/desktop.mjs`） |
@@ -58,7 +58,7 @@
 
 > **进度（2026-09-08，M6-17）**：P2.1 / P2.2 / P2.3 / P2.4 / P2.5 / P2.6 已完成，P2.7 随总闸接入 CI；**Gate 2 关闭**。P2.4 跨形态 E2E 已落地（CLI + Web 全流程验证通过、CI `e2e` job 接入；Desktop 形态默认跳过，需 Tauri/Rust 环境）。
 >
-> **覆盖率水位（口径修正后 + 补测后，2026-09-08）**：11 个包有测试（`@agent-runtime/mock` 无 `test/*.test.ts`，跳过）；列顺序为 Node 22 内置输出的行 / 分支 / 函数；统计范围为**本包** `src` 与 `dist`。
+> **覆盖率水位（口径修正后 + 补测后，2026-09-08）**：11 个包有测试（`@node-agent-runtime/mock` 无 `test/*.test.ts`，跳过）；列顺序为 Node 22 内置输出的行 / 分支 / 函数；统计范围为**本包** `src` 与 `dist`。
 >
 > | 包 | 行% | 分支% | 函数% |
 > | --- | --- | --- | --- |
@@ -114,7 +114,7 @@
 | P4.5 | 依赖策略 | 内部互依改 `workspace:` 协议或发布前对齐 version；对外声明 peer 依赖边界（core vs 插件） | 消费方 `npm i` 后 TS 类型与运行均正常 | ✅（2026-09-08，M6-22）：内部互依统一 `^0.2.0` 由 changesets 发版对齐（`workspace:` 协议在当前 npm 下不被支持）；`core`/`types` 提为插件包 `peerDependencies`；新增 `ProcessEnv` 让发布 d.ts 不依赖 `@types/node` |
 | P4.6 | 包体积基线 | dist 产物大小登记 + CI 体积检查（超阈值告警） | 体积报告入库 | ✅（2026-09-08，M6-22）：`scripts/size-report.mjs`（`npm run size` / `size:update`）+ `scripts/size-baseline.json`，包体积增长 >+25% 阻断；已纳入 `npm run ci`，报告写入 `coverage/size-report.txt` |
 
-**Gate 4 退出标准**：`npm publish --provenance` 模拟发布成功；在全新项目安装 `@agent-runtime/*` 可 typecheck 并跑通最小 demo。
+**Gate 4 退出标准**：`npm publish --provenance` 模拟发布成功；在全新项目安装 `@node-agent-runtime/*` 可 typecheck 并跑通最小 demo。
 
 > **进度（2026-09-08，M6-22）**：P4.1~P4.6 全部完成，**Gate 4 关闭**。MIT LICENSE 落地；12 包可发布元数据齐备且 `npm pack --dry-run` 清单正确；`engines`/`.nvmrc`/`packageManager` 统一到 Node `>=22.13.0`（ESM-only）；changesets 编排 0.2.0 → 0.3.0 并接入发版 workflow；`core`/`types` 提为插件 peer 边界；体积基线与 CI 门禁生效。退出标准已实测：12 包 tarball 在全新项目安装后 `tsc --noEmit`（含与不含 `@types/node` 两种场景）与最小 demo 运行均通过；对 registry 的实际 `npm publish --provenance` 待仓库配置 `NPM_TOKEN` 后由 tag 触发。
 

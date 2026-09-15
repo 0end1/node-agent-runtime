@@ -1,4 +1,4 @@
-import { errorInfo, type ErrorCode } from "@agent-runtime/types";
+import { errorInfo, type ErrorCode } from "@node-agent-runtime/types";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -9,20 +9,45 @@ const LEVEL_WEIGHT: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, 
  * `AgentRuntimeOptions.logger`. A legacy `(line: string) => void` callback is
  * accepted too and normalized by `toLogger` into a `Logger`.
  */
+/** M7-2: trace/run context a child logger is bound to. */
+export interface LogContext {
+  traceId?: string;
+  runId?: string;
+  step?: number;
+}
+
 export interface Logger {
   debug(message: string, meta?: unknown): void;
   info(message: string, meta?: unknown): void;
   warn(message: string, meta?: unknown): void;
   error(message: string, meta?: unknown): void;
+  /**
+   * M7-2: derive a logger bound to a trace/run context so log lines can be
+   * correlated with the events of the same run. **Optional** on purpose: hosts
+   * that only implement the four levels keep working — callers must use
+   * `logger.child?.()` and fall back to the parent when absent.
+   */
+  child?(ctx: LogContext): Logger;
 }
 
 export class ConsoleLogger implements Logger {
   private readonly level: LogLevel;
   private readonly stream: (line: string) => void;
+  private readonly ctx: LogContext;
 
-  constructor(opts: { level?: LogLevel; stream?: (line: string) => void } = {}) {
+  constructor(opts: { level?: LogLevel; stream?: (line: string) => void; ctx?: LogContext } = {}) {
     this.level = opts.level ?? "info";
     this.stream = opts.stream ?? ((line) => process.stderr.write(line + "\n"));
+    this.ctx = opts.ctx ?? {};
+  }
+
+  /** M7-2: bind a child logger to (additional) context; inherits level & stream. */
+  child(ctx: LogContext): Logger {
+    return new ConsoleLogger({
+      level: this.level,
+      stream: this.stream,
+      ctx: { ...this.ctx, ...definedEntries(ctx) },
+    });
   }
 
   debug(message: string, meta?: unknown): void {
@@ -43,8 +68,28 @@ export class ConsoleLogger implements Logger {
     // P3.2: 任何 meta 都经脱敏，确保 key/secret 不进日志。
     const safeMeta = meta === undefined ? undefined : redact(meta);
     const metaStr = safeMeta === undefined ? "" : " " + serialize(safeMeta);
-    this.stream(`[agent-runtime ${level}] ${message}${metaStr}`);
+    // M7-2: 未绑定上下文时输出与改动前逐字一致，既有测试与解析脚本不受影响。
+    const ctxStr = formatContext(this.ctx);
+    this.stream(`[node-agent-runtime ${level}]${ctxStr} ${message}${metaStr}`);
   }
+}
+
+/** M7-2: render ` [trace=… run=… step=…]`; empty string when nothing is bound. */
+function formatContext(ctx: LogContext): string {
+  const parts: string[] = [];
+  if (ctx.traceId !== undefined) parts.push(`trace=${ctx.traceId}`);
+  if (ctx.runId !== undefined) parts.push(`run=${ctx.runId}`);
+  if (ctx.step !== undefined) parts.push(`step=${ctx.step}`);
+  return parts.length === 0 ? "" : ` [${parts.join(" ")}]`;
+}
+
+/** Drop `undefined` entries so a child never erases context inherited from its parent. */
+function definedEntries(ctx: LogContext): LogContext {
+  const out: LogContext = {};
+  if (ctx.traceId !== undefined) out.traceId = ctx.traceId;
+  if (ctx.runId !== undefined) out.runId = ctx.runId;
+  if (ctx.step !== undefined) out.step = ctx.step;
+  return out;
 }
 
 function serialize(value: unknown): string {
@@ -125,9 +170,7 @@ export function toLogger(input?: Logger | ((line: string) => void)): Logger | un
 }
 
 /** Build a stable error payload for HTTP/CLI responses: `{ error: { code, message } }`. */
-export function errorPayload(
-  err: unknown,
-): { error: { code: ErrorCode; message: string } } {
+export function errorPayload(err: unknown): { error: { code: ErrorCode; message: string } } {
   const info = errorInfo(err);
   return { error: { code: info.code, message: info.message } };
 }

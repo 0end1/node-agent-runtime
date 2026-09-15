@@ -1,6 +1,6 @@
 import { evaluate } from "./calculator.js";
-import { defineTool } from "@agent-runtime/core";
-import { fmtNumber } from "@agent-runtime/types";
+import { defineTool } from "@node-agent-runtime/core";
+import { fmtNumber } from "@node-agent-runtime/types";
 
 /** Evaluate arithmetic expressions, e.g. "(3.5 + 2) * 4". */
 const calculatorTool = defineTool({

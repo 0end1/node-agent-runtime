@@ -13,8 +13,8 @@ import {
 import type { ModelProvider } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
-import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@agent-runtime/types";
-import type { LimitViolation, RunLimits } from "@agent-runtime/types";
+import type { ChatMessage, RunUsage, ToolCall, ToolResultMessage } from "@node-agent-runtime/types";
+import type { LimitViolation, RunLimits } from "@node-agent-runtime/types";
 import {
   newId,
   stringifyResult,
@@ -22,7 +22,7 @@ import {
   ErrorCode,
   errorInfo,
   checkRunLimits,
-} from "@agent-runtime/types";
+} from "@node-agent-runtime/types";
 import { toLogger, redact, type Logger } from "./log.js";
 
 export interface AgentRuntimeOptions {
@@ -106,6 +106,13 @@ export interface RunOptions {
    * `limits.maxCostUsd`; without it the cost cap is simply not evaluated.
    */
   costUsd?: (usage: RunUsage) => number | undefined;
+  /**
+   * M7-2: trace correlation id for this run. Defaults to a generated
+   * `newId("trace")`. Every event the run emits carries it, so one run's
+   * events can be stitched into a single trace (and told apart from
+   * concurrent runs on the same runtime instance).
+   */
+  traceId?: string;
 }
 
 export interface RunResult {
@@ -122,6 +129,8 @@ export interface RunResult {
   output: string;
   usage: RunUsage;
   stoppedByMaxSteps: boolean;
+  /** M7-2: trace correlation id of this run (echoes `RunOptions.traceId`). */
+  traceId: string;
 }
 
 /** Thrown when the run is aborted via AbortSignal. */
@@ -205,13 +214,21 @@ export class AgentRuntime {
     };
     const stepEvents: StepLedger = { toolStarts: [], toolEnds: [], responses: [] };
 
-    this.emit({ type: "run:start", runId, agentName: agent.name, input });
-    if (options.appendUserMessage !== false) {
-      this.emit({ type: "message:user", runId, message: userMessage } as UserMessageEvent);
-    }
-    this.log(`run:start agent=${agent.name} input="${input.slice(0, 60)}"`);
-
+    // M7-2: 一次 run 一个 traceId —— 缺省由引擎生成，宿主可注入以对齐外部链路。
+    // 注入点收口在 `emit`（与 `redact()` 同处），保证「一处注入、全局一致」；
+    // 用 run 内闭包而非实例字段，故同一 runtime 上的并发 run 互不串扰。
+    const traceId = options.traceId ?? newId("trace");
+    const emit = (event: RuntimeEvent): void => this.emit(event, traceId);
+    const logger = this.logger?.child?.({ traceId, runId }) ?? this.logger;
+    const log = (line: string, meta?: unknown): void => logger?.info(line, meta);
     const startedAt = Date.now();
+
+    emit({ type: "run:start", runId, agentName: agent.name, input, startedAt });
+    if (options.appendUserMessage !== false) {
+      emit({ type: "message:user", runId, message: userMessage } as UserMessageEvent);
+    }
+    log(`run:start agent=${agent.name} input="${input.slice(0, 60)}"`);
+
     let lastAssistant: Extract<ChatMessage, { role: "assistant" }> | null = null;
     let stoppedByMaxSteps = false;
 
@@ -243,8 +260,8 @@ export class AgentRuntime {
       for (let step = 1; step <= maxSteps; step++) {
         // P3.4: budget check before every model round-trip (duration / tokens / cost).
         assertWithinLimits(step);
-        this.emit({ type: "step:start", runId, step });
-        this.log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
+        emit({ type: "step:start", runId, step });
+        log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
         const response = await this.provider.chat({
           messages: history,
@@ -276,7 +293,7 @@ export class AgentRuntime {
           step,
           message: assistantMsg,
         };
-        this.emit(modelEvent);
+        emit(modelEvent);
         stepEvents.responses.push(modelEvent);
         lastAssistant = assistantMsg;
         history.push(assistantMsg);
@@ -308,11 +325,15 @@ export class AgentRuntime {
             step,
             // P3.2: 事件流脱敏——参数含 key/secret 时仅对订阅者暴露脱敏值；
             // 真实参数仍经 gate/沙箱/工具执行（不走事件）安全使用。
-            toolCall: { id: parsed.id, name: parsed.name, arguments: redact(parsed.arguments) as Record<string, unknown> },
+            toolCall: {
+              id: parsed.id,
+              name: parsed.name,
+              arguments: redact(parsed.arguments) as Record<string, unknown>,
+            },
           };
-          this.emit(startEvt);
+          emit(startEvt);
           stepEvents.toolStarts.push(startEvt);
-          this.log(`    tool:start ${parsed.name}`, redact(parsed.arguments));
+          log(`    tool:start ${parsed.name}`, redact(parsed.arguments));
 
           const toolStartMs = Date.now();
           const ctx = buildRunContext({
@@ -328,15 +349,19 @@ export class AgentRuntime {
             runId,
             step,
             // P3.2: 脱敏事件参数（理由同 tool:start）。
-            toolCall: { id: parsed.id, name: parsed.name, arguments: redact(parsed.arguments) as Record<string, unknown> },
+            toolCall: {
+              id: parsed.id,
+              name: parsed.name,
+              arguments: redact(parsed.arguments) as Record<string, unknown>,
+            },
             // 工具结果同样可能回显凭据/文件内容，事件侧只暴露脱敏后的值。
             result: redact(outcome.content) as string,
             durationMs: Date.now() - toolStartMs,
             ok: outcome.ok,
           };
-          this.emit(endEvt);
+          emit(endEvt);
           stepEvents.toolEnds.push(endEvt);
-          this.log(`    tool:end ${parsed.name} ok=${outcome.ok} ${outcome.content.slice(0, 120)}`);
+          log(`    tool:end ${parsed.name} ok=${outcome.ok} ${outcome.content.slice(0, 120)}`);
 
           const toolResult: ToolResultMessage = {
             role: "tool",
@@ -359,7 +384,7 @@ export class AgentRuntime {
           };
           history.push(note);
           lastAssistant = note;
-          this.emit({ type: "model:response", runId, step: maxSteps, message: note });
+          emit({ type: "model:response", runId, step: maxSteps, message: note });
         }
       }
       if (!lastAssistant) {
@@ -377,18 +402,18 @@ export class AgentRuntime {
           // P3.1: 事件携带稳定错误码，UI/CLI/日志可按 code 分支而不必匹配文案。
           code: ErrorCode.RUN_ABORTED,
         };
-        this.emit(abortedEvent);
+        emit(abortedEvent);
         throw err;
       }
       const info = errorInfo(err);
-      this.emit({
+      emit({
         type: "run:error",
         runId,
         step: history.length,
         error: info.message,
         code: info.code,
       } as RunErrorEvent);
-      this.logger?.error(`run:error [${info.code}] ${info.message}`);
+      logger?.error(`run:error [${info.code}] ${info.message}`);
       throw err instanceof Error ? err : new Error(info.message);
     }
 
@@ -403,16 +428,18 @@ export class AgentRuntime {
       output: lastAssistant.content ?? "",
       usage,
       stoppedByMaxSteps,
+      traceId,
     };
-    this.emit({
+    emit({
       type: "run:end",
       runId,
       steps: usage.modelCalls,
       output: result.output,
       usage,
       stoppedByMaxSteps,
+      endedAt: Date.now(),
     });
-    this.log(
+    log(
       `run:end steps=${usage.modelCalls} tokens=${usage.inputTokens}+${usage.outputTokens} elapsed=${Date.now() - startedAt}ms stoppedByMaxSteps=${stoppedByMaxSteps}`,
     );
     return result;
@@ -491,15 +518,21 @@ export class AgentRuntime {
     }
   }
 
-  private emit(event: RuntimeEvent): void {
+  /**
+   * M7-2: 事件出口的唯一收口点 —— traceId 注入与 `redact()` 同处，因此两者都
+   * 不可能被绕过（「一处注入、全局一致」）。traceId 由 run 内闭包传入而非实例
+   * 字段，故同一 runtime 上并发的 run 不会互相串扰。
+   * 已自带 traceId 的事件不被覆盖（保留外部生产者的显式值）。
+   */
+  private emit(event: RuntimeEvent, traceId?: string): void {
+    const stamped: RuntimeEvent =
+      traceId === undefined || event.traceId !== undefined
+        ? event
+        : ({ ...event, traceId } as RuntimeEvent);
     // P3.2: 事件流统一脱敏——任何事件（含 run:start 输入、model:response 内容、
     // tool:end 结果）在离开引擎前都过一遍 redact，确保 key/secret 永不外泄。
     // 工具执行本身仍使用未被脱敏的真实参数（脱敏只作用于对外事件）。
-    this.events.emit(redact(event) as RuntimeEvent);
-  }
-
-  private log(line: string, meta?: unknown): void {
-    this.logger?.info(line, meta);
+    this.events.emit(redact(stamped) as RuntimeEvent);
   }
 }
 

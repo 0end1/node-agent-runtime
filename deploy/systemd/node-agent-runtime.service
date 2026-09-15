@@ -1,0 +1,37 @@
+# P5.6 · systemd 单元样例
+#   sudo useradd -r -s /usr/sbin/nologin agent
+#   sudo mkdir -p /opt/node-agent-runtime /etc/node-agent-runtime
+#   # 把仓库（含 packages/*/dist）部署到 /opt/node-agent-runtime
+#   sudo install -m 644 deploy/systemd/node-agent-runtime.service /etc/systemd/system/
+#   sudo install -m 600 deploy/env/prod.env.example /etc/node-agent-runtime/console.env
+#   sudo systemctl daemon-reload && sudo systemctl enable --now node-agent-runtime
+
+[Unit]
+Description=Agent Runtime Web Console
+Documentation=https://github.com/0end1/node-agent-runtime
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent
+Group=agent
+WorkingDirectory=/opt/node-agent-runtime
+EnvironmentFile=/etc/node-agent-runtime/console.env
+ExecStart=/usr/bin/node --import tsx examples/web/server.ts
+Restart=always
+RestartSec=5
+
+# 最小权限
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/node-agent-runtime/.runtime-data
+
+# 日志（journalctl -u node-agent-runtime -f）
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

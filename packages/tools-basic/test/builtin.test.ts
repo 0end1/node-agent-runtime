@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { AnyTool, ToolExecutionContext } from "@agent-runtime/types";
+import type { AnyTool, ToolExecutionContext } from "@node-agent-runtime/types";
 import { builtinTools } from "../src/index.js";
 
 const ctx: ToolExecutionContext = {

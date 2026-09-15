@@ -28,7 +28,7 @@ import {
   type McpToolMeta,
 } from "./types.js";
 
-const CLIENT_INFO = { name: "agent-runtime-mcp", version: "0.4.0" };
+const CLIENT_INFO = { name: "node-agent-runtime-mcp", version: "0.4.0" };
 
 export class McpClient implements McpServerHandle {
   readonly name: string;

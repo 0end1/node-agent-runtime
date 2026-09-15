@@ -6,8 +6,8 @@ import {
   type ModelRequest,
   type ModelResponse,
   type RawToolCall,
-} from "@agent-runtime/core";
-import type { ChatMessage } from "@agent-runtime/types";
+} from "@node-agent-runtime/core";
+import type { ChatMessage } from "@node-agent-runtime/types";
 
 /**
  * OpenAI-compatible chat provider implemented on top of the built-in fetch.

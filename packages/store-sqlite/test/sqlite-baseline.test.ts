@@ -5,13 +5,13 @@ import { join } from "node:path";
 import { after, before, describe, it } from "node:test";
 import type { DatabaseSync } from "node:sqlite";
 
-import type { ApprovalRecord } from "@agent-runtime/types";
-import { SCHEMA_VERSION, SQLiteStorage } from "@agent-runtime/store-sqlite";
+import type { ApprovalRecord } from "@node-agent-runtime/types";
+import { SCHEMA_VERSION, SQLiteStorage } from "@node-agent-runtime/store-sqlite";
 
 let dir: string;
 
 before(() => {
-  dir = mkdtempSync(join(tmpdir(), "agent-runtime-sqlite-"));
+  dir = mkdtempSync(join(tmpdir(), "node-agent-runtime-sqlite-"));
 });
 
 after(() => {

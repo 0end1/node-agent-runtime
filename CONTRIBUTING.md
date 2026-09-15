@@ -26,17 +26,17 @@ npm workspaces monorepo，根包是容器（private），`packages/*` 为可发�
 
 | 包 | 职责 |
 | --- | --- |
-| `@agent-runtime/types` | C1 契约层：消息/工具/事件/Storage/Artifact 类型、错误码、schema 校验、零 IO 纯函数 |
-| `@agent-runtime/core` | C2 引擎：run loop、Agent、事件总线、Provider/Tool 契约、`MemoryStorage`/`FileStorage` |
-| `@agent-runtime/memory` | C3 会话记忆与 checkpoint |
-| `@agent-runtime/artifact` | C4 产物管理 |
-| `@agent-runtime/sandbox` | 执行域（三档模式 + 声明域 + 网络开关） |
-| `@agent-runtime/policy` | 授权决策与审批流 |
-| `@agent-runtime/host` | C8 `SessionManager` 会话/任务生命周期 |
-| `@agent-runtime/mcp` | C6 MCP 客户端（stdio / streamable HTTP） |
-| `@agent-runtime/provider-openai` | C7 OpenAI 兼容模型后端 |
-| `@agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
-| `@agent-runtime/tools-basic` / `@agent-runtime/mock` | 内置工具集 / 免密钥 Mock Provider（演示与测试） |
+| `@node-agent-runtime/types` | C1 契约层：消息/工具/事件/Storage/Artifact 类型、错误码、schema 校验、零 IO 纯函数 |
+| `@node-agent-runtime/core` | C2 引擎：run loop、Agent、事件总线、Provider/Tool 契约、`MemoryStorage`/`FileStorage` |
+| `@node-agent-runtime/memory` | C3 会话记忆与 checkpoint |
+| `@node-agent-runtime/artifact` | C4 产物管理 |
+| `@node-agent-runtime/sandbox` | 执行域（三档模式 + 声明域 + 网络开关） |
+| `@node-agent-runtime/policy` | 授权决策与审批流 |
+| `@node-agent-runtime/host` | C8 `SessionManager` 会话/任务生命周期 |
+| `@node-agent-runtime/mcp` | C6 MCP 客户端（stdio / streamable HTTP） |
+| `@node-agent-runtime/provider-openai` | C7 OpenAI 兼容模型后端 |
+| `@node-agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
+| `@node-agent-runtime/tools-basic` / `@node-agent-runtime/mock` | 内置工具集 / 免密钥 Mock Provider（演示与测试） |
 
 边界规则见 `docs/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
 

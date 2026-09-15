@@ -5,8 +5,8 @@ import type {
   ApprovalStore,
   Storage,
   ToolGrant,
-} from "@agent-runtime/types";
-import { newId } from "@agent-runtime/types";
+} from "@node-agent-runtime/types";
+import { newId } from "@node-agent-runtime/types";
 
 /**
  * `ApprovalStore` backed by `Storage`.

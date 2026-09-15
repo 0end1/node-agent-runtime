@@ -1,6 +1,6 @@
 import type { AnyTool } from "./tool.js";
-import { ErrorCode } from "@agent-runtime/types";
-import type { ChatMessage } from "@agent-runtime/types";
+import { ErrorCode } from "@node-agent-runtime/types";
+import type { ChatMessage } from "@node-agent-runtime/types";
 
 /** A tool call exactly as the provider emitted it (arguments still as raw text). */
 export interface RawToolCall {

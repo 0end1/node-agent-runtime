@@ -7,13 +7,13 @@ import {
   type RunResult,
   type RuntimeEvent,
   type StepSnapshot,
-} from "@agent-runtime/core";
+} from "@node-agent-runtime/core";
 import {
   CheckpointStore,
   assertResumable,
   computeToolsHash,
   type Checkpoint,
-} from "@agent-runtime/memory";
+} from "@node-agent-runtime/memory";
 import {
   classifyToolName,
   ErrorCode,
@@ -25,18 +25,18 @@ import {
   type RunUsage,
   type Storage,
   type ToolGrant,
-} from "@agent-runtime/types";
-import { SessionMemory, type Memory } from "@agent-runtime/memory";
+} from "@node-agent-runtime/types";
+import { SessionMemory, type Memory } from "@node-agent-runtime/memory";
 import { StorageApprovalStore } from "./approval-store.js";
 import {
   LocalSandbox,
   type Sandbox,
   type SandboxMode,
   type SandboxScope,
-} from "@agent-runtime/sandbox";
-import { PermissionManager, type PermissionPolicy } from "@agent-runtime/policy";
-import { ArtifactManager, type Artifact } from "@agent-runtime/artifact";
-import { newId } from "@agent-runtime/types";
+} from "@node-agent-runtime/sandbox";
+import { PermissionManager, type PermissionPolicy } from "@node-agent-runtime/policy";
+import { ArtifactManager, type Artifact } from "@node-agent-runtime/artifact";
+import { newId } from "@node-agent-runtime/types";
 
 /**
  * Lifecycle entities + SessionManager (docs/architecture.md §3).

@@ -1,7 +1,7 @@
-import type { ModelProvider, ModelRequest, ModelResponse, RawToolCall } from "@agent-runtime/core";
-import { CURRENCY_ALIASES } from "@agent-runtime/tools-basic";
-import type { ChatMessage, ToolCall } from "@agent-runtime/types";
-import { newId } from "@agent-runtime/types";
+import type { ModelProvider, ModelRequest, ModelResponse, RawToolCall } from "@node-agent-runtime/core";
+import { CURRENCY_ALIASES } from "@node-agent-runtime/tools-basic";
+import type { ChatMessage, ToolCall } from "@node-agent-runtime/types";
+import { newId } from "@node-agent-runtime/types";
 
 /**
  * A deterministic, KEYLESS model provider for demos / tests / offline runs.

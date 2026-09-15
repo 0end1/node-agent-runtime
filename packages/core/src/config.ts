@@ -1,6 +1,6 @@
-import type { SandboxMode } from "@agent-runtime/sandbox";
-import { ErrorCode } from "@agent-runtime/types";
-import type { ProcessEnv, RunLimits } from "@agent-runtime/types";
+import type { SandboxMode } from "@node-agent-runtime/sandbox";
+import { ErrorCode } from "@node-agent-runtime/types";
+import type { ProcessEnv, RunLimits } from "@node-agent-runtime/types";
 import type { LogLevel } from "./log.js";
 
 export interface FeatureFlags {

@@ -6,7 +6,7 @@ import {
   StdioTransport,
   StreamableHttpTransport,
   validateMcpServerUrl,
-} from "@agent-runtime/mcp";
+} from "@node-agent-runtime/mcp";
 
 describe("validateMcpServerUrl (P3.6 / SSRF)", () => {
   it("accepts http/https URLs", () => {

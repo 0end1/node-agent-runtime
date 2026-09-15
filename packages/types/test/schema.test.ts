@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { validate, type JsonSchema } from "@agent-runtime/types";
+import { validate, type JsonSchema } from "@node-agent-runtime/types";
 
 describe("schema validation (subset)", () => {
   const schema = {

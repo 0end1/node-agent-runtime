@@ -7,7 +7,7 @@ import {
   secureScope,
   PRODUCTION_MATRIX,
   type PermissionContext,
-} from "@agent-runtime/policy";
+} from "@node-agent-runtime/policy";
 
 const policy = createProductionPolicy();
 const MODES = ["read-only", "workspace-write", "full-access"] as const;

@@ -4,8 +4,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import type { Storage } from "@agent-runtime/core";
-import { SQLiteStorage } from "@agent-runtime/store-sqlite";
+import type { Storage } from "@node-agent-runtime/core";
+import { SQLiteStorage } from "@node-agent-runtime/store-sqlite";
 
 interface Doc {
   id: string;
@@ -104,7 +104,7 @@ describe("SQLiteStorage (file)", () => {
   let dbFile: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), "agent-runtime-sqlite-"));
+    dir = await mkdtemp(join(tmpdir(), "node-agent-runtime-sqlite-"));
     dbFile = join(dir, "store.db");
   });
   afterEach(async () => {

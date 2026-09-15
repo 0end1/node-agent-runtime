@@ -11,12 +11,16 @@ export interface RunStartEvent {
   runId: string;
   agentName: string;
   input: string;
+  /** Epoch ms when the run started (M7-2). */
+  startedAt: number;
+  traceId?: string;
 }
 
 export interface UserMessageEvent {
   type: "message:user";
   runId: string;
   message: UserMessage;
+  traceId?: string;
 }
 
 export interface StepStartEvent {
@@ -24,6 +28,7 @@ export interface StepStartEvent {
   runId: string;
   /** 1-based model round-trip index */
   step: number;
+  traceId?: string;
 }
 
 export interface ModelResponseEvent {
@@ -32,6 +37,7 @@ export interface ModelResponseEvent {
   step: number;
   /** The assistant turn: text and/or tool calls. */
   message: AssistantMessage;
+  traceId?: string;
 }
 
 export interface ToolStartEvent {
@@ -39,6 +45,7 @@ export interface ToolStartEvent {
   runId: string;
   step: number;
   toolCall: ToolCall;
+  traceId?: string;
 }
 
 export interface ToolEndEvent {
@@ -50,6 +57,7 @@ export interface ToolEndEvent {
   result: string;
   durationMs: number;
   ok: boolean;
+  traceId?: string;
 }
 
 export interface RunEndEvent {
@@ -59,6 +67,9 @@ export interface RunEndEvent {
   output: string;
   usage: RunUsage;
   stoppedByMaxSteps: boolean;
+  /** Epoch ms when the run finished (M7-2). */
+  endedAt: number;
+  traceId?: string;
 }
 
 export interface RunErrorEvent {
@@ -71,6 +82,7 @@ export interface RunErrorEvent {
    * failure came from a typed runtime error — `unknown` for legacy throws.
    */
   code?: ErrorCode;
+  traceId?: string;
 }
 
 // ---- Session & Task lifecycle events (M1) -------------------------------
@@ -80,6 +92,7 @@ export interface SessionCreatedEvent {
   sessionId: string;
   agentId: string;
   title: string;
+  traceId?: string;
 }
 
 export interface SessionUpdatedEvent {
@@ -87,11 +100,13 @@ export interface SessionUpdatedEvent {
   sessionId: string;
   status?: string;
   title?: string;
+  traceId?: string;
 }
 
 export interface SessionClosedEvent {
   type: "session:closed";
   sessionId: string;
+  traceId?: string;
 }
 
 export interface TaskCreatedEvent {
@@ -99,6 +114,7 @@ export interface TaskCreatedEvent {
   taskId: string;
   sessionId: string;
   goal: string;
+  traceId?: string;
 }
 
 export interface TaskStatusEvent {
@@ -106,6 +122,7 @@ export interface TaskStatusEvent {
   taskId: string;
   sessionId: string;
   status: string;
+  traceId?: string;
 }
 
 // ---- Checkpoint & resume events (M2) -------------------------------
@@ -118,6 +135,7 @@ export interface CheckpointSavedEvent {
   taskId: string;
   /** Steps completed at snapshot time. */
   step: number;
+  traceId?: string;
 }
 
 export interface CheckpointRestoredEvent {
@@ -129,6 +147,7 @@ export interface CheckpointRestoredEvent {
   taskId: string;
   /** Step the resumed run starts from. */
   step: number;
+  traceId?: string;
 }
 
 // ---- Governance events (M3) ---------------------------------------
@@ -143,6 +162,7 @@ export interface PermissionRequestEvent {
   /** Arguments as the model sent them (JSON-serializable). */
   arguments: unknown;
   reason: string;
+  traceId?: string;
 }
 
 export interface PermissionApprovedEvent {
@@ -153,6 +173,7 @@ export interface PermissionApprovedEvent {
   toolName: string;
   /** The host asked to remember this approval for the tool. */
   always?: boolean;
+  traceId?: string;
 }
 
 export interface PermissionDeniedEvent {
@@ -164,6 +185,7 @@ export interface PermissionDeniedEvent {
   reason: string;
   /** True when nobody answered before the ask timeout. */
   timedOut?: boolean;
+  traceId?: string;
 }
 
 export interface SandboxWriteEvent {
@@ -176,6 +198,7 @@ export interface SandboxWriteEvent {
   /** Best-effort line diff ("write is visible"). */
   diff?: string;
   ok: boolean;
+  traceId?: string;
 }
 
 export type RuntimeEvent =

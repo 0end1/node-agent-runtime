@@ -8,9 +8,9 @@ import {
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
-} from "@agent-runtime/core";
-import { SessionManager } from "@agent-runtime/host";
-import { ArtifactError, ArtifactManager } from "@agent-runtime/artifact";
+} from "@node-agent-runtime/core";
+import { SessionManager } from "@node-agent-runtime/host";
+import { ArtifactError, ArtifactManager } from "@node-agent-runtime/artifact";
 
 class NeverProvider implements ModelProvider {
   readonly id = "never";

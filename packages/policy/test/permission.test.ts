@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { EventBus, type RuntimeEvent } from "@agent-runtime/core";
+import { EventBus, type RuntimeEvent } from "@node-agent-runtime/core";
 import {
   DefaultPermissionPolicy,
   PermissionManager,
@@ -9,8 +9,8 @@ import {
   combinePolicies,
   toolListPolicy,
   type PermissionContext,
-} from "@agent-runtime/policy";
-import type { ApprovalQuery, ApprovalRecord, ApprovalStore, ToolGrant } from "@agent-runtime/types";
+} from "@node-agent-runtime/policy";
+import type { ApprovalQuery, ApprovalRecord, ApprovalStore, ToolGrant } from "@node-agent-runtime/types";
 
 // --------------------------------------------------------------- test double
 

@@ -20,7 +20,7 @@ export type {
   PermissionApprovedEvent,
   PermissionDeniedEvent,
   SandboxWriteEvent,
-} from "@agent-runtime/types";
+} from "@node-agent-runtime/types";
 
 /**
  * A tiny, typed event bus. The runtime emits lifecycle events so that
@@ -53,7 +53,7 @@ export class EventBus<E extends { type: string }> {
         listener(event);
       } catch (err) {
         // A failing listener must never break the runtime loop.
-        console.error("[agent-runtime] event listener error:", err);
+        console.error("[node-agent-runtime] event listener error:", err);
       }
     }
     const typed = this.typed.get(event.type);
@@ -62,7 +62,7 @@ export class EventBus<E extends { type: string }> {
         try {
           listener(event);
         } catch (err) {
-          console.error("[agent-runtime] event listener error:", err);
+          console.error("[node-agent-runtime] event listener error:", err);
         }
       }
     }

@@ -40,20 +40,20 @@ import {
   type ModelProvider,
   type RuntimeConfig,
   type RuntimeEvent,
-} from "@agent-runtime/core";
-import { SessionManager, type Session } from "@agent-runtime/host";
-import { createProductionDefaults } from "@agent-runtime/policy";
-import { MockProvider } from "@agent-runtime/mock";
+} from "@node-agent-runtime/core";
+import { SessionManager, type Session } from "@node-agent-runtime/host";
+import { createProductionDefaults } from "@node-agent-runtime/policy";
+import { MockProvider } from "@node-agent-runtime/mock";
 import {
   McpClient,
   McpRegistry,
   StdioTransport,
   StreamableHttpTransport,
   type McpServerHandle,
-} from "@agent-runtime/mcp";
-import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
-import { SQLiteStorage } from "@agent-runtime/store-sqlite";
-import { builtinTools } from "@agent-runtime/tools-basic";
+} from "@node-agent-runtime/mcp";
+import { OpenAIClientProvider } from "@node-agent-runtime/provider-openai";
+import { SQLiteStorage } from "@node-agent-runtime/store-sqlite";
+import { builtinTools } from "@node-agent-runtime/tools-basic";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 

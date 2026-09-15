@@ -11,12 +11,12 @@
 
 | # | 主题 | 结论 | 决策 / 证据主档 | 复核 |
 |---|---|---|---|---|
-| 1 | Core 最小核心 | ✅ 通过 | `docs/p1-review.md`（core 1804 → **1005 行**，引擎本体 ≈819 行）；`docs/api-surface.md` §2 | `npm test -w @agent-runtime/core`、`npm run check:api` |
+| 1 | Core 最小核心 | ✅ 通过 | `docs/p1-review.md`（core 1804 → **1005 行**，引擎本体 ≈819 行）；`docs/api-surface.md` §2 | `npm test -w @node-agent-runtime/core`、`npm run check:api` |
 | 2 | Agent Loop 所有权冻结 | ✅ 冻结于 core 引擎 | `docs/architecture.md` §4.3 / §12-1；`docs/p1-review.md` Q3 | `npm run typecheck` |
 | 3 | Runtime Event / Host Event 边界 | ✅ 同一契约、总线可注入 | `architecture.md` §7；`docs/crate-architecture.md` §5-4；`api-surface.md` §2 注记 | — |
 | 4 | Context / Memory / Checkpoint / Storage 边界 | ✅ 结构独立 | `architecture.md` §3.1/§8/§9；`api-surface.md` §2~§4/§12 | `npm test`（全仓） |
 | 5 | Tool Contract 最终冻结 | ✅ 已稳定 + 门禁 | `architecture.md` §5.1；`api-surface.md` §1/§2/§13 | `npm run check:api` |
-| 6 | types 防腐规则 | ✅ 红线成文 | `crate-architecture.md` C1 行 + §5；`p1-review.md` Q8③；`api-surface.md` §1（本轮明示） | `npm run typecheck -w @agent-runtime/types` |
+| 6 | types 防腐规则 | ✅ 红线成文 | `crate-architecture.md` C1 行 + §5；`p1-review.md` Q8③；`api-surface.md` §1（本轮明示） | `npm run typecheck -w @node-agent-runtime/types` |
 | 7 | 用户视角 Public API 检查 | ✅ 以消费入口为准并脚本化 | `api-surface.md` §0/§13（M6-11 基线） | `npm run check:api` |
 | 8 | MCP-as-Tools 合理性 + 后续落点 | ✅ 合理；后续在 §3.2 / M7+ | `architecture.md` §5.3 / §3.2；`docs/development-checklist.md` §3.3 | — |
 
@@ -26,7 +26,7 @@
 
 ### 2.1 Core 最小核心（审查主题 1）—— 通过
 
-- **体量**：`@agent-runtime/core` = 引擎 + facade，**1005 行 / 49 符号 + 5 个 `export *` 转发**（api-surface §2）。
+- **体量**：`@node-agent-runtime/core` = 引擎 + facade，**1005 行 / 49 符号 + 5 个 `export *` 转发**（api-surface §2）。
 - **瘦身轨迹**：1804 行（M6-8）→ 1146（M6-9 演示资产外置 `tools-basic`/`mock`）→ **1005**（M6-10 Checkpoint 归位 C3、事件可注入）；演进证据见 CHANGELOG M6-9/M6-10 与 p1-review §1、Q1/Q2。
 - **最小核心判据**：引擎只保留 `AgentRuntime.run` 主循环、`Agent` 配方、`Context` 门面、事件总线、工具/模型契约与注册；Memory / Sandbox / Policy / Host 均以注入实现出现，core 不承载具体后端。
 
@@ -48,9 +48,9 @@
 | 关注点 | 归属 | 依据 |
 |---|---|---|
 | Context 门面 | core（`buildRunContext`/`RunContext`/`RunContextSeed`） | architecture §3.1；api-surface §2 |
-| Memory（会话消息流 + 事实层） | `@agent-runtime/memory`（`SessionMemory`） | architecture §8.2；api-surface §3 |
-| Checkpoint（步级快照 / 续跑校验） | `@agent-runtime/memory`（自 core 归位；`ToolSurface` 契约解耦 `Agent`） | CHANGELOG M6-10；api-surface §3 |
-| Artifact | `@agent-runtime/artifact`（自 memory 拆出，一包一职责） | CHANGELOG M6-9（P1-b）；api-surface §4 |
+| Memory（会话消息流 + 事实层） | `@node-agent-runtime/memory`（`SessionMemory`） | architecture §8.2；api-surface §3 |
+| Checkpoint（步级快照 / 续跑校验） | `@node-agent-runtime/memory`（自 core 归位；`ToolSurface` 契约解耦 `Agent`） | CHANGELOG M6-10；api-surface §3 |
+| Artifact | `@node-agent-runtime/artifact`（自 memory 拆出，一包一职责） | CHANGELOG M6-9（P1-b）；api-surface §4 |
 | Storage 契约 | C1 `types/storage`（`Storage`/`DocDomain`/`StreamDomain`） | crate-architecture §5；api-surface §1 |
 | Storage 实现 | core 内置 `MemoryStorage`/`FileStorage`（零依赖）；SQLite 外置 C9 `store-sqlite` | architecture §9；api-surface §2/§12 |
 
@@ -82,7 +82,7 @@
 
 - architecture §5.3 设计原则：**MCP Server 的唯一产物是「动态 Tool 集合」**——`McpRegistry` 将远端工具物化为 `mcp__server__tool` 前缀的本地 `ToolDefinition`，注册后与本地工具 **100% 同路径**。
 - 因此 MCP 作为 tools 接入，可获得**统一治理面**：工具分类（`ToolKind`/`classifyToolName`）→ Permission `gate()` → Sandbox `wrap()` 对 MCP 工具与本地工具一视同仁，治理/沙箱无需旁路通道（纵深防御不变）。
-- **依赖卫生**：P1-a 整改后 `classifyToolName`/`toolKind` 下沉 C1，`@agent-runtime/mcp` 只依赖 core + types（p1-review 表中该行由 ⚠️「扩展能力但依赖偏重」→ ✅）；api-surface §10 冻结其 28 个导出符号。
+- **依赖卫生**：P1-a 整改后 `classifyToolName`/`toolKind` 下沉 C1，`@node-agent-runtime/mcp` 只依赖 core + types（p1-review 表中该行由 ⚠️「扩展能力但依赖偏重」→ ✅）；api-surface §10 冻结其 28 个导出符号。
 
 ### 3.2 后续处理落点
 

@@ -1,6 +1,6 @@
 import { appendFile, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { DocDomain, Storage, StreamDomain } from "@agent-runtime/types";
+import type { DocDomain, Storage, StreamDomain } from "@node-agent-runtime/types";
 
 const DOC_EXT = ".json";
 const STREAM_EXT = ".ndjson";

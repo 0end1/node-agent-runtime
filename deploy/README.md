@@ -6,8 +6,8 @@ Web 控制台（SSE 实时流）的三种部署形态样例与运维说明。所
 deploy/
 ├── Dockerfile                     # 多阶段构建：build 阶段装依赖并构建 dist，runtime 只带产物
 ├── docker-compose.yml             # console（+ 可选 nginx 边缘反代，profile: edge）
-├── nginx/agent-runtime.conf       # 反代样例（含 SSE 必需的 proxy_buffering off）
-├── systemd/agent-runtime.service  # systemd 单元（最小权限 + 自动重启）
+├── nginx/node-agent-runtime.conf       # 反代样例（含 SSE 必需的 proxy_buffering off）
+├── systemd/node-agent-runtime.service  # systemd 单元（最小权限 + 自动重启）
 ├── env/                           # 环境分层样例：dev / staging / prod
 │   ├── dev.env.example
 │   ├── staging.env.example
@@ -35,16 +35,16 @@ docker compose -f deploy/docker-compose.yml --profile edge up -d
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin agent
-sudo mkdir -p /opt/agent-runtime /etc/agent-runtime
+sudo mkdir -p /opt/node-agent-runtime /etc/node-agent-runtime
 # 部署仓库（含 packages/*/dist，先在本地 `npm ci && npm run build`）
-sudo rsync -a --exclude node_modules ./ /opt/agent-runtime/
-cd /opt/agent-runtime && sudo npm ci --omit=dev
+sudo rsync -a --exclude node_modules ./ /opt/node-agent-runtime/
+cd /opt/node-agent-runtime && sudo npm ci --omit=dev
 
-sudo install -m 600 deploy/env/prod.env.example /etc/agent-runtime/console.env
-sudo install -m 644 deploy/systemd/agent-runtime.service /etc/systemd/system/
-sudo systemctl daemon-reload && sudo systemctl enable --now agent-runtime
+sudo install -m 600 deploy/env/prod.env.example /etc/node-agent-runtime/console.env
+sudo install -m 644 deploy/systemd/node-agent-runtime.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now node-agent-runtime
 
-sudo cp deploy/nginx/agent-runtime.conf /etc/nginx/conf.d/
+sudo cp deploy/nginx/node-agent-runtime.conf /etc/nginx/conf.d/
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
@@ -74,13 +74,13 @@ npm run smoke:web                 # 启动 + /healthz 探活 + 退出
 
 会话、任务、消息流与产物默认落在 `RUNTIME_DATA`（默认 `.runtime-data/`），容器部署时挂到命名卷 `runtime-data`。
 
-使用 SQLite 后端（`@agent-runtime/store-sqlite`）时：
+使用 SQLite 后端（`@node-agent-runtime/store-sqlite`）时：
 
 - **WAL**：连接自动开启 `journal_mode=WAL` 与 `synchronous=NORMAL`，读写不互相阻塞。
 - **在线备份**：`SQLiteStorage.backup(dest)` 基于 `VACUUM INTO`，无需停服，且拒绝覆盖已有文件。
 
   ```ts
-  import { SQLiteStorage } from "@agent-runtime/store-sqlite";
+  import { SQLiteStorage } from "@node-agent-runtime/store-sqlite";
 
   const storage = new SQLiteStorage({ file: ".runtime-data/app.db" });
   storage.backup(`.runtime-data/backup-${Date.now()}.db`);   // 一致性快照

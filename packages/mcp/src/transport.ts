@@ -27,7 +27,7 @@ import {
   responseError,
 } from "./jsonrpc.js";
 import { MCP_PROTOCOL_VERSION } from "./types.js";
-import type { ProcessEnv } from "@agent-runtime/types";
+import type { ProcessEnv } from "@node-agent-runtime/types";
 
 /** Common lifecycle both transports implement. */
 export interface McpTransport {

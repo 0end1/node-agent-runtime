@@ -1,4 +1,4 @@
-import type { SandboxMode, SandboxScope } from "@agent-runtime/sandbox";
+import type { SandboxMode, SandboxScope } from "@node-agent-runtime/sandbox";
 import type {
   ApprovalRecord,
   ApprovalStore,
@@ -6,8 +6,8 @@ import type {
   RuntimeEvent,
   ToolGrant,
   ToolKind,
-} from "@agent-runtime/types";
-import { fingerprint, newId } from "@agent-runtime/types";
+} from "@node-agent-runtime/types";
+import { fingerprint, newId } from "@node-agent-runtime/types";
 
 /**
  * Permission — authorization decisions (M3, docs/architecture.md §6.1).

@@ -18,7 +18,7 @@
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6（A2 → P2.4 ✅、A3 → P2.6 ✅、A4 → P6.3 ✅，**仅剩 A1 → P5.1 签名后实机复验**） |
 | **M6 · 生产级改造** | demo → 可用于生产 | 🟡 收尾中 | **Gate 1（P1）✅**（M6-7~12）：C1~C4 决策落定 + **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`）；**Gate 2（P2）✅**（M6-16/17）：CI / Lint·Format / audit 门 / 覆盖率门禁（行均值 92.38%）/ 跨形态 E2E / `npm run ci` 总闸；**Gate 3（P3）✅**（M6-18~21）：可观测·错误码、脱敏、审批审计、限额、Web/MCP 安全加固、默认安全策略、配置分层；**Gate 4（P4）✅**（M6-22）：LICENSE / 发布元数据 / engines / changesets + 发版编排 / peer 边界 / 体积基线（canary 12 包实装验证）；**Gate 6（P6）✅**（M6-23~26）：治理文件 / README 生产用法 / 路线图回填 v1.10 / 双源收敛 / 参考机制复核；**P5 部分（Gate 5 待关）**：P5.5 store-sqlite 生产基线 ✅、P5.6 Web 部署形态 ✅（M6-24）；P5.1 实机验收 / P5.2 签名+公证 / P5.3 三平台矩阵 / P5.4 auto-updater **配置与脚本就绪**（M6-25/27），自 **2026-09-10 起随桌面端移出至产品侧**（不再是底座保留项；配置与脚本作为产品侧资产保留，不阻塞 M7）；产品方向见 `docs/product-direction.md`（详见 §3.1） |
-| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | ☐ 未启动（口径已定，2026-09-10） | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3 |
+| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | 🟡 进行中（M7-2 traceId 已落地，2026-09-11） | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3；**首批执行清单见 `docs/m7-base-governance.md`**（包归属 / API 变更分级 / 验收用例 / 顺序）；**进度**：批次 A（12 包 bump 到 0.3.0，未发布/未打 tag）✅、M7-2 traceId 贯穿 ✅（`packages/core/test/trace.test.ts` 12 例，`npm run ci` 全绿）；待做 M7-2 的 `toOtelSpans` 与审计导出 → M7-1 → M7-3 → M7-6a |
 | M8+ | 待规划 | ⏸ | 远期（Rust 移植 D1、参考机制 D3 等，发生再激活） |
 
 ---
@@ -81,7 +81,7 @@
 
 ### 3.3 M7+ 候选池（未排期，M6 收口后按反馈定优先级）
 
-> **M7 口径（2026-09-10）**：项目已按**底座**收敛，判定与纪律见 `docs/base-convergence.md`（底座 = `packages/*` 12 包；`examples/` 与 `deploy/` 为验证载体；`examples/desktop-tauri` 与 P5.1~P5.4 已移出至产品侧）；**只对底座立项**，首批 M7-1 成本与上下文治理 / M7-2 可观测与合规导出 / M7-3 策略工程化 / M7-6 工具规模治理。下表为技术候选池，其中「多 Agent 协同」「Rust 移植」维持远期不立项，其余候选立项前先过 `base-convergence.md` §3 三问准入规则。方向与里程碑草案见 `docs/product-direction.md`。
+> **M7 口径（2026-09-10）**：项目已按**底座**收敛，判定与纪律见 `docs/base-convergence.md`（底座 = `packages/*` 12 包；`examples/` 与 `deploy/` 为验证载体；`examples/desktop-tauri` 与 P5.1~P5.4 已移出至产品侧）；**只对底座立项**，首批 M7-1 成本与上下文治理 / M7-2 可观测与合规导出 / M7-3 策略工程化 / M7-6 工具规模治理。下表为技术候选池，其中「多 Agent 协同」「Rust 移植」维持远期不立项，其余候选立项前先过 `base-convergence.md` §3 三问准入规则。方向与里程碑草案见 `docs/product-direction.md`；**首批四项执行清单见 `docs/m7-base-governance.md`**（2026-09-10 立；立项前需按 §4 先回填 `architecture.md` §11 + §13）。
 
 | 候选 | 说明 | 来源 |
 |---|---|---|
@@ -104,6 +104,7 @@
 - **产品方向规划（M7+）**：`docs/product-direction.md`
 - **收敛决策事实源（底座边界 / 准入 / 移出）**：`docs/base-convergence.md`
 - 产品落地路径评估（形态成本与 ACP 替代路径）：`docs/product-build-paths.md`
+- M7 首批执行清单（底座治理交付 M7-1/2/3/6）：`docs/m7-base-governance.md`
 - M6 执行清单：`docs/m6-productionization.md`
 - 遗留任务总池：`docs/remaining-tasks.md` · 拆包执行级：`docs/crate-split-todo.md`
 - 路线图与修订记录：`docs/architecture.md` §11 / §13

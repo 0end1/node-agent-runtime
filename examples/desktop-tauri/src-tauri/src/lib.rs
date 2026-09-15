@@ -3,7 +3,7 @@
 // 窗口加载 `examples/web` 控制台：dev 由 `beforeDevCommand` 启动 Node server
 // （http://localhost:8787，提供 API + 静态）；release 以 Tauri sidecar 启动
 // app 自带 Node 运行时执行打包好的 server bundle（见 build-server.mjs）。
-// 本壳不依赖任何内部 API，与 examples 其他演示同源消费 `@agent-runtime/core` 公共能力。
+// 本壳不依赖任何内部 API，与 examples 其他演示同源消费 `@node-agent-runtime/core` 公共能力。
 
 use serde::Serialize;
 use tauri::Builder;

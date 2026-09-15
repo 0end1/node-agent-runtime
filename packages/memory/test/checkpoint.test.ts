@@ -10,10 +10,10 @@ import {
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
-} from "@agent-runtime/core";
-import { CheckpointMismatchError, CheckpointStore, computeToolsHash } from "@agent-runtime/memory";
-import { SessionError, SessionManager } from "@agent-runtime/host";
-import { builtinTools } from "@agent-runtime/tools-basic";
+} from "@node-agent-runtime/core";
+import { CheckpointMismatchError, CheckpointStore, computeToolsHash } from "@node-agent-runtime/memory";
+import { SessionError, SessionManager } from "@node-agent-runtime/host";
+import { builtinTools } from "@node-agent-runtime/tools-basic";
 
 // --------------------------------------------------------------- test double
 

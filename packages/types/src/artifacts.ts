@@ -2,7 +2,7 @@
  * Artifact contracts (docs/architecture.md §8.1, M4).
  *
  * M6 C3 决策：Artifact **类型下沉 C1**，实现（`ArtifactManager`）并入 C3
- * `@agent-runtime/memory`——二者同为 Storage 读写，且下沉后 C3 只依赖 types，
+ * `@node-agent-runtime/memory`——二者同为 Storage 读写，且下沉后 C3 只依赖 types，
  * 不会与 core 形成循环（决策见 `docs/remaining-tasks.md` §3 C3）。
  *
  * An Artifact is a metadata document plus a payload:

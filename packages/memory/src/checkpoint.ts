@@ -1,6 +1,6 @@
-import type { AnyTool, Storage } from "@agent-runtime/types";
-import type { ChatMessage, RunUsage } from "@agent-runtime/types";
-import { newId, ErrorCode } from "@agent-runtime/types";
+import type { AnyTool, Storage } from "@node-agent-runtime/types";
+import type { ChatMessage, RunUsage } from "@node-agent-runtime/types";
+import { newId, ErrorCode } from "@node-agent-runtime/types";
 
 /**
  * Checkpoint (docs/architecture.md §9).

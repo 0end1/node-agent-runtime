@@ -4,18 +4,18 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@agent-runtime/types": ["packages/types/src/index.ts"],
-      "@agent-runtime/core": ["packages/core/src/index.ts"],
-      "@agent-runtime/mcp": ["packages/mcp/src/index.ts"],
-      "@agent-runtime/memory": ["packages/memory/src/index.ts"],
-      "@agent-runtime/artifact": ["packages/artifact/src/index.ts"],
-      "@agent-runtime/sandbox": ["packages/sandbox/src/index.ts"],
-      "@agent-runtime/policy": ["packages/policy/src/index.ts"],
-      "@agent-runtime/host": ["packages/host/src/index.ts"],
-      "@agent-runtime/tools-basic": ["packages/tools-basic/src/index.ts"],
-      "@agent-runtime/mock": ["packages/mock/src/index.ts"],
-      "@agent-runtime/provider-openai": ["packages/provider-openai/src/index.ts"],
-      "@agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"]
+      "@node-agent-runtime/types": ["packages/types/src/index.ts"],
+      "@node-agent-runtime/core": ["packages/core/src/index.ts"],
+      "@node-agent-runtime/mcp": ["packages/mcp/src/index.ts"],
+      "@node-agent-runtime/memory": ["packages/memory/src/index.ts"],
+      "@node-agent-runtime/artifact": ["packages/artifact/src/index.ts"],
+      "@node-agent-runtime/sandbox": ["packages/sandbox/src/index.ts"],
+      "@node-agent-runtime/policy": ["packages/policy/src/index.ts"],
+      "@node-agent-runtime/host": ["packages/host/src/index.ts"],
+      "@node-agent-runtime/tools-basic": ["packages/tools-basic/src/index.ts"],
+      "@node-agent-runtime/mock": ["packages/mock/src/index.ts"],
+      "@node-agent-runtime/provider-openai": ["packages/provider-openai/src/index.ts"],
+      "@node-agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"]
     }
   },
   "include": ["packages", "examples", "scripts"]

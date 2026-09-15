@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { MemoryStorage, type ChatMessage } from "@agent-runtime/core";
-import { SessionMemory } from "@agent-runtime/memory";
+import { MemoryStorage, type ChatMessage } from "@node-agent-runtime/core";
+import { SessionMemory } from "@node-agent-runtime/memory";
 
 function user(text: string): ChatMessage {
   return { role: "user", content: text };

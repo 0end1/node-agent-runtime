@@ -6,9 +6,9 @@
 > **进度（2026-09-07）**：§5 四项阻塞决策已全部落定（见 `remaining-tasks.md` §3）；批次 1~4 于 M6 全部执行完毕。
 >
 > **归档注记（2026-09-08，M6-12）**：本清单拆包已全部落地，并经 M6-9~11 自查整改形成 **12 包终局**——
-> - `artifact` 未并入 memory，而是自 memory **拆为独立包** `@agent-runtime/artifact`（M6-9，一包一职责）；
+> - `artifact` 未并入 memory，而是自 memory **拆为独立包** `@node-agent-runtime/artifact`（M6-9，一包一职责）；
 > - `checkpoint` 于 M6-10 借 **ToolSurface 契约**归位 memory，不再留 core；
-> - 补充外置 `@agent-runtime/tools-basic`（内置工具）与 `@agent-runtime/mock`（MockProvider），`core` 收窄至 1005 行；
+> - 补充外置 `@node-agent-runtime/tools-basic`（内置工具）与 `@node-agent-runtime/mock`（MockProvider），`core` 收窄至 1005 行；
 > - §5 决策按 `remaining-tasks.md` §3 修订：§8-5 由「不出」修订为「拆 host」（M6-7）；§8-4 由「实现并 C3」修订为「独立 artifact 包」（M6-9）；§8-2 的工具/事件契约随批次 3 下沉 C1，`classifyToolName` 于 M6-9/11 最终下沉 C1。
 >
 > 现状以 `docs/architecture.md` §10（v1.9）、`docs/api-surface.md`、`docs/final-review.md` 为唯一事实源，本文归档存档。
@@ -22,23 +22,23 @@
 
 ## 2. 已完成
 
-- [x] C1 `@agent-runtime/types` —— v0.2
-- [x] C2 `@agent-runtime/core` —— v0.2
-- [x] C7 `@agent-runtime/provider-openai` —— M5-1
-- [x] C9 `@agent-runtime/store-sqlite` —— M5-1
-- [x] **C6 `@agent-runtime/mcp`** —— M6 批次 1（2026-09-07）：`core/src/mcp/` 5 文件 + `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁至 `packages/mcp/`；`registry.ts` 改从 `@agent-runtime/core` 取 `defineTool`/`ToolKind`/`classifyToolName`（C4 决策契约不下沉）；core index 移除 mcp 导出（避免 core↔mcp 循环）；根 tsconfig paths / build / test 接线；`examples/cli.ts` 改从新包导入。验收：typecheck 绿、全仓测试 0 fail（core 84 pass+1 skip、mcp 15 pass）
-- [x] **C3 `@agent-runtime/memory`** —— M6 批次 3（2026-09-07）：`memory.ts` + `artifact.ts` 与 `memory/artifact.test.ts` 迁至 `packages/memory/`；`Artifact`/`ArtifactKind`/`ArtifactInput` 契约下沉 C1；`session.ts` 改从新包导入，core 收窄实现导出；**`checkpoint.ts` 暂留 core**（依赖 `Agent` 与工具契约，外置会形成包级循环，待契约下沉或 facade 收窄再迁）。验收：typecheck 绿、全仓测试 0 fail（memory 17 pass、core 67 pass+1 skip）
-- [x] **C4 `@agent-runtime/sandbox` + C5 `@agent-runtime/policy`** —— M6 批次 3 收尾（2026-09-07）：`sandbox.ts` / `permission.ts` 与两个测试分别迁至 `packages/sandbox/`、`packages/policy/`（C2 决策：独立两包）；前置**触发 §8-2 下沉**：工具契约与事件契约下沉 C1（`types/src/tools.ts`、`events.ts`），core 改 re-export 类型 + 保留实现，`EventEmitter<E>` 入 C1 让 policy 不再依赖 core 的 `EventBus`；`mcp` 的 `classifyToolName` 改依赖 sandbox 包。验收：typecheck 绿、全仓测试 0 fail（sandbox 13 / policy 13 / core 41 pass+1 skip）
+- [x] C1 `@node-agent-runtime/types` —— v0.2
+- [x] C2 `@node-agent-runtime/core` —— v0.2
+- [x] C7 `@node-agent-runtime/provider-openai` —— M5-1
+- [x] C9 `@node-agent-runtime/store-sqlite` —— M5-1
+- [x] **C6 `@node-agent-runtime/mcp`** —— M6 批次 1（2026-09-07）：`core/src/mcp/` 5 文件 + `mcp.test.ts` + `fixtures/mock-mcp-server.mjs` 迁至 `packages/mcp/`；`registry.ts` 改从 `@node-agent-runtime/core` 取 `defineTool`/`ToolKind`/`classifyToolName`（C4 决策契约不下沉）；core index 移除 mcp 导出（避免 core↔mcp 循环）；根 tsconfig paths / build / test 接线；`examples/cli.ts` 改从新包导入。验收：typecheck 绿、全仓测试 0 fail（core 84 pass+1 skip、mcp 15 pass）
+- [x] **C3 `@node-agent-runtime/memory`** —— M6 批次 3（2026-09-07）：`memory.ts` + `artifact.ts` 与 `memory/artifact.test.ts` 迁至 `packages/memory/`；`Artifact`/`ArtifactKind`/`ArtifactInput` 契约下沉 C1；`session.ts` 改从新包导入，core 收窄实现导出；**`checkpoint.ts` 暂留 core**（依赖 `Agent` 与工具契约，外置会形成包级循环，待契约下沉或 facade 收窄再迁）。验收：typecheck 绿、全仓测试 0 fail（memory 17 pass、core 67 pass+1 skip）
+- [x] **C4 `@node-agent-runtime/sandbox` + C5 `@node-agent-runtime/policy`** —— M6 批次 3 收尾（2026-09-07）：`sandbox.ts` / `permission.ts` 与两个测试分别迁至 `packages/sandbox/`、`packages/policy/`（C2 决策：独立两包）；前置**触发 §8-2 下沉**：工具契约与事件契约下沉 C1（`types/src/tools.ts`、`events.ts`），core 改 re-export 类型 + 保留实现，`EventEmitter<E>` 入 C1 让 policy 不再依赖 core 的 `EventBus`；`mcp` 的 `classifyToolName` 改依赖 sandbox 包。验收：typecheck 绿、全仓测试 0 fail（sandbox 13 / policy 13 / core 41 pass+1 skip）
 
 ## 3. 待拆清单
 
 | # | 包 | 迁移源 | 迁移测试 | 依赖 | 前置条件 | 批次 | 状态 |
 |---|---|---|---|---|---|---|---|
-| C6 | `@agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + fixture | C1 + core 工具契约 | core 无反向 import；收窄 index 的 mcp 导出 | 1 | ✅ |
-| C8 | `@agent-runtime/host` | `core/src/session.ts`(721 行) | `core/test/session.test.ts` | core 引擎 API + memory/sandbox/policy + types | ✅ 已完成（2026-09-07）：C1 决策经重评**修订为「拆」**（原阻碍已随 B3/B4 消失，core 内无模块依赖 session）；core 不可反向 re-export host，故为破坏性变更，宿主改从新包导入 | 2 | ✅ |
-| C3 | `@agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（终局：Artifact 独立拆包 M6-9；checkpoint 归位 memory M6-10，见归档注记） |
-| C4 | `@agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（工具契约已下沉 C1） | C2 决策：独立两包 | 3 | ✅ |
-| C5 | `@agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ✅ |
+| C6 | `@node-agent-runtime/mcp` | `core/src/mcp/`（client/jsonrpc/registry/transport/types） | `core/test/mcp.test.ts` + fixture | C1 + core 工具契约 | core 无反向 import；收窄 index 的 mcp 导出 | 1 | ✅ |
+| C8 | `@node-agent-runtime/host` | `core/src/session.ts`(721 行) | `core/test/session.test.ts` | core 引擎 API + memory/sandbox/policy + types | ✅ 已完成（2026-09-07）：C1 决策经重评**修订为「拆」**（原阻碍已随 B3/B4 消失，core 内无模块依赖 session）；core 不可反向 re-export host，故为破坏性变更，宿主改从新包导入 | 2 | ✅ |
+| C3 | `@node-agent-runtime/memory`（含 Artifact 实现，C3 决策） | `memory.ts`、`artifact.ts`（`checkpoint.ts` 暂留 core） | `memory.test.ts`、`artifact.test.ts` | types（Storage/DocDomain/StreamDomain + Artifact 契约已下沉 C1） | 前置已完（Storage/Artifact 契约下沉 C1） | 3 | ✅（终局：Artifact 独立拆包 M6-9；checkpoint 归位 memory M6-10，见归档注记） |
+| C4 | `@node-agent-runtime/sandbox` | `sandbox.ts` | `sandbox.test.ts` | types（工具契约已下沉 C1） | C2 决策：独立两包 | 3 | ✅ |
+| C5 | `@node-agent-runtime/policy` | `permission.ts` | `permission.test.ts` | types +（policy 仅 type-import sandbox 模式/域） | 同上 | 3 | ✅ |
 | — | facade 收窄 | `core/src/index.ts` 由直出改逐包 re-export | 全量测试 | 全部包 | ✅ 已完成（2026-09-07）：`export *` 转发 memory/sandbox/policy；mcp 不反向 re-export（避免循环） | 4 | ✅ |
 
 ## 4. 推荐执行顺序

@@ -1,7 +1,7 @@
 # M6 P1 拆包审查（Architecture Review）
 
 > 审查时间：2026-09-08（split 分支，基线 `09e01be`）
-> 方法：① 依赖矩阵（package.json 声明 + 源码 `from "@agent-runtime/*"` 实际引用，已剔除注释）② 体量统计（`src/**/*.ts` 行数）③ 职责抽查（关键文件 grep）
+> 方法：① 依赖矩阵（package.json 声明 + 源码 `from "@node-agent-runtime/*"` 实际引用，已剔除注释）② 体量统计（`src/**/*.ts` 行数）③ 职责抽查（关键文件 grep）
 > 定位：**审查不改代码**。结论与整改建议供 P2~P6 及发布决策参考；事实源：`docs/api-surface.md`、`docs/crate-architecture.md`、`docs/crate-split-todo.md`。
 
 ---
@@ -65,7 +65,7 @@
 
 **Q4 Memory / Sandbox / Policy 是否真解耦？** ✅ 是（运行时无耦合）。
 三者只依赖 types；policy→sandbox 仅为 type-only 的 `SandboxMode`/`SandboxScope`。
-⚠️ 但有两处职责外溢：① memory 包装 ArtifactManager（应更名或拆为 `@agent-runtime/artifact`）② sandbox 包装 `classifyToolName`/`toolKind`（工具分类，应归 types 或 mcp 自带）。
+⚠️ 但有两处职责外溢：① memory 包装 ArtifactManager（应更名或拆为 `@node-agent-runtime/artifact`）② sandbox 包装 `classifyToolName`/`toolKind`（工具分类，应归 types 或 mcp 自带）。
 
 **Q5 MCP 是 Runtime 能力还是扩展能力？** 扩展能力（与架构 §5.3「接缝在 Tool」一致），但依赖可再瘦身。
 现状 `mcp → core`（`defineTool`）+ `mcp → sandbox`（`classifyToolName`）。前者合理（Tool 是引擎契约），后者不合理（分类函数非执行域职责）。若把工具契约与分类函数归入 types（C4 已下沉工具契约，分类函数可一并下沉），mcp 可只依赖 types，成为纯扩展包。
@@ -85,9 +85,9 @@ core 导出 61 项并 facade 转发 4 包，其中含 4 个演示资产符号（
 
 | 级别 | 建议 | 收益 | 影响面 |
 |---|---|---|---|
-| **P0** | 外置演示资产：`@agent-runtime/mock`（MockProvider）与 `@agent-runtime/tools-basic`（builtin/calculator/evaluate/CURRENCY_ALIASES） | core 由 1804 → 约 1150 行；公共面去掉 4 个演示符号；包体积下降 | examples 与 core/index 导入调整（约 3~5 处），`docs/api-surface.md` 快照更新 |
+| **P0** | 外置演示资产：`@node-agent-runtime/mock`（MockProvider）与 `@node-agent-runtime/tools-basic`（builtin/calculator/evaluate/CURRENCY_ALIASES） | core 由 1804 → 约 1150 行；公共面去掉 4 个演示符号；包体积下降 | examples 与 core/index 导入调整（约 3~5 处），`docs/api-surface.md` 快照更新 |
 | **P1** | 工具分类函数 `classifyToolName`/`toolKind` 下沉 types（或 mcp 自带），解除 `mcp → sandbox` | mcp 成为纯扩展包（只依赖 types/core 契约） | sandbox 与 mcp 各 1~2 处 import；API 快照更新 |
-| **P1** | 解决 memory/artifact 名实不符：更名包为 `@agent-runtime/store-content`，或拆出 `@agent-runtime/artifact` | 语义清晰，避免后续 artifact 能力膨胀污染 memory | 包名变更（破坏性），需在发布前完成 |
+| **P1** | 解决 memory/artifact 名实不符：更名包为 `@node-agent-runtime/store-content`，或拆出 `@node-agent-runtime/artifact` | 语义清晰，避免后续 artifact 能力膨胀污染 memory | 包名变更（破坏性），需在发布前完成 |
 | **P2** | `checkpoint.ts` 解耦 `Agent` 类（改为接受结构化 `{ name, tools }` 或 `AgentSnapshot`），随后并入 memory 包 | core 进一步瘦身 142 行，C3 归位完整 | 中等（checkpoint API 形态微调） |
 | **P2** | 事件总线反转：由宿主创建 `EventBus` 注入 `AgentRuntime`，host 不再借用 `runtime.events` | 消除 host 对引擎内部构件的依赖 | 中等（runtime/host 构造参数变更） |
 | **P2** | API 快照复核脚本化，纳入 P2 的 CI 作业（`api-surface` job） | 防止公共面无意漂移 | 低（新增 CI 作业） |
@@ -98,9 +98,9 @@ core 导出 61 项并 facade 转发 4 包，其中含 4 个演示资产符号（
 
 | 建议 | 执行 | 结果 |
 |---|---|---|
-| P0 外置演示资产 | ✅ | 新增 `@agent-runtime/mock`、`@agent-runtime/tools-basic`；**core 1804 → 1146 行（-36%）**，公共面去掉 5 个演示符号 |
+| P0 外置演示资产 | ✅ | 新增 `@node-agent-runtime/mock`、`@node-agent-runtime/tools-basic`；**core 1804 → 1146 行（-36%）**，公共面去掉 5 个演示符号 |
 | P1 `classifyToolName` 下沉 | ✅ | 下沉至 C1 `types/src/tools.ts`；sandbox re-export 保持 API 不变；**mcp 去掉 sandbox 依赖**（现只依赖 core + types） |
-| P1 memory/artifact 名实不符 | ✅ | 拆出独立包 `@agent-runtime/artifact`；memory 导出 13 → 5，一包一职责 |
+| P1 memory/artifact 名实不符 | ✅ | 拆出独立包 `@node-agent-runtime/artifact`；memory 导出 13 → 5，一包一职责 |
 | P2 checkpoint 解耦 `Agent` | ✅ 已完成 | 新增 `ToolSurface { name, tools }` 结构化契约取代 `Agent` 类依赖；`checkpoint.ts` 迁入 C3 memory（测试随迁）。core 1146 → **1005 行**；因 facade 转发 memory，从 core 导入 Checkpoint 符号仍可用（非破坏性） |
 | P2 事件总线反转注入 | ✅ 已完成 | `AgentRuntimeOptions.events?` + `SessionManagerOptions.events?` 支持宿主注入总线；host 内部 11 处改用 `this.events`，不再借用 `runtime.events` |
 | P2 快照复核脚本化 | ✅ 已完成（M6-11） | `scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`；`npm run check:api` 门禁（差异退出码 1），评审通过后 `check:api:update` 重新冻结；与 `docs/api-surface.md` 逐包对齐 |

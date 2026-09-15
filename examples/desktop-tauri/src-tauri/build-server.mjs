@@ -69,7 +69,7 @@ async function bundleServer() {
     platform: "node",
     format: "esm",
     target: "node22",
-    // Node 内置模块不打包；其余（含 @agent-runtime/*）全部内联
+    // Node 内置模块不打包；其余（含 @node-agent-runtime/*）全部内联
     external: ["node:*"],
     sourcemap: false,
     logLevel: "warning",

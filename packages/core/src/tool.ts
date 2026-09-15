@@ -1,7 +1,7 @@
 // 工具契约类型已下沉 C1（M6 拆 C4/C5 前置：避免 sandbox/policy 反向依赖 core），
 // 实现（defineTool / findDuplicateToolNames）保留在此；core 内部
 // `import ... from "./tool.js"` 无需改动，公共导入面不变。
-import type { AnyTool, ToolDefinition } from "@agent-runtime/types";
+import type { AnyTool, ToolDefinition } from "@node-agent-runtime/types";
 
 export type {
   ToolDefinition,
@@ -9,7 +9,7 @@ export type {
   ToolExecutionContext,
   ToolKind,
   ToolMeta,
-} from "@agent-runtime/types";
+} from "@node-agent-runtime/types";
 
 /** Create a tool from a plain definition (keeps inference for execute args). */
 export function defineTool<Args extends Record<string, unknown>, Result>(

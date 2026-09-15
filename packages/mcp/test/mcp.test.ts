@@ -12,8 +12,8 @@ import {
   type ModelRequest,
   type ModelResponse,
   type RuntimeEvent,
-} from "@agent-runtime/core";
-import { SessionManager } from "@agent-runtime/host";
+} from "@node-agent-runtime/core";
+import { SessionManager } from "@node-agent-runtime/host";
 import {
   McpClient,
   McpConnectionError,
@@ -26,7 +26,7 @@ import {
   normalizeSchema,
   parseMcpToolName,
   pathArgKeysOf,
-} from "@agent-runtime/mcp";
+} from "@node-agent-runtime/mcp";
 
 // ------------------------------------------------------- test doubles
 
@@ -510,5 +510,5 @@ function ctx() {
     conversationId: "c",
     runId: "r",
     now: () => new Date(0),
-  } as unknown as import("@agent-runtime/core").ToolExecutionContext;
+  } as unknown as import("@node-agent-runtime/core").ToolExecutionContext;
 }

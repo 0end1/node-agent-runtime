@@ -9,18 +9,18 @@
 
 | 包 | 版本 | 导出符号数 | 角色 |
 |---|---|---|---|
-| `@agent-runtime/types` | 0.2.0 | 8 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
-| `@agent-runtime/memory` | 0.2.0 | 14 | C3 会话记忆 + Checkpoint（步级快照/续跑校验） |
-| `@agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
-| `@agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
-| `@agent-runtime/policy` | 0.2.0 | 19 | C5 授权决策 |
-| `@agent-runtime/core` | 0.2.0 | 60（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
-| `@agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
-| `@agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
-| `@agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
-| `@agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
-| `@agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
-| `@agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
+| `@node-agent-runtime/types` | 0.2.0 | 8 个子模块聚合（展开见 §1） | C1 契约叶子包（零依赖） |
+| `@node-agent-runtime/memory` | 0.2.0 | 14 | C3 会话记忆 + Checkpoint（步级快照/续跑校验） |
+| `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
+| `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
+| `@node-agent-runtime/policy` | 0.2.0 | 19 | C5 授权决策 |
+| `@node-agent-runtime/core` | 0.2.0 | 60（+ 5 个 `export *` 转发） | C2 引擎（**1005 行**）+ facade |
+| `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
+| `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
+| `@node-agent-runtime/host` | 0.2.0 | 10 | C8 会话/任务生命周期 |
+| `@node-agent-runtime/mcp` | 0.2.0 | 29 | C6 MCP 适配 |
+| `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
+| `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
 
 **依赖方向（单向无环）**：
 
@@ -33,7 +33,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 ---
 
-## 1. `@agent-runtime/types`（C1 · 契约，零依赖）
+## 1. `@node-agent-runtime/types`（C1 · 契约，零依赖）
 
 | 子模块 | 导出 |
 |---|---|
@@ -52,7 +52,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
 
-## 2. `@agent-runtime/core`（C2 · 引擎 + facade，1005 行）
+## 2. `@node-agent-runtime/core`（C2 · 引擎 + facade，1005 行）
 
 **引擎与运行时**：`AgentRuntime`、`AgentRuntimeOptions`、`RunAbortedError`、`RunOptions`、`RunResult`、`StepSnapshot`、`EventBus`
 **Agent**：`Agent`、`AgentOptions`、`defineAgent`、`DEFAULT_AGENT_INSTRUCTIONS`
@@ -60,55 +60,57 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 **Storage 实现**：`MemoryStorage`、`FileStorage`
 **工具契约**：`defineTool`、`findDuplicateToolNames`、`ToolDefinition`、`AnyTool`、`ToolExecutionContext`、`ToolKind`、`ToolMeta`
 **模型**：`ModelProvider`、`ModelRequest`、`ModelResponse`、`RawToolCall`、`FinishReason`、`ModelRequestError`
-**P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`ConsoleLogger`、`toLogger`、`errorPayload`、`redact`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
+**P3.1 日志 / P3.8 配置**：`Logger`、`LogLevel`、`LogContext`、`ConsoleLogger`、`toLogger`、`errorPayload`、`redact`、`loadConfig`、`ConfigError`、`RuntimeConfig`、`FeatureFlags`、`LoadConfigOptions`
 **事件类型（转发自 C1）**：`RuntimeEvent` 及 §1 `events` 全部事件接口
-**facade 转发**：`export *` → `@agent-runtime/types`、`@agent-runtime/memory`（含 Checkpoint）、`@agent-runtime/artifact`、`@agent-runtime/sandbox`、`@agent-runtime/policy`
+
+> **M7-2（2026-09-11，additive/minor）**：19 个事件接口统一增可选 `traceId?`（由 `emit()` 与 `redact()` 同点注入）；`run:start` 增 `startedAt`、`run:end` 增 `endedAt`（epoch ms）；`RunOptions` 增可选 `traceId?`，`RunResult` 增 `traceId`；`Logger` 增可选 `child?(ctx: LogContext): Logger`（`ConsoleLogger` 已实现，未绑定上下文时输出格式逐字不变）。`LogContext` 为本次新增导出。
+**facade 转发**：`export *` → `@node-agent-runtime/types`、`@node-agent-runtime/memory`（含 Checkpoint）、`@node-agent-runtime/artifact`、`@node-agent-runtime/sandbox`、`@node-agent-runtime/policy`
 
 > **事件总线可注入（2026-09-08）**：`AgentRuntimeOptions.events?: EventBus<RuntimeEvent>` —— 宿主可创建并注入总线（默认仍自建）。配合 `SessionManagerOptions.events`，host 不再需要借用 `runtime.events` 内部构件。
 > 已移出：`SessionManager` / `SessionError` / Session·Task 类型 → `host`；MCP 全部 → `mcp`；`MockProvider` → `mock`；`builtinTools` / `evaluate` / `CURRENCY_ALIASES` / `CurrencyCode` → `tools-basic`；Checkpoint 全部 → `memory`（经 facade 转发，从 core 导入仍可用）。
 
-## 3. `@agent-runtime/memory`（C3 · 记忆 + Checkpoint）
+## 3. `@node-agent-runtime/memory`（C3 · 记忆 + Checkpoint）
 
 **会话记忆**：`SessionMemory`、`Memory`、`MemoryFact`、`MemoryRecall`、`SessionMemoryOptions`
 **Checkpoint（M2）**：`CheckpointStore`、`CheckpointStoreOptions`、`CheckpointMismatchError`、`computeToolsHash`、`assertResumable`、`Checkpoint`、`CheckpointSeed`、`AgentSnapshot`、`ToolSurface`
 
 > `ToolSurface`（`{ name, tools }` 结构化契约）取代原先对 `Agent` 类的依赖，使本包仅依赖 types。
 
-## 4. `@agent-runtime/artifact`
+## 4. `@node-agent-runtime/artifact`
 
 `ArtifactManager`、`ArtifactManagerOptions`、`ArtifactError`、`MIME_BY_KIND`、`blobKeyOf`、`Artifact`、`ArtifactKind`、`ArtifactInput`（后三者 re-export 自 C1）
 
-## 5. `@agent-runtime/sandbox`（C4）
+## 5. `@node-agent-runtime/sandbox`（C4）
 
 `LocalSandbox`、`LocalSandboxOptions`、`Sandbox`、`SandboxHandle`、`SandboxMode`、`SandboxScope`、`SandboxRunContext`、`SandboxWriteInfo`、`SandboxViolationError`、`SandboxTimeoutError`、`isPathAllowed`、`simpleDiff`、`classifyToolName`、`toolKind`（后二者 re-export 自 C1）
 
-## 6. `@agent-runtime/policy`（C5）
+## 6. `@node-agent-runtime/policy`（C5）
 
 `PermissionManager`、`PermissionManagerOptions`、`PermissionPolicy`、`DefaultPermissionPolicy`、`DefaultPermissionPolicyOptions`、`StaticPolicy`、`combinePolicies`、`toolListPolicy`、`Verdict`、`Decision`、`DecisionMatrix`、`PermissionContext`、`PermissionCall`、`GateResult`、`PendingDecision`、`createProductionPolicy`、`secureScope`、`createProductionDefaults`、`PRODUCTION_MATRIX`
 
-## 7. `@agent-runtime/tools-basic`（演示资产）
+## 7. `@node-agent-runtime/tools-basic`（演示资产）
 
 `builtinTools`、`CURRENCY_ALIASES`、`CurrencyCode`、`evaluate`
 
-## 8. `@agent-runtime/mock`（演示资产）
+## 8. `@node-agent-runtime/mock`（演示资产）
 
 `MockProvider`
 
-## 9. `@agent-runtime/host`（C8）
+## 9. `@node-agent-runtime/host`（C8）
 
 `SessionManager`、`SessionManagerOptions`、`SessionError`、`Session`、`SessionStatus`、`Task`、`TaskStatus`、`RunRecord`、`RunStatus`、`ChatOutcome`
 
 > `SessionManager.events` 为公开只读字段（宿主注入或复用 runtime 总线）。
 
-## 10. `@agent-runtime/mcp`（C6）
+## 10. `@node-agent-runtime/mcp`（C6）
 
 `McpClient`、`McpClientOptions`、`McpRegistry`、`McpRegistryOptions`、`RegisteredServer`、`StdioTransport`、`StdioTransportOptions`、`StreamableHttpTransport`、`StreamableHttpTransportOptions`、`McpTransport`、`McpError`、`McpTimeoutError`、`McpConnectionError`、`MCP_PROTOCOL_VERSION`、`MCP_TOOL_PREFIX`、`mcpToolName`、`parseMcpToolName`、`normalizeSchema`、`pathArgKeysOf`、`parseSse`、`validateMcpServerUrl`、`McpServerHandle`、`McpToolMeta`、`McpToolRef`、`McpCallToolResult`、`McpServerInfo`、`McpServerCapabilities`、`McpInitializeResult`、`McpTextContent`
 
-## 11. `@agent-runtime/provider-openai`（C7）
+## 11. `@node-agent-runtime/provider-openai`（C7）
 
 `OpenAIClientProvider`、`OpenAIClientOptions`
 
-## 12. `@agent-runtime/store-sqlite`（C9）
+## 12. `@node-agent-runtime/store-sqlite`（C9）
 
 `SQLiteStorage`、`SQLiteStorageOptions`、`SCHEMA_VERSION`
 

@@ -7,9 +7,9 @@ import {
   defineTool,
   type AnyTool,
   type RuntimeEvent,
-} from "@agent-runtime/core";
-import { MockProvider } from "@agent-runtime/mock";
-import { builtinTools } from "@agent-runtime/tools-basic";
+} from "@node-agent-runtime/core";
+import { MockProvider } from "@node-agent-runtime/mock";
+import { builtinTools } from "@node-agent-runtime/tools-basic";
 
 function makeRuntime() {
   return new AgentRuntime({

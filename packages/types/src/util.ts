@@ -5,7 +5,7 @@
  *
  * Declared here (instead of reusing `NodeJS.ProcessEnv`) so the published
  * `.d.ts` files stay self-contained: consumers must not be forced to install
- * `@types/node` just to typecheck against `@agent-runtime/*`.
+ * `@types/node` just to typecheck against `@node-agent-runtime/*`.
  */
 export type ProcessEnv = Record<string, string | undefined>;
 

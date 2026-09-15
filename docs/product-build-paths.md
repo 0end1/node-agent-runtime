@@ -104,7 +104,7 @@
 | G6 | 无分发入口 | 根 `package.json` 为 `"private": true`，无 `bin` | 否 | 小 |
 | G7 | 成本视图 / 上下文压缩未做 | `costUsd` 是宿主钩子；M7-1 未实施 | 是（M7-1） | 中 |
 | G8 | 无 server/client 双端 | 仅 `examples/web/server.ts`（SSE 演示） | 否 | 中 |
-| **G9** | **无 ACP 适配** | 全仓无 ACP 相关实现 | **是**（新包 `@agent-runtime/acp`） | 小-中（**可复用 `packages/mcp` 的 JSON-RPC 与 stdio 传输**） |
+| **G9** | **无 ACP 适配** | 全仓无 ACP 相关实现 | **是**（新包 `@node-agent-runtime/acp`） | 小-中（**可复用 `packages/mcp` 的 JSON-RPC 与 stdio 传输**） |
 
 **排序变化（v2）**：v1 认为 G1/G2 是必经之路；v2 修正为——**G9（ACP）成本最低且收益最大**，可在无 G1、无 G3 的情况下先跑通产品形态；G2 决定体验上限（是否为前置取决于 §2.3）。
 
@@ -114,7 +114,7 @@
 
 | 路径 | 参照物 | 需新建 | 复用底座 | 阻断项 | 单人可行性 |
 |---|---|---|---|---|---|
-| **D. ACP Agent Server**（v2 推荐） | DeepChat / Zed / JetBrains | `@agent-runtime/acp`（协议包） | `mcp` 的 JSON-RPC + stdio；host/policy/sandbox/memory 全用上 | 传输方式与分块要求待核对 | **最高** |
+| **D. ACP Agent Server**（v2 推荐） | DeepChat / Zed / JetBrains | `@node-agent-runtime/acp`（协议包） | `mcp` 的 JSON-RPC + stdio；host/policy/sandbox/memory 全用上 | 传输方式与分块要求待核对 | **最高** |
 | **A. 终端编码 Agent** | opencode / Codex CLI | `tools-code` + 流式 + CLI 仓库 | 同上 | 无外部凭证 | 高 |
 | **B. 自建桌面/Web 工作台** | AionUi | 前端 + 复用 `desktop-tauri`（2026-09-10 已移出至产品侧）+ 签名更新 | 同上 + Artifact 面板 | **Apple 证书（P5.1~P5.4 随桌面端移出，需产品侧重新立项）** | 低（且被路径 D 替代） |
 | **C. 云端编码平台** | MonkeyCode / Codex Cloud | 云沙箱、任务队列、Git 机器人、团队与计费 | 引擎与治理链 | 基础设施 + 运维 + 合规 | **最低**（非单人项目） |
@@ -163,10 +163,10 @@
 
 | 优先 | 项 | 归属 | 验收口径 |
 |---|---|---|---|
-| **P0** | `@agent-runtime/acp`：`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 |
+| **P0** | `@node-agent-runtime/acp`：`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 |
 | **P0** | ACP 权限桥接：`session/request_permission` ↔ `PermissionManager`，`session/set_mode` ↔ `SandboxMode` | 底座（新包） | 写操作在壳内弹出授权；拒绝后模型自纠；模式切换真实改变沙箱行为 |
 | **P1** | 流式：`ModelProvider` 可选 `chatStream()` + SSE 解析 + `message:delta` | 底座（core / provider-openai） | 增量事件拼接结果与 `model:response` 文本一致；不支持流式的 provider 自动回退 |
-| **P1** | `@agent-runtime/tools-code`：`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash` | 底座（新包） | 路径必须在 Sandbox 声明域内；write 触发 `sandbox:write` 且 diff 正确；`bash` 超时终止并回填错误 |
+| **P1** | `@node-agent-runtime/tools-code`：`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash` | 底座（新包） | 路径必须在 Sandbox 声明域内；write 触发 `sandbox:write` 且 diff 正确；`bash` 超时终止并回填错误 |
 | **P2** | CLI 产品壳（独立仓库）：bin + 会话/审批/续跑/diff 展示 | 产品层 | 5 分钟内 `npx` 跑通一次带审批的改码任务；可被 AionUi 自动识别 |
 
 > 顺序理由：P0 两项目标是**最快拿到一个可被真实产品承载的形态**（复用已有分发渠道，零壳成本）；P1 决定体验上限与自持能力；P2 才涉及品牌与自持分发。

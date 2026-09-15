@@ -1,8 +1,8 @@
 # P5.6 · Web 部署形态：多阶段构建，运行时镜像只含产物与必要依赖。
 #
 # 在**仓库根目录**执行：
-#   docker build -f deploy/Dockerfile -t agent-runtime/console:0.2.0 .
-#   docker run --rm -p 8787:8787 --env-file deploy/env/prod.env.example agent-runtime/console:0.2.0
+#   docker build -f deploy/Dockerfile -t node-agent-runtime/console:0.2.0 .
+#   docker run --rm -p 8787:8787 --env-file deploy/env/prod.env.example node-agent-runtime/console:0.2.0
 #
 # 说明：控制台以 `tsx` 直接运行 TS 源码（与 `npm run demo:web` 一致）；
 # 若需纯 JS 启动，可在 build 阶段把 examples 一并 tsc 输出后改 CMD。

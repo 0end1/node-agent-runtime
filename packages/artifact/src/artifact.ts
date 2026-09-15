@@ -12,9 +12,9 @@
  * session/run by the host UI without touching payload bytes.
  */
 
-// Artifact 契约类型已下沉 C1（M6 C3 决策），实现留在 C3 `@agent-runtime/memory`。
-import { newId, ErrorCode } from "@agent-runtime/types";
-import type { Artifact, ArtifactInput, ArtifactKind, Storage } from "@agent-runtime/types";
+// Artifact 契约类型已下沉 C1（M6 C3 决策），实现留在 C3 `@node-agent-runtime/memory`。
+import { newId, ErrorCode } from "@node-agent-runtime/types";
+import type { Artifact, ArtifactInput, ArtifactKind, Storage } from "@node-agent-runtime/types";
 
 const BLOB_PREFIX = "blob:";
 

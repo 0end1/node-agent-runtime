@@ -8,10 +8,10 @@ import {
   type ModelProvider,
   type ModelRequest,
   type ModelResponse,
-} from "@agent-runtime/core";
-import { SessionManager, type Session } from "@agent-runtime/host";
-import { MockProvider } from "@agent-runtime/mock";
-import { builtinTools } from "@agent-runtime/tools-basic";
+} from "@node-agent-runtime/core";
+import { SessionManager, type Session } from "@node-agent-runtime/host";
+import { MockProvider } from "@node-agent-runtime/mock";
+import { builtinTools } from "@node-agent-runtime/tools-basic";
 
 function makeManager(storage = new MemoryStorage()) {
   const runtime = new AgentRuntime({

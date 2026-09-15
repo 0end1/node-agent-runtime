@@ -3,7 +3,7 @@
 > 记录时间：2026-09-07
 > 背景：M5 行内定义 = **独立分包 + Desktop 壳 + Web 控制台全面 Session 化**（`docs/architecture.md` §11，验收：桌面 demo 全流程可用）。
 > 决策：拆包暂缓（C3~C6/C8/facade 见 `docs/crate-split-todo.md`），本清单只列**与拆包解耦、现在即可前置**的工作。
-> 原则：仅消费引擎包的**公共 API**（`@agent-runtime/core` 及已外置的 `provider-openai` / `store-sqlite` / `host` 等）；C8 host 已于 M6 拆出，examples 改从 `@agent-runtime/host` 导入，本清单前置工作不白做。
+> 原则：仅消费引擎包的**公共 API**（`@node-agent-runtime/core` 及已外置的 `provider-openai` / `store-sqlite` / `host` 等）；C8 host 已于 M6 拆出，examples 改从 `@node-agent-runtime/host` 导入，本清单前置工作不白做。
 >
 > **阶段状态（2026-09-07 收尾）**：本清单前置项全部落地并验证；余下 #5 验收（安装分发实机验证、自动化 E2E、typecheck/test 全绿）移交**下一开发阶段**跟踪，本文件保留为验收依据。
 >
@@ -49,7 +49,7 @@
 > **追注（2026-09-10，底座收敛 · 桌面端移出）**：本节为 M5 历史交付记录，内容仍然有效；但桌面端已**整体移出底座范围、方向与投入归产品侧**（取代原「冻结为保留项」口径），底座侧不再投入、也不再判定其立项与否。承接与回填见 `docs/base-convergence.md` §2.3 · `docs/product-direction.md` §4 · `docs/m6-productionization.md` §5。
 
 - 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm --prefix ../../ run demo:web` 启动 Node server 提供 API + 静态，见 M5-4 Fixed）。
-- 仅依赖引擎公共 API（与 #1/#2 同源）；M6 起 C8 host 已拆为 `@agent-runtime/host`，示例改从子包导入，前置工作不白做。
+- 仅依赖引擎公共 API（与 #1/#2 同源）；M6 起 C8 host 已拆为 `@node-agent-runtime/host`，示例改从子包导入，前置工作不白做。
 - **生产 sidecar 已接入并验证**：release 构建时 `lib.rs::spawn_server` 以 `tauri-plugin-shell` sidecar 拉起 app 自带 Node 运行时执行打包好的 server bundle（监听 8787），窗口 `url` 固定指向该地址，dev/生产共用同一控制台与 API 面。`build-server.mjs` 在打包前生成 bundle + node 运行时副本 + 静态资源（`src-tauri/binaries/`，gitignore 忽略）；`tauri build` 产出 .app/.dmg，实跑 :8787 → 200（M5-6）。
 - **图标已生成**：`npx tauri icon` 产出 `src-tauri/icons/`（含 icns/ico/png），源码 `icon-source.png` 同目录。
 - 环境已具备：`cargo 1.98` + `node v22` + Xcode CLI + `@tauri-apps/cli`；`cargo check` 绿、`npm run tauri dev` 已点开验证窗口渲染（M5-4）。
@@ -63,7 +63,7 @@
 ## 5. 前置注意点
 
 - **审批挂起风险已解除（CLI）**：`examples/cli.ts` 已订阅 `permission:request` 并订阅 `sandbox:write`，run 阻塞等待授权时仍可接收 `/approve` `/deny`（事件驱动，不挂起）。新增演示写工具 `demo_write_file`（`kind: "write"`）默认触发 ask，可在 CLI demo 中直接演练 M3；Web 端（#2）仍需补齐审批 UI 才能不挂起。
-- **根 `engines` 不一致**：根 `node >=18.17` vs `@agent-runtime/store-sqlite` `>=22.13`（node:sqlite），接入 sqlite 演示前需统一口径。
+- **根 `engines` 不一致**：根 `node >=18.17` vs `@node-agent-runtime/store-sqlite` `>=22.13`（node:sqlite），接入 sqlite 演示前需统一口径。
 - **Desktop 技术栈已定 Tauri v2**（见 #3 明细）：仅依赖 `core` 公共 API；生产侧**自带 Node 运行时** sidecar 已打包验证（M5-6）。
 - **M2 续跑语义**：`resume` 无 `continuation` 时不追加用户轮次；CLI 续跑后的输入需走 `continuation` 传参，注意消息时序与一次性跑完一致（test 即规格，`core/test/session.test.ts`）。
 

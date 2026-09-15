@@ -26,7 +26,7 @@ const WRITE_INPUT = "请把 'hello e2e' 写入文件 .demo-out/e2e.txt";
 const WRITE_FILE = join(".demo-out", "e2e.txt");
 
 export async function runWeb({ port = 8791 } = {}) {
-  const workdir = makeWorkdir("agent-runtime-e2e-web-");
+  const workdir = makeWorkdir("node-agent-runtime-e2e-web-");
   const proc = startProcess("npx", ["tsx", SERVER_ENTRY], {
     cwd: workdir,
     env: { PORT: String(port), RUNTIME_DATA: join(workdir, ".runtime-data") },

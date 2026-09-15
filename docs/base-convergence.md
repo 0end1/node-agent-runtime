@@ -11,7 +11,7 @@
 
 | 项 | 结论 |
 |---|---|
-| **一等公民** | `packages/*` **12 个 workspace 包**（`@agent-runtime/*`）+ 公共 API 快照 + 质量门 + 发布编排 |
+| **一等公民** | `packages/*` **12 个 workspace 包**（`@node-agent-runtime/*`）+ 公共 API 快照 + 质量门 + 发布编排 |
 | **降级** | `examples/cli.ts`、`examples/web/`、`deploy/`、`scripts/e2e/`、`scripts/smoke-web.mjs` → **验证载体**（只验证底座，不演进产品） |
 | **移出（产品侧）** | `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs`、P5.1~P5.4 → **移出底座范围（HANDOFF）**：底座不再投入、也不再对其立项与否作判定，**方向与投入归产品侧**（见 §2.3） |
 | **不立项** | 垂直行业应用、Rust 移植、多 Agent 协同（维持远期/否决，见 §2.4）；**桌面形态不在底座判定范围**（见 §2.3） |
@@ -36,18 +36,18 @@
 
 | 包 | 职责 | 边界规则 |
 |---|---|---|
-| `@agent-runtime/types` | 契约叶子包（消息/工具/事件/Storage/Artifact + schema 校验器 + 零 IO 纯函数） | 零依赖，任何包可依赖；公共面已冻结快照 |
-| `@agent-runtime/core` | 引擎（run loop / Agent / Context / 事件总线 / 工具与 provider 契约 / Memory·FileStorage） | 不感知产品概念（会话标题、审批弹窗、多窗口） |
-| `@agent-runtime/host` | `SessionManager`：Session → Task → Run 生命周期与落盘 | 唯一「产品策略」承接层，但不含 UI |
-| `@agent-runtime/memory` | `SessionMemory` + `Checkpoint`（步级快照） | 依赖 types |
-| `@agent-runtime/artifact` | `ArtifactManager` 产物管理 | 依赖 types，一包一职责 |
-| `@agent-runtime/sandbox` | `LocalSandbox` 三档执行域 + 声明域 + 禁网 + 超时 | 依赖 types |
-| `@agent-runtime/policy` | `PermissionManager` / `DefaultPermissionPolicy` 授权决策 | 依赖 types，与 sandbox 正交 |
-| `@agent-runtime/mcp` | MCP 适配（stdio / streamable HTTP / 物化为本地工具） | 协议翻译，无产品概念 |
-| `@agent-runtime/provider-openai` | OpenAI 兼容 fetch 后端 | 模型中立，凭 `ModelProvider` 接缝 |
-| `@agent-runtime/store-sqlite` | `SQLiteStorage`（迁移/索引/在线备份） | `node:sqlite`，可选后端 |
-| `@agent-runtime/tools-basic` | 内置基础工具集（演示与开箱可用） | 非引擎必需，可被替换 |
-| `@agent-runtime/mock` | 免密钥 `MockProvider`（离线可跑/测试桩） | 非引擎必需，测试与示例专用 |
+| `@node-agent-runtime/types` | 契约叶子包（消息/工具/事件/Storage/Artifact + schema 校验器 + 零 IO 纯函数） | 零依赖，任何包可依赖；公共面已冻结快照 |
+| `@node-agent-runtime/core` | 引擎（run loop / Agent / Context / 事件总线 / 工具与 provider 契约 / Memory·FileStorage） | 不感知产品概念（会话标题、审批弹窗、多窗口） |
+| `@node-agent-runtime/host` | `SessionManager`：Session → Task → Run 生命周期与落盘 | 唯一「产品策略」承接层，但不含 UI |
+| `@node-agent-runtime/memory` | `SessionMemory` + `Checkpoint`（步级快照） | 依赖 types |
+| `@node-agent-runtime/artifact` | `ArtifactManager` 产物管理 | 依赖 types，一包一职责 |
+| `@node-agent-runtime/sandbox` | `LocalSandbox` 三档执行域 + 声明域 + 禁网 + 超时 | 依赖 types |
+| `@node-agent-runtime/policy` | `PermissionManager` / `DefaultPermissionPolicy` 授权决策 | 依赖 types，与 sandbox 正交 |
+| `@node-agent-runtime/mcp` | MCP 适配（stdio / streamable HTTP / 物化为本地工具） | 协议翻译，无产品概念 |
+| `@node-agent-runtime/provider-openai` | OpenAI 兼容 fetch 后端 | 模型中立，凭 `ModelProvider` 接缝 |
+| `@node-agent-runtime/store-sqlite` | `SQLiteStorage`（迁移/索引/在线备份） | `node:sqlite`，可选后端 |
+| `@node-agent-runtime/tools-basic` | 内置基础工具集（演示与开箱可用） | 非引擎必需，可被替换 |
+| `@node-agent-runtime/mock` | 免密钥 `MockProvider`（离线可跑/测试桩） | 非引擎必需，测试与示例专用 |
 
 **底座附带设施（同属一等公民）**：`docs/api-surface.md`（API 快照，`npm run check:api` 门禁）、`npm run ci`（typecheck → lint → test → coverage:gate → check:api → size）、changesets + `.github/workflows/release.yml`、`CONTRIBUTING.md` / `SECURITY.md` / `LICENSE`。
 

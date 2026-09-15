@@ -19,7 +19,7 @@ const CLI_ENTRY = join(REPO_ROOT, "examples", "cli.ts");
 const WRITE_FILE = join(".demo-out", "cli.txt");
 
 export async function runCli() {
-  const workdir = makeWorkdir("agent-runtime-e2e-cli-");
+  const workdir = makeWorkdir("node-agent-runtime-e2e-cli-");
   const proc = startProcess("npx", ["tsx", CLI_ENTRY], {
     cwd: workdir,
     env: { RUNTIME_DATA: join(workdir, ".runtime-data") },

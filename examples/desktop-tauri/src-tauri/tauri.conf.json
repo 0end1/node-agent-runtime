@@ -47,7 +47,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/0end1/nodeRuntime/releases/latest/download/latest.json"
+        "https://github.com/0end1/node-agent-runtime/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFCOEU1RUIwMTREOUM5NDUKUldSRnlka1VzRjZPcTYvZ2Y3Z3RxcmpXUlNQWHk1ekRZaWV0T3g4RzBrL21mR1VNRXNUcm92YjkK"
     }

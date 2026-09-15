@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { loadConfig, ConfigError } from "@agent-runtime/core";
-import { ErrorCode } from "@agent-runtime/types";
+import { loadConfig, ConfigError } from "@node-agent-runtime/core";
+import { ErrorCode } from "@node-agent-runtime/types";
 
 const ENV = (over: Record<string, string | undefined> = {}) =>
   ({ ...over }) as NodeJS.ProcessEnv;

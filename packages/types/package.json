@@ -1,8 +1,8 @@
 {
-  "name": "@agent-runtime/types",
-  "version": "0.2.0",
+  "name": "@node-agent-runtime/types",
+  "version": "0.3.0",
   "description": "C1 shared leaf package of the Agent runtime: message/tool-call contracts, JSON Schema subset validator and zero-IO pure helpers. No internal dependencies.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": {
     "name": "wangzhiyong",
     "email": "y1378379002@gmail.com",
@@ -26,15 +26,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/0end1/nodeRuntime.git",
+    "url": "https://github.com/0end1/node-agent-runtime.git",
     "directory": "packages/types"
   },
-  "homepage": "https://github.com/0end1/nodeRuntime",
+  "homepage": "https://github.com/0end1/node-agent-runtime",
   "bugs": {
-    "url": "https://github.com/0end1/nodeRuntime/issues"
+    "url": "https://github.com/0end1/node-agent-runtime/issues"
   },
   "keywords": [
-    "agent-runtime",
+    "node-agent-runtime",
     "agent",
     "contracts",
     "types",

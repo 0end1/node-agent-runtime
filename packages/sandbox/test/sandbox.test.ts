@@ -14,8 +14,8 @@ import {
   type ModelResponse,
   type RuntimeEvent,
   type ToolExecutionContext,
-} from "@agent-runtime/core";
-import { SessionManager, type SessionManagerOptions } from "@agent-runtime/host";
+} from "@node-agent-runtime/core";
+import { SessionManager, type SessionManagerOptions } from "@node-agent-runtime/host";
 import {
   LocalSandbox,
   SandboxTimeoutError,
@@ -24,8 +24,8 @@ import {
   isPathAllowed,
   simpleDiff,
   type SandboxWriteInfo,
-} from "@agent-runtime/sandbox";
-import { PermissionManager, StaticPolicy } from "@agent-runtime/policy";
+} from "@node-agent-runtime/sandbox";
+import { PermissionManager, StaticPolicy } from "@node-agent-runtime/policy";
 
 // --------------------------------------------------------------- test double
 

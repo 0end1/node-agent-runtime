@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { MemoryStorage } from "@agent-runtime/core";
-import type { ApprovalRecord } from "@agent-runtime/types";
-import { StorageApprovalStore } from "@agent-runtime/host";
+import { MemoryStorage } from "@node-agent-runtime/core";
+import type { ApprovalRecord } from "@node-agent-runtime/types";
+import { StorageApprovalStore } from "@node-agent-runtime/host";
 
 function record(over: Partial<ApprovalRecord> = {}): ApprovalRecord {
   return {

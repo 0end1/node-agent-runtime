@@ -1,5 +1,5 @@
 import { resolve, sep } from "node:path";
-import { ErrorCode, toolKind, type AnyTool, type ToolKind } from "@agent-runtime/types";
+import { ErrorCode, toolKind, type AnyTool, type ToolKind } from "@node-agent-runtime/types";
 
 /**
  * Sandbox — run-level execution boundary (M3, docs/architecture.md §6.2 v1.2).
@@ -84,9 +84,9 @@ export class SandboxTimeoutError extends Error {
 
 // ------------------------------------------------------------- classification
 
-// 工具分类（classifyToolName / toolKind）已下沉 C1 `@agent-runtime/types`
+// 工具分类（classifyToolName / toolKind）已下沉 C1 `@node-agent-runtime/types`
 //（M6 P1 审查 P1：分类属工具元数据推断，非执行域职责）。此处 re-export 保持本包 API 不变。
-export { classifyToolName, toolKind } from "@agent-runtime/types";
+export { classifyToolName, toolKind } from "@node-agent-runtime/types";
 
 const PATH_KEY = /(^|_)(path|paths|file|filepath|filename|dir|folder|target|to|from|root)$/i;
 

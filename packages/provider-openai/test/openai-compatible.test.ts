@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-import { ModelRequestError, defineTool } from "@agent-runtime/core";
-import type { ModelRequest } from "@agent-runtime/core";
-import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
+import { ModelRequestError, defineTool } from "@node-agent-runtime/core";
+import type { ModelRequest } from "@node-agent-runtime/core";
+import { OpenAIClientProvider } from "@node-agent-runtime/provider-openai";
 
 // ---- fetch stubbing helpers ------------------------------------------------
 

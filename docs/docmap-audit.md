@@ -66,7 +66,7 @@
 
 1. **`docs/crate-split-todo.md` §5 决策块**：仍记录早期决策「§8-5 已定：不出（不拆 C8 host）」；该决策已被 `remaining-tasks.md` §3-C1 **修订为「拆」** 并已执行（M6-7 拆出 host）。属被推翻而未回填。§2/§3 亦将 `artifact` 描述为「实现并入 C3 memory」「checkpoint 待迁」，与 M6-9 拆出 `artifact` 包、M6-10 checkpoint 归位 memory 矛盾。→ 建议收尾勾选后整体标注「M6 已执行完毕，归档」。
 2. **`README.md` §项目结构**：core 子树仍含 `session.ts`（已迁 host）、`tools/`、`providers/`（已迁 tools-basic/mock），mcp 子树所列 `types/schema/util` 系 C1 旧文件——是拆包前的旧树残留，与同页 12 包外层列表自相矛盾。
-3. **`README.md` 代码示例**：`import { MockProvider, builtinTools } from "./src/index.js"` —— 单包时代路径；M6-9 起二者属 `@agent-runtime/mock` / `@agent-runtime/tools-basic`（core facade 亦不再导出），示例无法被新消费者照抄。
+3. **`README.md` 代码示例**：`import { MockProvider, builtinTools } from "./src/index.js"` —— 单包时代路径；M6-9 起二者属 `@node-agent-runtime/mock` / `@node-agent-runtime/tools-basic`（core facade 亦不再导出），示例无法被新消费者照抄。
 
 ### 🟡 局部滞后（有事实源兜底，但措辞/快照需同步）
 
@@ -75,8 +75,8 @@
 6. **`docs/development-checklist.md`**：§0 M6 行与 §3.1 P1 描述停在「9 包 + Gate1」视图；P2 行整体 ☐，未将 **P2.7（api-surface CI）✅** 拆出勾选；M6-9~11 审查整改（1804→1005 行等）未在 M6 行体现。
 7. **`docs/crate-architecture.md`**：修订记录止于 **v0.10（M6-7）**；缺 v0.11 行记录 12 包终局（artifact/tools-basic/mock、checkpoint 归位 C3、classifyToolName 下沉 C1、事件总线可注入、M6-9~11 整改）。头部「状态：C1/C2 已落地 v0.2」亦旧。§3 C3 行「Artifact 实现并 C3」已被 M6-9 推翻。
 8. **`docs/remaining-tasks.md`**：正文「当前执行：…B1（mcp）进行中」与「B2 移出 M6」为 M6-7 中间态叙述；现 B1~B4 与 C1~C4 全部完成。属历史索引，宜加「已于 M6 收口」注记归档。
-9. **`examples/desktop-tauri/README.md` 末节**：「未来若拆 C8 host，examples 把 import 源从 core 换成 host 即可」——C8 host 已拆（M6-7）且 `examples/*` 已切至 `@agent-runtime/host`（M6-9/M6-10），该句描述的"未来"已发生，建议改写为现状说明。
-10. **`docs/architecture.md` §5.3/§6.1/§6.2/§8.1/§9 实现注记**：仍注明「落地于 C2 `packages/core/src/{mcp,artifact,permission,sandbox}…`」。§10 v1.9 注记与 §13 已给出终局（12 包），故不算错，但按文件名/目录检索会误导——建议在各注记尾部补一行「M6 已迁出至 @agent-runtime/*」。
+9. **`examples/desktop-tauri/README.md` 末节**：「未来若拆 C8 host，examples 把 import 源从 core 换成 host 即可」——C8 host 已拆（M6-7）且 `examples/*` 已切至 `@node-agent-runtime/host`（M6-9/M6-10），该句描述的"未来"已发生，建议改写为现状说明。
+10. **`docs/architecture.md` §5.3/§6.1/§6.2/§8.1/§9 实现注记**：仍注明「落地于 C2 `packages/core/src/{mcp,artifact,permission,sandbox}…`」。§10 v1.9 注记与 §13 已给出终局（12 包），故不算错，但按文件名/目录检索会误导——建议在各注记尾部补一行「M6 已迁出至 @node-agent-runtime/*」。
 11. **`docs/architecture.md` §11 M6 行**：Gate 1 关闭注记内文「9 个 workspace 包」为 M6-8 措辞；v1.9 更新在同一格内补充了 12 包说明，需连读才不误解（建议精简为终局表述）。
 
 ### ✅ 与基线一致（无需动作）
@@ -142,7 +142,7 @@ CHANGELOG.md（贯穿所有条目的变更事实）
 | P1 | m6 P1 段补 12 包注记；development-checklist §0/§3.1 同步 P2.7 ✅ 与 M6-9~11 摘要 | `m6-productionization.md`、`development-checklist.md` |
 | P1 | crate-architecture 补 v0.11 修订行（12 包终局）并刷新头部状态 | `docs/crate-architecture.md` |
 | P1 | remaining-tasks 加「M6 已收口」归档注记；desktop README 末节改现状 | `remaining-tasks.md`、`examples/desktop-tauri/README.md` |
-| P2 | architecture §5.3/6.1/6.2/8.1/9 注记尾部补「M6 已迁 @agent-runtime/*」；§11 M6 行精简为终局 | `docs/architecture.md` |
+| P2 | architecture §5.3/6.1/6.2/8.1/9 注记尾部补「M6 已迁 @node-agent-runtime/*」；§11 M6 行精简为终局 | `docs/architecture.md` |
 | P2 | 将本盘点沉淀为 `docs/` 索引页（可选），作为 P6.2/6.4 文档收敛的输入 | 新增（待定） |
 | P3 | LICENSE / CONTRIBUTING / SECURITY / CI 编排等缺失项随 M6 P2/P4/P6 补齐 | 新增（见 §4） |
 

@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   # P2.1 主流程：typecheck → lint → test → build → API 面复核（P2.7）
-  # Node matrix：固定 22.x —— @agent-runtime/store-sqlite 依赖 node:sqlite（>=22.5），
+  # Node matrix：固定 22.x —— @node-agent-runtime/store-sqlite 依赖 node:sqlite（>=22.5），
   # 根 engines 与包 engines 的统一口径待 P4.3 收敛，届时再扩 matrix。
   quality:
     name: quality (node ${{ matrix.node }})

@@ -1,62 +1,62 @@
 {
-  "@agent-runtime/artifact": {
-    "packageSize": 5104,
-    "unpackedSize": 14838,
+  "@node-agent-runtime/artifact": {
+    "packageSize": 8359,
+    "unpackedSize": 25180,
     "entryCount": 10
   },
-  "@agent-runtime/core": {
-    "packageSize": 97696,
-    "unpackedSize": 387291,
+  "@node-agent-runtime/core": {
+    "packageSize": 102642,
+    "unpackedSize": 403923,
     "entryCount": 110
   },
-  "@agent-runtime/host": {
-    "packageSize": 17254,
-    "unpackedSize": 67837,
+  "@node-agent-runtime/host": {
+    "packageSize": 20435,
+    "unpackedSize": 78279,
     "entryCount": 14
   },
-  "@agent-runtime/mcp": {
-    "packageSize": 26119,
-    "unpackedSize": 90545,
+  "@node-agent-runtime/mcp": {
+    "packageSize": 29248,
+    "unpackedSize": 100912,
     "entryCount": 26
   },
-  "@agent-runtime/memory": {
-    "packageSize": 11758,
-    "unpackedSize": 38298,
+  "@node-agent-runtime/memory": {
+    "packageSize": 14982,
+    "unpackedSize": 48665,
     "entryCount": 18
   },
-  "@agent-runtime/mock": {
-    "packageSize": 9584,
-    "unpackedSize": 27680,
+  "@node-agent-runtime/mock": {
+    "packageSize": 12873,
+    "unpackedSize": 38032,
     "entryCount": 10
   },
-  "@agent-runtime/policy": {
-    "packageSize": 11747,
-    "unpackedSize": 45211,
+  "@node-agent-runtime/policy": {
+    "packageSize": 14946,
+    "unpackedSize": 55568,
     "entryCount": 14
   },
-  "@agent-runtime/provider-openai": {
-    "packageSize": 5738,
-    "unpackedSize": 17125,
+  "@node-agent-runtime/provider-openai": {
+    "packageSize": 8981,
+    "unpackedSize": 27467,
     "entryCount": 10
   },
-  "@agent-runtime/sandbox": {
-    "packageSize": 7920,
-    "unpackedSize": 23742,
+  "@node-agent-runtime/sandbox": {
+    "packageSize": 11148,
+    "unpackedSize": 34094,
     "entryCount": 10
   },
-  "@agent-runtime/store-sqlite": {
-    "packageSize": 7289,
-    "unpackedSize": 23299,
+  "@node-agent-runtime/store-sqlite": {
+    "packageSize": 10508,
+    "unpackedSize": 33631,
     "entryCount": 10
   },
-  "@agent-runtime/tools-basic": {
-    "packageSize": 8735,
-    "unpackedSize": 30357,
+  "@node-agent-runtime/tools-basic": {
+    "packageSize": 12003,
+    "unpackedSize": 40724,
     "entryCount": 14
   },
-  "@agent-runtime/types": {
-    "packageSize": 19031,
-    "unpackedSize": 59387,
+  "@node-agent-runtime/types": {
+    "packageSize": 22282,
+    "unpackedSize": 70949,
     "entryCount": 46
   }
 }

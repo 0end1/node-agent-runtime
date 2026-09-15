@@ -22,7 +22,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import type { DocDomain, Storage, StreamDomain } from "@agent-runtime/core";
+import type { DocDomain, Storage, StreamDomain } from "@node-agent-runtime/core";
 
 export interface SQLiteStorageOptions {
   /** Database file path. Parent directories are created if missing. */
@@ -82,7 +82,7 @@ function applyMigrations(db: DatabaseSync): void {
   const current = Number(row?.user_version ?? 0);
   if (current > SCHEMA_VERSION) {
     throw new Error(
-      `SQLite schema 版本 ${current} 高于本程序支持的 ${SCHEMA_VERSION}：请升级 @agent-runtime/store-sqlite 后再打开该数据库`,
+      `SQLite schema 版本 ${current} 高于本程序支持的 ${SCHEMA_VERSION}：请升级 @node-agent-runtime/store-sqlite 后再打开该数据库`,
     );
   }
   for (let v = current + 1; v <= SCHEMA_VERSION; v++) {

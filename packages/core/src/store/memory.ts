@@ -1,4 +1,4 @@
-import type { DocDomain, Storage, StreamDomain } from "@agent-runtime/types";
+import type { DocDomain, Storage, StreamDomain } from "@node-agent-runtime/types";
 
 /**
  * In-memory Storage — the zero-I/O implementation bundled with the core.

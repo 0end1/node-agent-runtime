@@ -23,13 +23,13 @@ import {
   type LogLevel,
   type ModelProvider,
   type RuntimeEvent,
-} from "@agent-runtime/core";
-import { SessionManager, type Session } from "@agent-runtime/host";
-import { createProductionDefaults } from "@agent-runtime/policy";
-import { MockProvider } from "@agent-runtime/mock";
-import { builtinTools } from "@agent-runtime/tools-basic";
-import { OpenAIClientProvider } from "@agent-runtime/provider-openai";
-import { SQLiteStorage } from "@agent-runtime/store-sqlite";
+} from "@node-agent-runtime/core";
+import { SessionManager, type Session } from "@node-agent-runtime/host";
+import { createProductionDefaults } from "@node-agent-runtime/policy";
+import { MockProvider } from "@node-agent-runtime/mock";
+import { builtinTools } from "@node-agent-runtime/tools-basic";
+import { OpenAIClientProvider } from "@node-agent-runtime/provider-openai";
+import { SQLiteStorage } from "@node-agent-runtime/store-sqlite";
 import {
   decideAuth,
   decideCors,

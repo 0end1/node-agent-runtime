@@ -8,9 +8,9 @@ import {
   redact,
   RunAbortedError,
   type Logger,
-} from "@agent-runtime/core";
-import { errorInfo, ErrorCode } from "@agent-runtime/types";
-import { SandboxViolationError } from "@agent-runtime/sandbox";
+} from "@node-agent-runtime/core";
+import { errorInfo, ErrorCode } from "@node-agent-runtime/types";
+import { SandboxViolationError } from "@node-agent-runtime/sandbox";
 
 describe("Logger / ConsoleLogger", () => {
   it("filters by level", () => {
@@ -20,7 +20,7 @@ describe("Logger / ConsoleLogger", () => {
     logger.info("i");
     logger.warn("w");
     logger.error("e");
-    assert.deepEqual(lines, ["[agent-runtime warn] w", "[agent-runtime error] e"]);
+    assert.deepEqual(lines, ["[node-agent-runtime warn] w", "[node-agent-runtime error] e"]);
   });
 
   it("serializes meta as JSON", () => {

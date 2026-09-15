@@ -5,7 +5,7 @@
 > 以下说明为移出底座前状态，内容仍然有效，但不再随底座主线更新（由产品侧按需维护）。
 
 将 `examples/web` 控制台装入桌面窗口，作为 M5「Desktop 壳」交付物。
-技术栈：**Tauri v2**，仅依赖 `@agent-runtime/core` 公共 API（与 CLI/Web 演示同源）。
+技术栈：**Tauri v2**，仅依赖 `@node-agent-runtime/core` 公共 API（与 CLI/Web 演示同源）。
 
 ## 目录结构
 
@@ -171,7 +171,7 @@ npm run build
 ## 与拆包（C8 host）的关系
 
 Desktop 壳不引用任何内部模块，仅通过 `examples/web` 的 HTTP 面消费 Agent Runtime
-公共能力。C8 host 已于 M6 拆为 `@agent-runtime/host`，CLI/Web 示例均改从对应子包
-导入（`@agent-runtime/core` / `@agent-runtime/host` / `@agent-runtime/mock` /
-`@agent-runtime/tools-basic` 等，见 README「项目结构」）；本壳不参与包内实现，
+公共能力。C8 host 已于 M6 拆为 `@node-agent-runtime/host`，CLI/Web 示例均改从对应子包
+导入（`@node-agent-runtime/core` / `@node-agent-runtime/host` / `@node-agent-runtime/mock` /
+`@node-agent-runtime/tools-basic` 等，见 README「项目结构」）；本壳不参与包内实现，
 后续包结构再调整也无需改动本壳。

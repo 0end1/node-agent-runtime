@@ -6,4 +6,4 @@ export { ArtifactManager, ArtifactError, MIME_BY_KIND, blobKeyOf } from "./artif
 export type { ArtifactManagerOptions } from "./artifact.js";
 
 // 契约类型位于 C1，此处 re-export 便于宿主单点导入。
-export type { Artifact, ArtifactKind, ArtifactInput } from "@agent-runtime/types";
+export type { Artifact, ArtifactKind, ArtifactInput } from "@node-agent-runtime/types";

@@ -1,4 +1,4 @@
-import type { SandboxMode, SandboxScope } from "@agent-runtime/sandbox";
+import type { SandboxMode, SandboxScope } from "@node-agent-runtime/sandbox";
 import {
   DefaultPermissionPolicy,
   type DecisionMatrix,

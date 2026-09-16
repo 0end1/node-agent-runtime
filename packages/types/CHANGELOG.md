@@ -1,5 +1,11 @@
 # @node-agent-runtime/types
 
+## 0.4.2
+
+### Patch Changes
+
+- d70f7bc: chore: release 0.4.2 to verify OIDC trusted publishing (no functional changes)
+
 ## 0.4.1
 
 No changes in this release.

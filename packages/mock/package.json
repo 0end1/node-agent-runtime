@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/mock",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Mock provider package of the Agent runtime: MockProvider — a deterministic, keyless rule-based model for demos, tests and offline runs. Demo/test asset; kept out of the core to keep the engine lean (M6 P1 review, P0).",
   "license": "Apache-2.0",
   "author": {
@@ -44,16 +44,16 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@node-agent-runtime/tools-basic": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/tools-basic": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "devDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "peerDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

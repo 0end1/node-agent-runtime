@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/memory",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "C3 memory package of the Agent runtime: SessionMemory (session transcript + long-term fact layer) and the checkpoint facility (step snapshots + resume validation on a ToolSurface). ArtifactManager lives in @node-agent-runtime/artifact. Depends only on @node-agent-runtime/types.",
   "license": "Apache-2.0",
   "author": {
@@ -44,10 +44,10 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "peerDependencies": {
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -55,6 +55,6 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/types": "^0.4.2"
   }
 }

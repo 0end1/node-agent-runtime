@@ -40,7 +40,7 @@ jobs:
       # dist 必须是最新的：changeset publish 直接发布 files:["dist"] 的内容
       - run: npm run build
       - name: version or publish
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           version: npm run version-packages
           publish: npm run release

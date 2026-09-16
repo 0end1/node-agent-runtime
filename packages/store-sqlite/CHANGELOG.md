@@ -1,5 +1,12 @@
 # @node-agent-runtime/store-sqlite
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @node-agent-runtime/core@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

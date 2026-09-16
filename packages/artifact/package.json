@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/artifact",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Artifact package of the Agent runtime: ArtifactManager — metadata rows in the Storage doc domain plus payloads in the blob domain (text/file/chart/url), cascaded cleanup per session. Split out of the memory package (M6 P1 review, P1) so each package matches one concern.",
   "license": "Apache-2.0",
   "author": {
@@ -44,14 +44,17 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "peerDependencies": {
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@node-agent-runtime/types": "^0.4.1"
   }
 }

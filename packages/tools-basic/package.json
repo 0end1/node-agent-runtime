@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/tools-basic",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Basic built-in tools package of the Agent runtime: calculator (safe Pratt parser, no eval), now/geocode/weather/exchange demos and the builtinTools collection. Demo-friendly defaults; kept out of the core to keep the engine lean (M6 P1 review, P0).",
   "license": "Apache-2.0",
   "author": {
@@ -44,16 +44,20 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/core": "^0.4.0",
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/core": "^0.4.1",
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "peerDependencies": {
-    "@node-agent-runtime/core": "^0.4.0",
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/core": "^0.4.1",
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@node-agent-runtime/core": "^0.4.1",
+    "@node-agent-runtime/types": "^0.4.1"
   }
 }

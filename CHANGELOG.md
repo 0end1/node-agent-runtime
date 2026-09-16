@@ -734,6 +734,21 @@
 - README：核心概念表新增 `Memory` / `Checkpoint` / `resume` 说明
 - `docs/crate-architecture.md`：§6 里程碑表 M2 行标注「功能已在 C2 内落地，C3 拆包留待 M5」
 
+## [0.4.1] - 2026-09-16
+
+**Fixed：补齐 workspace 内部依赖声明（首个真正可用的发布版）**
+
+- **背景**：0.4.0 已于 2026-09-16 首次发布到 npm（12 包、带 provenance），但**构建产物实际 `import` 的 workspace 内部包并未写入 `package.json` 的 `dependencies`**。本地 monorepo 依靠符号链接让各包互相可见，该问题被完全掩盖；一旦发布，`npm install` 不会安装这些未声明的包，`import` 直接抛 `ERR_MODULE_NOT_FOUND`
+- **典型症状**：`Cannot find package '@node-agent-runtime/artifact' imported from .../node_modules/@node-agent-runtime/core/dist/index.js`
+- **修复范围（10 个包）**：`core`（+`artifact`、`sandbox`）、`host`（+`types`、`core`、`artifact`）、`mcp`（+`core`、`types`）、`tools-basic`（+`core`、`types`）、`provider-openai`（+`core`）、`artifact` / `memory` / `mock` / `policy` / `sandbox`（+`types`）。依赖方向为 `host → core → {types, memory, artifact, sandbox, policy}`，**无循环依赖**
+- **修正一处误判**：`core` 源码注释中出现的 `@node-agent-runtime/host` / `mcp` / `mock` 等均为**说明性注释**（"已外置为 C8"），并非真实 import。首轮扫描未剔除注释，曾误报为循环依赖
+- **验证**：补齐后 12 包依赖声明完整；0.4.1 经 `release.yml` 由 CI 发布（带 provenance）
+
+**Changed：仓库可见性改为 Public**
+
+- 仓库原为私有（Free 账户私有仓库 Actions 仅 2000 分钟/月），配额于 2026-09-08 耗尽后 **55 次连续失败、job 分配不到 runner（`steps` 数为 0）**。2026-09-15 改为 Public 后 Actions 免费无限，CI 四个 job 全部转绿
+- 附带收益：npm provenance 此前对私有仓库无实际验证价值，改公开后证明可被验证
+
 ## [v0.2.0] - 2026-09-05
 
 **M1 · 生命周期 + C1/C2 workspace 收敛**（正式发布，dev 合并 main，commit `06edd1a`）：M1 完成 Session/Task/Run 实体化、统一持久化层与运行时上下文注入；在此基础上把代码收敛为 npm workspaces monorepo（C1 `@node-agent-runtime/types` 叶子包 + C2 `@node-agent-runtime/core` 引擎包）。`npm test` 35 通过 0 失败。

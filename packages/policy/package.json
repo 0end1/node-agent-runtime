@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/policy",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "C5 policy package of the Agent runtime: authorization decisions (allow/deny/ask) — DefaultPermissionPolicy matrix, PermissionManager approval flow with timeout and always-allowlist, composable policies. Depends on @node-agent-runtime/types and (type-only) @node-agent-runtime/sandbox.",
   "license": "Apache-2.0",
   "author": {
@@ -44,13 +44,14 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@node-agent-runtime/sandbox": "^0.4.0"
+    "@node-agent-runtime/sandbox": "^0.4.1",
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "devDependencies": {
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "peerDependencies": {
-    "@node-agent-runtime/types": "^0.4.0"
+    "@node-agent-runtime/types": "^0.4.1"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

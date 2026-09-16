@@ -1,5 +1,15 @@
 # @node-agent-runtime/artifact
 
+## 0.4.1
+
+### Patch Changes
+
+- Fixed: 补齐 10 个包缺失的内部 workspace 运行时依赖声明
+
+  0.4.0 的构建产物实际 import 了其他 workspace 包（如 core 引用 @node-agent-runtime/artifact、host 引用 core/types/artifact），但 package.json 未声明。本地 workspace 符号链接掩盖了这个问题，发布后 npm install 无法解析依赖，import 时抛 ERR_MODULE_NOT_FOUND。本次补齐全部缺失依赖声明。
+
+- @node-agent-runtime/types@0.4.1
+
 ## 0.4.0
 
 ### Patch Changes

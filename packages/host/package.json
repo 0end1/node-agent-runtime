@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/host",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "C8 host package of the Agent runtime: Session/Task/Run lifecycle (SessionManager) plus the assembled product surface (memory + artifact + sandbox + policy). Depends on @node-agent-runtime/core and the C3~C5 packages; the core never imports this package.",
   "license": "Apache-2.0",
   "author": {
@@ -44,20 +44,20 @@
     "node": ">=22.13.0"
   },
   "dependencies": {
-    "@node-agent-runtime/artifact": "^0.4.1",
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/memory": "^0.4.1",
-    "@node-agent-runtime/policy": "^0.4.1",
-    "@node-agent-runtime/sandbox": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/artifact": "^0.4.2",
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/memory": "^0.4.2",
+    "@node-agent-runtime/policy": "^0.4.2",
+    "@node-agent-runtime/sandbox": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "devDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "peerDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

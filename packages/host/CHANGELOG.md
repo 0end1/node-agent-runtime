@@ -1,5 +1,18 @@
 # @node-agent-runtime/host
 
+## 0.4.2
+
+### Patch Changes
+
+- d70f7bc: chore: release 0.4.2 to verify OIDC trusted publishing (no functional changes)
+- Updated dependencies [d70f7bc]
+  - @node-agent-runtime/artifact@0.4.2
+  - @node-agent-runtime/core@0.4.2
+  - @node-agent-runtime/memory@0.4.2
+  - @node-agent-runtime/policy@0.4.2
+  - @node-agent-runtime/sandbox@0.4.2
+  - @node-agent-runtime/types@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes

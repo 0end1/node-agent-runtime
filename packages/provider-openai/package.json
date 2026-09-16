@@ -1,6 +1,6 @@
 {
   "name": "@node-agent-runtime/provider-openai",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "C7 OpenAI-compatible chat backend of the Agent runtime: fetch-based client for OpenAI / DeepSeek / Qwen / Moonshot / Ollama etc. Injected by the caller; the core never imports it.",
   "license": "Apache-2.0",
   "author": {
@@ -44,12 +44,12 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "peerDependencies": {
-    "@node-agent-runtime/core": "^0.4.1",
-    "@node-agent-runtime/types": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -57,6 +57,6 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@node-agent-runtime/core": "^0.4.1"
+    "@node-agent-runtime/core": "^0.4.2"
   }
 }

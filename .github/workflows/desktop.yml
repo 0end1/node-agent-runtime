@@ -68,7 +68,7 @@ jobs:
             patchelf
 
       - name: build and (optionally) release
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         with:
           projectPath: examples/desktop-tauri
           tagName: v__VERSION__

@@ -325,7 +325,13 @@ git add -A && git commit -m "chore: version packages"
 
 **发布后**：`.changeset/p4-sdk-publishing.md` 被消费并删除；M7 首批的 minor 应登记为**新的 changeset**，落点 **0.3.0 → 0.4.0**（不要并入 P4 的同一次跳跃）。
 
-**验收（判定实发完成）**：`npm view @node-agent-runtime/core version` → `0.3.0`；全新目录 `npm i @node-agent-runtime/core@0.3.0` 后 `tsc --noEmit` 与最小 demo 通过（沿用 P4.4 的 canary 验收面）。
+**2026-09-16 首发复盘（真实根因 + 三处结论更正）**：
+
+- **真实根因（CI 全红）**：62 次运行中最近 25 次连续 failure，且 **job `steps` 数恒为 0**（连第一步 `npm ci` 都没开始）。本地六门（typecheck / lint / test / build / API 面 / 体积门禁）在**清空 `dist` 后**仍全绿、完全无法复现 —— 排除代码问题。最终定位为**仓库私有**：GitHub Free 私有仓库 Actions 仅 2000 分钟/月，9/8 配额耗尽后 job 分配不到 runner（日志拉不到，但 `steps=0` + 立即 failure + 本地零复现的组合唯一指向配额/runner 层）。**将仓库改为 Public 后 CI 立即全绿**（quality / audit / coverage 三门 + E2E 全部 success）。⚠️ 上方第 307/322 行的「422 / `repository.url` 不匹配」归因**方向错误** —— 那次失败与 provenance 校验无关，纯属配额。
+- **更正①（Scope 不是组织）**：上方第 316-320 行「必须创建 npm 组织 `node-agent-runtime`」**结论错误**。实测 `npmjs.com/~node-agent-runtime` 返回的是**用户 profile 页**（用户名 `node-agent-runtime`、显示名 `0end1`、**0 Organizations**），即 `@node-agent-runtime` 是你的 **user scope，已存在、可直接发**。npm 不允许组织与现有用户名同名，故「建组织」不仅不必要、且会因同名被拒。之前本地 `npm publish` 报 404 的真实原因是**本机 token 已失效**（`npm whoami` → 401），未登录下 npm 对 scope 发布一律返回 404。
+- **更正②（422 隐患已解除）**：上方第 307/322 行的「`git remote` 仍是 `nodeRuntime`」在 2026-09-15 已解决——**GitHub 仓库 `nodeRuntime` 改名为 `node-agent-runtime`**，本地 `git remote set-url origin https://github.com/0end1/node-agent-runtime.git` 对齐；仓库改 Public 后 provenance 真实生效（发布日志出现 `Successfully published` + attestation）。422 风险不复存在。
+- **首发结果（0.4.0 → 0.4.1）**：2026-09-16 首次发布 12 包 `@0.4.0`，**带 provenance**（attestation 已生成、验证可用）。但随即发现 **0.4.0 装后无法 import** —— 12 包中 10 个的 `package.json` **漏写了实际 `import` 的 workspace 内部依赖**：monorepo 符号链接让各包本地互相可见、问题被完全掩盖，发布后 `npm install` 不会安装未声明的包，`import` 直接抛 `ERR_MODULE_NOT_FOUND`（典型：`core/dist/index.js` 找不到 `@node-agent-runtime/artifact`）。**已发布 0.4.1 修复**：补齐 `core`/`host`/`mcp`/`tools-basic`/`provider-openai` 及 `artifact`/`memory`/`mock`/`policy`/`sandbox` 的依赖声明（`host → core → {types, memory, artifact, sandbox, policy}`，无循环依赖），并在**干净环境**验证 `import("@node-agent-runtime/core")` 成功（导出 68 个符号）。建议对 0.4.0 执行 `npm deprecate` 提示升级。
+- **验证口径改为**：`npm view @node-agent-runtime/core version` → `0.4.1`；全新目录 `npm i @node-agent-runtime/core` 后 `import("@node-agent-runtime/core")` 成功、导出 ≥ 60 个符号。（不再用 0.3.0 空档叙事；0.3.0 从未实发，版本直接落在 0.4.0 → 0.4.1。）
 
 ---
 

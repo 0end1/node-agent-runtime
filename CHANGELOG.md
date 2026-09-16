@@ -129,7 +129,7 @@
 - **仓库引用同步**：13 份 `package.json` 的 `repository` / `homepage` / `bugs` 指向 `https://github.com/0end1/node-agent-runtime`（配合 GitHub 仓库改名）
 - **刻意未改**：① 类名 `AgentRuntime`（公共 API，改动即破坏性变更，本次未要求）；② CHANGELOG 与 `docs/codex-reference.md` 中 M5-8 的**历史记述**（`0end1/nodeRuntimes → 0end1/nodeRuntime` 是既成事实，不应改写）
 - **验证**：`npm install` 重建 workspace 软链后 `npm run ci` 六门全绿；无 `node-node-agent-` 双重前缀残留
-- **待办（需你操作）**：① 在 GitHub 将仓库 `nodeRuntime` 改名为 `node-agent-runtime`，随后本地 `git remote set-url origin https://github.com/0end1/node-agent-runtime.git`；② 在 npmjs.com 创建**免费组织 `node-agent-runtime`**（组织名是否已被占用无法离线判定）
+- **待办（已闭环，2026-09-15~16）**：① GitHub 仓库改名 `nodeRuntime` → `node-agent-runtime` 已完成，本地 `git remote set-url origin https://github.com/0end1/node-agent-runtime.git` 已对齐；② **「创建免费组织 `node-agent-runtime`」已撤销**——实测该名是**用户账号**（user scope 已存在、0 Organizations），npm 不允许组织与用户名同名，故**无需也不能建组织**，直接以用户账号发 `@node-agent-runtime/*`（详见 `docs/m7-base-governance.md` §6 复盘更正①）。12 包已于 2026-09-16 以 0.4.0 首发（带 provenance），0.4.1 补齐 workspace 内部依赖声明后实发完成
 
 **产品落地路径评估与 ACP 路径（docs）**（2026-09-10）：
 

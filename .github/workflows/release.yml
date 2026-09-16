@@ -37,6 +37,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+          registry-url: "https://registry.npmjs.org"
       - run: npm ci
       # dist 必须是最新的：changeset publish 直接发布 files:["dist"] 的内容
       - run: npm run build

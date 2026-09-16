@@ -18,6 +18,8 @@ concurrency:
 #     （GitHub Actions / 0end1 / node-agent-runtime / release.yml / environment:npm）。
 #   - publish 步骤通过 GitHub OIDC（id-token: write）向 npm 换取短期令牌，无需 NODE_AUTH_TOKEN。
 #   - 仓库 secret NPM_TOKEN 保留备用，但发布流程已不再引用；如需回退可重新加回下方 env 两行。
+#   - 硬性前提：npm CLI 必须 >= 11.15.0（官方要求，低版本不支持 OIDC trusted publishing）。
+#     .nvmrc 的 node 22.22.1 自带 npm 10.9.4，因此两个 job 都显式升级 npm 后再发布。
 permissions:
   contents: write
   pull-requests: write
@@ -38,6 +40,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           registry-url: "https://registry.npmjs.org"
+      # OIDC trusted publishing 要求 npm >= 11.15.0；node 22.22.1 自带 npm 10.9.4，需先升级。
+      - name: upgrade npm for OIDC
+        run: |
+          npm install -g npm@^11.15.0
+          npm --version
       - run: npm ci
       # dist 必须是最新的：changeset publish 直接发布 files:["dist"] 的内容
       - run: npm run build
@@ -64,6 +71,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           registry-url: "https://registry.npmjs.org"
+      # OIDC trusted publishing 要求 npm >= 11.15.0；node 22.22.1 自带 npm 10.9.4，需先升级。
+      - name: upgrade npm for OIDC
+        run: |
+          npm install -g npm@^11.15.0
+          npm --version
       - run: npm ci
       - run: npm run build
       - name: npm publish --provenance (workspaces)

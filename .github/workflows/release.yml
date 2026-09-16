@@ -13,11 +13,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
-# 发布凭据：
-#   - 已为两个发布 job 声明 environment: npm，用于配合 npm Trusted Publisher 的 environment 校验。
-#   - 12 包在 npm 后台全部配置好 Trusted Publisher（GitHub Actions / 0end1 / node-agent-runtime / release.yml / environment:npm）后，
-#     publish 步骤会改用 OIDC 签发的短期令牌，届时即可删除 NPM_TOKEN / NODE_AUTH_TOKEN env。
-#   - 在 Trusted Publisher 配齐前，保留仓库 secret NPM_TOKEN 作为兜底，避免发布中断。
+# 发布凭据（OIDC Trusted Publishing，免 token）：
+#   - 两个发布 job 已声明 environment: npm，且 npm 后台 12 包均已配置 Trusted Publisher
+#     （GitHub Actions / 0end1 / node-agent-runtime / release.yml / environment:npm）。
+#   - publish 步骤通过 GitHub OIDC（id-token: write）向 npm 换取短期令牌，无需 NODE_AUTH_TOKEN。
+#   - 仓库 secret NPM_TOKEN 保留备用，但发布流程已不再引用；如需回退可重新加回下方 env 两行。
 permissions:
   contents: write
   pull-requests: write
@@ -49,8 +49,6 @@ jobs:
           title: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
   publish-tag:
@@ -70,5 +68,4 @@ jobs:
       - name: npm publish --provenance (workspaces)
         run: npm publish --workspaces --access public --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"

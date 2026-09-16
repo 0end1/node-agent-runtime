@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security vulnerability
+    url: https://github.com/0end1/node-agent-runtime/security/advisories/new
+    about: 请走私密渠道报告安全问题，勿开公开 issue。
+  - name: 💬 General discussion / Q&A
+    url: https://github.com/0end1/node-agent-runtime/discussions
+    about: 使用疑问、想法交流请到 Discussions。

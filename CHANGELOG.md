@@ -8,6 +8,14 @@
 
 ## [Unreleased]
 
+**发布收尾 · 仓库治理（chore/docs）**（2026-09-16）：
+
+- **社区治理文件**：新增 `.github/ISSUE_TEMPLATE/`（bug_report / feature_request / config，安全漏洞引导至私密渠道）、`.github/PULL_REQUEST_TEMPLATE.md`（质量门 checklist + API 面/文档回写约定）、`.github/dependabot.yml`（npm + github-actions 每周扫描）
+- **README 徽章**：新增 npm 版本与下载量徽章，反映 12 包已上架
+- **SECURITY.md**：支持版本线更新为 `0.4.x`（latest=`0.4.1`）；提示 `0.4.0` 因缺 workspace 内部依赖声明已 `deprecate`
+- **release.yml**：标注 OIDC Trusted Publisher 切换路径（12 包上架后逐包配置，即可删除 `NPM_TOKEN`/`NODE_AUTH_TOKEN` env 转免 token 发布）
+- **发布实发复盘**：`0.4.0` 首发成功（带 provenance），但因缺 workspace 内部依赖声明导致 install 后包不可解析；`0.4.1` 补齐依赖声明并作为 `latest`；`0.4.0` 已/将 `deprecate`（脚本 `scripts/deprecate-040.mjs`，需本机 `npm login` 或 `NPM_TOKEN`）
+
 **M7 首批执行清单（docs）**（2026-09-10）：
 
 - **新增 `docs/m7-base-governance.md`（M7 首批执行清单草案）**：把 `docs/product-direction.md` §5 的首批四项拆到「包 / 文件 / API / 验收用例 / 量级」粒度，每项可直接开单。性质为**执行清单（草案）**，截至 2026-09-10 **7 项全部已定（无待拍板）**；不改口径，立项需先按 `development-checklist.md` §4 回填 `architecture.md` §11 + §13。**M7 状态已于 2026-09-11 转 🟡 进行中（见下方 M7-2 条目）**

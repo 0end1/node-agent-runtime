@@ -1,0 +1,53 @@
+name: Bug report
+description: Report a defect in a package, the runtime loop, or the governance chain (sandbox / permission / audit).
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！本仓库是 **L0 开源底座**（`packages/*` 12 包），`examples/` 与 `deploy/` 是验证载体、不承诺接口稳定。
+        若是**安全漏洞**，请勿在此填写细节，请走私密渠道：GitHub Security Advisory 或邮件（见 SECURITY.md）。
+  - type: input
+    id: packages
+    attributes:
+      label: Affected package(s) & version
+      description: 例如 @node-agent-runtime/core@0.4.1；可列多个。
+      placeholder: "@node-agent-runtime/core@0.4.1"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: 期望行为与实际行为的差异。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: 代码片段 / 配置 / 环境（Node 版本、OS）。请移除任何密钥。
+      render: ts
+    validations:
+      required: true
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Suspected impact
+      options:
+        - "功能缺陷（行为不正确，无安全风险）"
+        - "沙箱/权限边界绕过（路径越界 / 网络未受限 / 执行域提升）"
+        - "凭据泄露（事件/日志脱敏失效）"
+        - "Web 控制台鉴权/跨站失效"
+        - "MCP SSRF / 子进程凭据泄露"
+        - "审批审计绕过 / 白名单异常"
+        - "其他"
+    validations:
+      required: true
+  - type: checkboxes
+    id: security_flag
+    attributes:
+      label: Security
+      options:
+        - label: "这是安全漏洞 —— 我不会在此填写细节，将改用私密渠道（GitHub Security Advisory / 邮件）报告。"

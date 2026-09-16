@@ -1,0 +1,39 @@
+name: Feature request
+description: Propose a new capability or improvement for the L0 base (packages/*).
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        本仓库的交付物是 `packages/*` 12 包（L0 底座）。提交前请先确认：该能力属于 **L0（Apache-2.0 开源底座）** 还是 **L1（治理增值层，闭源、落在 12 包之外）**？
+        边界纪律见 `docs/product-direction.md` §8-2：12 包一旦以 Apache-2.0 实发即不可回收，闭源能力不得以「先在底座埋点」方式混入 L0。
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: 当前缺少什么能力或体验不佳？
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: 期望的接口 / 行为；若是 L0，说明影响的包与公共 API 面。
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: 归属层
+      options:
+        - "L0 底座（@node-agent-runtime/*，Apache-2.0）"
+        - "L1 治理增值（审计导出 / 策略中心 / 配额 / SSO 等，闭源）"
+        - "不确定，请帮我判断"
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: 是否有其他实现思路或绕过方案？

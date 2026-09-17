@@ -50,12 +50,19 @@ Stop reason：`end_turn` / `max_turn_requests`（步数上限）/ `cancelled`。
 - **审批（M8-3）**：请求携带真实 `toolCallId`、参数过 `redact`；`allow_once` → 工具真的执行；`reject` / `cancelled` / 未知 optionId → 工具失败（模型可自纠）；`reject_always` 只问一次；客户端缺该方法 → 立刻降级为拒绝，不阻塞整轮
 - **模式（M8-3）**：`session/new` 同时给出 `modes` 与 `configOptions` 且两者一致；切到 `read-only` 后写工具被策略直接拒绝（**不再弹审批**），切回 `workspace-write` 又恢复询问 —— 证明模式真实改变策略而非只改 UI；非法模式 / 未知配置项报参数错误
 
-**待做 —— 真机联调**（Zed / DeepChat / 任一 ACP Client）：
+**协议级 E2E（已自动化，2026-09-17）** —— `npm run e2e -- --only=acp`（`scripts/e2e/acp.mjs`）：
 
-1. `npm run build -w @node-agent-runtime/acp`
-2. 写入口脚本 `new AcpAgent({ provider, agents }).start()`，用 `node` 启动
-3. 在 Client 里把 agent 命令指向该脚本，跑一次多步会话
-4. 核对：工具调用是否原生呈现；`session/cancel` 是否显示为「已取消」而非报错
+spawn 真实 agent 子进程（`test/fixtures/stdio-agent-governed.ts`，带 write 类工具），用自写的协议级客户端（自己解帧、自己应答审批）经真实 stdio 走完 9 步：握手 → `session/new`（`modes` / `configOptions` 同值）→ 带审批的对话（`pending` → 批准 → `completed`）→ `session/load` 回放 → `set_config_option` 切 `read-only`（含 `current_mode_update` 回显）→ 只读下写工具被策略直接拒绝（**不再弹审批**）→ `session/cancel` 回 `cancelled` → `session/close` 后拒绝服务 → stdout 无协议外输出。
+
+与 `npm run test -w @node-agent-runtime/acp` 的分工：单测跑在内存传输上（验逻辑），E2E 跑在真实进程上（验**帧与语义一起成立** —— 取消是否真的回 `cancelled`、模式是否真的改变策略）。
+
+**仍待人工 —— GUI Client 真机联调**（Zed / DeepChat / 任一 ACP Client）：
+
+1. `npm run demo:acp`（入口即 `examples/acp-agent.ts`；带 `OPENAI_API_KEY` 时接真实模型，否则退 MockProvider）
+2. 在 Client 里把 agent 命令指向该脚本（绝对路径，例如 `npx tsx /abs/path/examples/acp-agent.ts`），跑一次多步会话
+3. 核对：工具调用是否原生呈现；审批卡片是否出现且四个选项可点；`session/cancel` 是否显示为「已取消」而非报错；切换执行模式后写工具行为是否随之改变
+
+> 这一环只能人工做（GUI Client 不在 CI 里），E2E 已把能自动验证的部分全部覆盖；人工联调只需确认**客户端呈现**是否符合预期。
 
 ## 5. 已知限制
 

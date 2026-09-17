@@ -8,6 +8,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- **M8-2 补测（真实传输链路）**：新增 `packages/acp/test/stdio.test.ts` 与子进程固件，用**真实 stdio 子进程**（而非内存传输）验证握手、半帧写入重组、stdout 纯净性 —— 补上 M8-2 唯一未验证的传输链路。
+
 ### Changed
 
 - 底座收敛：`mock` / `tools-basic` 两个示例外置包改为 `private`（不再发布到 npm scope）；历史 M5/M6/M7 执行与评审文档统一归档至 `docs/historical/`；根 CHANGELOG 精简为版本摘要。

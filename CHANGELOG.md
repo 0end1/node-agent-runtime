@@ -8,7 +8,10 @@
 
 ## [Unreleased]
 
-底座收敛：`mock` / `tools-basic` 两个示例外置包改为 `private`（不再发布到 npm scope）；历史 M5/M6/M7 执行与评审文档统一归档至 `docs/historical/`；根 CHANGELOG 精简为版本摘要。
+### Changed
+
+- 底座收敛：`mock` / `tools-basic` 两个示例外置包改为 `private`（不再发布到 npm scope）；历史 M5/M6/M7 执行与评审文档统一归档至 `docs/historical/`；根 CHANGELOG 精简为版本摘要。
+- **CI 触发分支收敛为 `main`**：`.github/workflows/ci.yml` 的 `push` / `pull_request` 由 `[main, dev, apps]` 收敛为仅 `main`（`apps` 分支已不存在，一并清理）。日常开发在 `dev` 完成、不触发远端门禁，`dev → main` 的 PR 或 push `main` 时才跑完整质量门；`CONTRIBUTING.md` 同步更新分支与本地收口口径。
 
 ## [0.4.2] - 2026-09-17
 

@@ -1,10 +1,13 @@
 name: CI
 
+# 分支策略：日常开发在 dev 分支（本地 `npm run ci` 自检，不触发远端门禁），
+# CI 只在 main 上跑 —— dev → main 提 PR 时即触发（pull_request base=main），
+# 合并后 push main 再跑一次；main 同为 changesets Version Packages PR 的目标分支。
 on:
   push:
-    branches: [main, dev, apps]
+    branches: [main]
   pull_request:
-    branches: [main, dev, apps]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}

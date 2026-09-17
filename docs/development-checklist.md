@@ -103,8 +103,8 @@
 |---|---|---|---|---|
 | **前置** | **ACP 规范级核对** —— **✅ 已完成（2026-09-17，见 `docs/acp-spec-review.md`）**：传输 = **stdio**（换行分隔 JSON-RPC，stdout 只写 ACP 消息、日志走 stderr，与本项目既有纪律一致）；**`session/update` 不要求 token 级分块（MAY 非 MUST）→ 流式非前置、不阻塞 ACP 包**；方法名一律斜杠（`session/new` / `session/prompt` / `session/cancel`）；`session/set_mode` 有废弃风险，桥接须同时提供 Session Config Options | 调研（无代码） | 结论已落 `docs/acp-spec-review.md`；**流式维持第二批** | ✅ |
 | **第一批** | **M8-1 生态入口**：脚手架 `create-node-agent-runtime` + 示例库（治理 / 续跑 / 审计三条主线）+ 文档站 | 底座（分发设施，原 M7-7 底座部分） | 新用户 5 分钟内跑通第一个受治理任务 | ☐ |
-| 第一批 | **M8-2** `@node-agent-runtime/acp`：`initialize` / `session/new` / `session/prompt` / `session/cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 | ☐ |
-| 第一批 | **M8-3** ACP 权限桥接：`session/request_permission` ↔ `PermissionManager`，`session/set_mode` ↔ `SandboxMode` | 底座（新包） | 写操作在壳内弹出授权；拒绝后模型自纠；模式切换真实改变沙箱行为 | ☐ |
+| 第一批 | **M8-2** `@node-agent-runtime/acp` —— **✅ 代码完成（2026-09-17）**：`initialize` / `session/new` / `session/prompt` / `session/cancel` + `session/update` 事件翻译，另含 `session/load` / `session/close` | 底座（新包 `packages/acp`） | 已用内存传输对跑通握手 / 多步 / 取消 / 回放（19 例）；**与真实 ACP Client（DeepChat / Zed）联调待做**；审批呈现属 M8-3 | ✅ 代码完成 / ☐ 真机联调 |
+| 第一批 | **M8-3** ACP 权限桥接：`session/request_permission` ↔ `PermissionManager`（**替换 M8-2 的 `NoAskPolicy` 兜底**，`AcpConnection.request()` 已就绪），`session/set_mode` ↔ `SandboxMode`（**须同时提供 Session Config Options**：官方明示 set_mode 将被移除） | 底座（新包） | 写操作在壳内弹出授权；拒绝后模型自纠；模式切换真实改变沙箱行为 | ☐ |
 | **第二批** | **M8-4** 流式（`ModelProvider` 可选 `chatStream()` + SSE 解析 + `message:delta`）—— **非前置**：首批可先用完整 `model:response` 发单条 `agent_message_chunk` 跑通 | 底座（`core` / `provider-openai`） | 增量事件拼接结果与 `model:response` 文本一致；不支持流式的 provider 自动回退 | ☐ 核对结论：体验增强，不阻塞 |
 | **第三批** | **M8-5** `deploy/` 补 K8s/Helm 形态与升级回滚说明 | 底座（交付物，对应 (c)） | Helm chart 可一键起服务；回滚步骤可复现 | ☐ |
 | 延后 | `tools-code`（`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash`） | 底座（新包） | 路径必须在 Sandbox 声明域内；`bash` 超时终止 | ⏸ ACP 模式下由 Client 提供 |

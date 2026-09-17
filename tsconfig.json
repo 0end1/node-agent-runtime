@@ -15,7 +15,8 @@
       "@node-agent-runtime/tools-basic": ["packages/tools-basic/src/index.ts"],
       "@node-agent-runtime/mock": ["packages/mock/src/index.ts"],
       "@node-agent-runtime/provider-openai": ["packages/provider-openai/src/index.ts"],
-      "@node-agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"]
+      "@node-agent-runtime/store-sqlite": ["packages/store-sqlite/src/index.ts"],
+      "@node-agent-runtime/acp": ["packages/acp/src/index.ts"]
     }
   },
   "include": ["packages", "examples", "scripts"]

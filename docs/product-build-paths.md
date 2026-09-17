@@ -68,7 +68,7 @@
 ### 2.3 不确定项（需核对）
 
 - ACP 的**传输方式**章节未细读（stdio 为主流的可能性高，与已有 `McpClient` 的 stdio 传输同构，成本因此很低）——落地前需核对。
-- `session/update` 是否要求 token 级分块（若是，则 §4 的 G2 流式是 ACP 落地的**前置**而非升级项）。
+- ~~`session/update` 是否要求 token 级分块（若是，则 §4 的 G2 流式是 ACP 落地的**前置**而非升级项）~~ → **已核对（2026-09-17，见 `docs/acp-spec-review.md` §4）：不要求**。Prompt Turn 全篇措辞为 MAY，唯一 MUST 是 turn 结束时须以 `stopReason` 响应 `session/prompt`，故**只发一条完整 `agent_message_chunk` 即合规** —— 流式是体验增强，**不是 ACP 落地的前置**。
 
 ---
 
@@ -164,7 +164,7 @@
 
 | 优先 | 项 | 归属 | 验收口径 |
 |---|---|---|---|
-| **P0** | `@node-agent-runtime/acp`：`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 |
+| **P0** | `@node-agent-runtime/acp`：`initialize` / `session/new` / `session/prompt` / `session/cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 |
 | **P0** | ACP 权限桥接：`session/request_permission` ↔ `PermissionManager`，`session/set_mode` ↔ `SandboxMode` | 底座（新包） | 写操作在壳内弹出授权；拒绝后模型自纠；模式切换真实改变沙箱行为 |
 | **P1** | 流式：`ModelProvider` 可选 `chatStream()` + SSE 解析 + `message:delta` | 底座（core / provider-openai） | 增量事件拼接结果与 `model:response` 文本一致；不支持流式的 provider 自动回退 |
 | **P1** | `@node-agent-runtime/tools-code`：`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash` | 底座（新包） | 路径必须在 Sandbox 声明域内；write 触发 `sandbox:write` 且 diff 正确；`bash` 超时终止并回填错误 |
@@ -188,11 +188,11 @@
 |---|---|---|
 | 1 | 是否先走路径 D（ACP） | **是，先走 D** —— 接受「产品穿在别人壳里」，换取最低成本与最快验证；**不自建壳**（CLI 产品壳属产品层，放独立仓库，本仓不做） |
 | 2 | `tools-code` 的优先级 | **延后至 P2** —— ACP 模式下 Client 提供 fs/terminal；若后续要 CLI 自持形态再并行 |
-| 3 | 流式是否为 ACP 前置 | **取决于规范核对**：`session/update` 若要求 token 级分块，则流式由 P1 升为 ACP 包的**前置**；否则维持 P1 |
+| 3 | 流式是否为 ACP 前置 | **已核对：否** —— `session/update` 不要求 token 级分块（MAY，非 MUST），故**流式维持 P1 / 第二批，不阻塞 ACP 包**；详见 `docs/acp-spec-review.md` §4 |
 | 4 | 命名与打包 | 若做 `tools-code`，按**通用编码工具包**（不含 Agent 概念，符合零依赖与「产品概念不进包」纪律），而非「编码 Agent 专用」 |
 | 5 | 差异化表述 | **是** —— 以「治理」（审批 + 三档沙箱 + 审计导出 + 续跑）为主叙事，而非「又一个编码 Agent」 |
 
-> 落地的**第一个动作是规范级核对**（§2.3 与 §10 末注）：ACP 传输方式（stdio 可能性高）与 `session/update` 是否要求 token 级分块 —— 结论直接决定流式与 ACP 包的先后顺序。
+> ~~落地的第一个动作是规范级核对~~ → **已于 2026-09-17 完成**，见 `docs/acp-spec-review.md`。要点：传输 = **stdio**（换行分隔 JSON-RPC，stdout 只写 ACP 消息、日志走 stderr，与本项目既有纪律一致）；**流式不要求 token 级分块，非 ACP 前置**；**`session/set_mode` 有废弃风险**，桥接须同时提供 Session Config Options；`usage_update` 的 `used` / `size` / `cost` 可由 M7-1 的 token 计量直接填。
 > 拍板后的执行排期见 `docs/architecture.md` §11 M8 行与 `docs/development-checklist.md` §3.4。
 
 ---

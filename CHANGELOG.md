@@ -18,6 +18,7 @@
 - README / CONTRIBUTING 同步标注 `mock` / `tools-basic` 为 **internal/demo**：两包已转 `private`、不再发布，「已发布包」口径由 12 个收敛为 10 个；README 四处（项目定位、安装示例、项目结构树、代码示例提示）与 CONTRIBUTING 包表同步，避免外部消费者照抄 import 失败。
 - **M7 状态收口 + M8 立项（草案，未开工）**：`architecture.md` §11 的 M7 行由 🟡 转 **✅ 已关闭**（M7-1 / M7-2 全量 / M7-3 / M7-6a / M7-6b / M7-5 底座部分均于 09-15 交付、「无待做项」），新增 M8 行与 §13 v1.19 修订记录；`development-checklist.md` 勾除候选池中已由 M7-5 交付的 `compileAgent()`，并新增 §3.4 **M8 执行草案**（前置核对 / 三批 / 延后 / 随手 / 不做）。
 - **两项拍板按推荐值落定（2026-09-17）**：① **目标客户优先级 = 先 (a) 开发者个体建生态、同步铺 (c) 企业合规交付物**（`product-direction.md` §8-1，落地为 M8-1 生态入口与 M8-5 K8s/Helm）；② **形态路径 = 先走 ACP 路径 D（协议适配包），不自建壳**（`product-build-paths.md` §9 五项结论表：走 D / `tools-code` 延后至 P2 / 流式视 token 级分块核对结果决定是否前置 / `tools-code` 按通用编码工具包 / 以「治理」为主叙事）。同时消解 `product-direction.md` §6 许可策略「待决」与 §8-2「已定 open-core」的口径冲突。**M8 本条未动任何代码**。
+- **ACP v1 规范级核对完成（M8 前置项解除）**：新增 `docs/acp-spec-review.md`。结论 —— ① 传输 = **stdio**（换行分隔 JSON-RPC，stdout 只写 ACP 消息、日志走 stderr，与本项目既有纪律一致），Streamable HTTP 仍在草案；② **`session/update` 不要求 token 级分块**（全篇 MAY，唯一 MUST 是 turn 结束须回 `stopReason`）→ **流式非前置，不阻塞 ACP 包**；③ 方法名一律**斜杠**，据此修正 `product-build-paths.md` §8 与 `development-checklist.md` §3.4 的 `session.new` 点号笔误；④ **`session/set_mode` 官方明示将被 Session Config Options 取代**，M8-3 桥接须同时提供以免返工；⑤ `usage_update` 的 `used` / `size` / `cost` 可由 M7-1 的 token 计量直接填。核对前 M8 内部排序悬而未决，现已锁定：**M8-2 / M8-3 首批可开工，M8-4 流式维持第二批**。
 
 ## [0.4.2] - 2026-09-17
 

@@ -19,8 +19,9 @@
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6（A2 → P2.4 ✅、A3 → P2.6 ✅、A4 → P6.3 ✅，**仅剩 A1 → P5.1 签名后实机复验**） |
 | **M6 · 生产级改造** | demo → 可用于生产 | 🟡 收尾中 | **Gate 1（P1）✅**（M6-7~12）：C1~C4 决策落定 + **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`）；**Gate 2（P2）✅**（M6-16/17）：CI / Lint·Format / audit 门 / 覆盖率门禁（行均值 92.38%）/ 跨形态 E2E / `npm run ci` 总闸；**Gate 3（P3）✅**（M6-18~21）：可观测·错误码、脱敏、审批审计、限额、Web/MCP 安全加固、默认安全策略、配置分层；**Gate 4（P4）✅**（M6-22）：LICENSE / 发布元数据 / engines / changesets + 发版编排 / peer 边界 / 体积基线（canary 12 包实装验证）；**Gate 6（P6）✅**（M6-23~26）：治理文件 / README 生产用法 / 路线图回填 v1.10 / 双源收敛 / 参考机制复核；**P5 部分（Gate 5 待关）**：P5.5 store-sqlite 生产基线 ✅、P5.6 Web 部署形态 ✅（M6-24）；P5.1 实机验收 / P5.2 签名+公证 / P5.3 三平台矩阵 / P5.4 auto-updater **配置与脚本就绪**（M6-25/27），自 **2026-09-10 起随桌面端移出至产品侧**（不再是底座保留项；配置与脚本作为产品侧资产保留，不阻塞 M7）；产品方向见 `docs/product-direction.md`（详见 §3.1） |
-| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | 🟡 进行中（M7-1 + **M7-2 全量（traceId + OTEL span + 审计导出）** + M7-3 + M7-6a + **M7-6b** + **M7-5 底座部分（配方编译与快照）** 已落地，2026-09-15） | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3；**首批执行清单见 `docs/historical/m7-base-governance.md`**（包归属 / API 变更分级 / 验收用例 / 顺序）；**进度**：批次 A（12 包 bump 到 0.3.0，未发布/未打 tag）✅、M7-2 traceId 贯穿 ✅（`packages/core/test/trace.test.ts` 12 例，`npm run ci` 全绿）；M7-6a 检索式声明（`tool_search`）+ 步骤级 `toolSurface` 快照 ✅；**M7-2 收尾（`toOtelSpans` OTEL span 导出 + `serializeAudit` 审计导出）✅**（`packages/core/test/otel.test.ts` / `packages/host/test/audit-export.test.ts` 各 7 例，`npm run ci` 六门全绿）—— 首批 M7-1 / M7-2 / M7-3 / M7-6a **均已交付**；**M7-6b（MCP 只读资源 `resources/list` / `resources/read` + `searchTools`）于同日交付**（`packages/mcp/test/m7-6b.test.ts` 13 例 + `mcp.test.ts` 增 4 例，`npm run ci` 六门全绿），M7 首批目标**全部落地** |
-| M8+ | 待规划 | ⏸ | 远期（Rust 移植 D1、参考机制 D3 等，发生再激活） |
+| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | ✅ **已关闭（2026-09-17 收口）** —— M7-1 + M7-2 全量 + M7-3 + M7-6a + M7-6b + M7-5 底座部分（配方编译与快照）全部交付，**无待做项** | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3；**首批执行清单见 `docs/historical/m7-base-governance.md`**（包归属 / API 变更分级 / 验收用例 / 顺序）；**进度**：批次 A（12 包 bump 到 0.3.0，未发布/未打 tag）✅、M7-2 traceId 贯穿 ✅（`packages/core/test/trace.test.ts` 12 例，`npm run ci` 全绿）；M7-6a 检索式声明（`tool_search`）+ 步骤级 `toolSurface` 快照 ✅；**M7-2 收尾（`toOtelSpans` OTEL span 导出 + `serializeAudit` 审计导出）✅**（`packages/core/test/otel.test.ts` / `packages/host/test/audit-export.test.ts` 各 7 例，`npm run ci` 六门全绿）—— 首批 M7-1 / M7-2 / M7-3 / M7-6a **均已交付**；**M7-6b（MCP 只读资源 `resources/list` / `resources/read` + `searchTools`）于同日交付**（`packages/mcp/test/m7-6b.test.ts` 13 例 + `mcp.test.ts` 增 4 例，`npm run ci` 六门全绿），M7 首批目标**全部落地** |
+| **M8 · 采纳闭环与协议接入** | 依 2026-09-17 拍板：目标客户先 (a) 建生态 + 同步铺 (c) 交付物；形态先走 ACP 路径 D、不自建壳 | 🟡 草案已立（2026-09-17），未开工 | 首批：生态入口（脚手架 + 示例库 + 文档站）+ ACP 规范核对；第二批：`@node-agent-runtime/acp` + 权限桥接（+ 流式，若核对为前置）；第三批：`deploy/` 的 K8s/Helm 与升级回滚说明。详见 §3.4 |
+| M8+ 远期池 | 触发式 | ⏸ | Rust 移植（D1）、参考机制（D3）、多 Agent 协同 —— 均**已判定不立项 / 维持远期**（`docs/base-convergence.md` §2.4），发生再激活 |
 
 ---
 
@@ -86,11 +87,32 @@
 
 | 候选 | 说明 | 来源 |
 |---|---|---|
-| Agent 配方快照与编译期校验 | `agentId` 版本快照（防配方变更破坏历史会话）、`McpToolRef[]` 延迟解析、`compileAgent()` 校验重名/可达性/Schema | `architecture.md` §3.2 |
+| **✅ 已交付（M7-5，2026-09-15）** Agent 配方快照与编译期校验 | `agentId` 版本快照（防配方变更破坏历史会话）、`McpToolRef[]` 延迟解析、`compileAgent()` 校验重名/可达性/Schema | `architecture.md` §3.2；交付见 `docs/historical/m7-base-governance.md` §9 |
 | 宿主驱动 Task 流水线增强 | §4.2 目标流水线主线已随 M1~M3 落地；剩余增强（多任务编排、并发调度、失败重试策略）待定 | `architecture.md` §4.2 |
 | 多 Agent 协同 / 子任务编排 | 多 agent 协作与委派，生态常见诉求 | 待论证（可先做 ADR） |
 | 参考机制采纳 | codex / deepseek-harness 中的 model 路由、token 计量、UI 插件化等 | `codex-reference.md` / `deepseek-harness-reference.md`（D3） |
 | Rust workspace 移植 | 单二进制分发 / 深层并发 / 性能诉求触发时激活 | `crate-architecture.md` §7/§8-1（D1） |
+
+### 3.4 M8 执行草案（2026-09-17 立项，未开工）
+
+> **立项依据**：本日两项拍板 —— ① `docs/product-direction.md` §8-1 目标客户优先级 = **先 (a) 建生态、同步铺 (c) 交付物**；② `docs/product-build-paths.md` §9 形态路径 = **先走 D（ACP 适配包），不自建壳**。
+> **准入纪律**：每项开工前须过 `docs/base-convergence.md` §3 三问准入；已判定**不立项**的（多 Agent 协同 / Rust 移植 / 垂直应用 / 引入运行时依赖）不在表内。
+> **顺序理由**：生态入口是 (a) 建生态的地基，且不依赖 ACP 规范核对结果，故列首批并与核对并行；ACP 两项待核对结论明确后开工；`tools-code` 在 ACP 模式下由 Client 提供 fs/terminal，延后。
+
+| 批次 | 项 | 归属 | 验收口径 | 状态 |
+|---|---|---|---|---|
+| **前置** | **ACP 规范级核对**：传输方式（stdio？）与 `session/update` 是否要求 token 级分块 | 调研（无代码） | 产出结论；若要求分块，则流式由第二批升为 ACP 包的**前置** | ☐ |
+| **第一批** | **M8-1 生态入口**：脚手架 `create-node-agent-runtime` + 示例库（治理 / 续跑 / 审计三条主线）+ 文档站 | 底座（分发设施，原 M7-7 底座部分） | 新用户 5 分钟内跑通第一个受治理任务 | ☐ |
+| 第一批 | **M8-2** `@node-agent-runtime/acp`：`initialize` / `session.new` / `session.prompt` / `session.cancel` + `session/update` 事件翻译 | 底座（新包） | 在 DeepChat（或任一 ACP Client）中完成一次多步会话；工具调用与审批在壳内原生呈现 | ☐ |
+| 第一批 | **M8-3** ACP 权限桥接：`session/request_permission` ↔ `PermissionManager`，`session/set_mode` ↔ `SandboxMode` | 底座（新包） | 写操作在壳内弹出授权；拒绝后模型自纠；模式切换真实改变沙箱行为 | ☐ |
+| **第二批** | **M8-4**（条件）流式：`ModelProvider` 可选 `chatStream()` + SSE 解析 + `message:delta` | 底座（`core` / `provider-openai`） | 增量事件拼接结果与 `model:response` 文本一致；不支持流式的 provider 自动回退 | ☐ 待核对结论 |
+| **第三批** | **M8-5** `deploy/` 补 K8s/Helm 形态与升级回滚说明 | 底座（交付物，对应 (c)） | Helm chart 可一键起服务；回滚步骤可复现 | ☐ |
+| 延后 | `tools-code`（`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash`） | 底座（新包） | 路径必须在 Sandbox 声明域内；`bash` 超时终止 | ⏸ ACP 模式下由 Client 提供 |
+| 随手 | P3 三项可维护性清理（`parsePositiveInt` / `buildLimits` 重复求值、`AGENT_LIMIT_MAX_COST_USD=0`、`auditPolicyAllows` 开关） | 底座 | 见 `docs/historical/p3-review.md` §3 | ☐ |
+| **不做** | CLI 产品壳（bin + TUI） | 产品层，**独立仓库** | — | 已拍板不自建壳 |
+
+> **叙事口径**（拍板 5）：对外以「治理」（审批 + 三档沙箱 + 审计导出 + 续跑）为主叙事，而非「又一个编码 Agent」。
+> **执行约束**：M8 任何一项开工前，先在 `docs/architecture.md` §11 / §13 登记，再回填本表；完成即同 commit 回填本表 + 源清单 + `CHANGELOG.md`。
 
 ---
 

@@ -3,7 +3,8 @@
 > 记录时间：2026-09-07
 > 定位：**总览索引**。一张表看清「已做了什么 / 接下来做什么」。执行级细节以事实源为准——`m6-productionization.md`（M6 生产化执行清单）、`remaining-tasks.md`（遗留池 A~D）、`crate-split-todo.md`（拆包执行级）、`architecture.md` §11（演进路线图）、`m5-productization.md`（M5 验收依据）。本文与各源清单**状态同步回填，同一 commit**。
 > 状态图例：✅ 完成 · 🟡 主体完成/收口中 · ☐ 待办 · ⏸ 远期（未排期）
-> 一句话现状：**能力层 M0~M4 与产品化 M5 主体已完成并验证；M6 生产级改造 Gate 1~4 与 Gate 6 已关闭；P5.5/P5.6 交付物已完成；P5.1~P5.4 自 2026-09-10 起随桌面端移出至产品侧（代码与脚本作为产品侧资产保留，底座侧不再跟踪），不阻塞 M7 产品方向推进（见 `docs/product-direction.md`）**。**项目已按「底座」收敛（2026-09-10）**：`packages/*` 12 包为唯一一等公民，`examples/cli.ts`、`examples/web/`、`deploy/` 降级为验证载体；**`examples/desktop-tauri` 与 P5.1~P5.4 已整体移出底座、方向归产品侧**；M7 只对底座立项（判定见 `docs/base-convergence.md` §2.3）。
+> **追注（2026-09-17，桌面端资产出库）**：桌面端已于本日**从本仓库实际删除**（提交 `6cf5ebf`），范围含 `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 `npm run verify:desktop` / `e2e:desktop` 脚本项。方向判定不变（仍归产品侧，底座不投入、不判定），但**「代码与脚本作为产品侧资产保留在本仓库」的表述自本日起失效**，本文 §0/§3.1/§3.2 中的同类描述**仅为历史记录**；产品侧承接请从 git 历史 `6cf5ebf^` 取回。
+> 一句话现状：**能力层 M0~M4 与产品化 M5 主体已完成并验证；M6 生产级改造 Gate 1~4 与 Gate 6 已关闭；P5.5/P5.6 交付物已完成；P5.1~P5.4 自 2026-09-10 起随桌面端移出至产品侧（**2026-09-17 已实际从本仓库删除**，提交 `6cf5ebf`；底座侧不再跟踪），不阻塞 M7 产品方向推进（见 `docs/product-direction.md`）**。**项目已按「底座」收敛（2026-09-10）**：`packages/*` 12 包为唯一一等公民，`examples/cli.ts`、`examples/web/`、`deploy/` 降级为验证载体；**`examples/desktop-tauri` 与 P5.1~P5.4 已整体移出底座、方向归产品侧，且实现已于 2026-09-17 从本仓库删除**；M7 只对底座立项（判定见 `docs/base-convergence.md` §2.3）。
 
 ---
 

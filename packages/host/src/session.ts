@@ -163,7 +163,7 @@ export class SessionManager {
   /** P3.3: audit trail + grants the permission manager writes through. */
   private readonly approvalStore: ApprovalStore;
   private readonly sandbox: Sandbox;
-  private readonly sandboxMode: SandboxMode;
+  private sandboxMode: SandboxMode;
   private readonly scope: SandboxScope;
   /** In-process busy guard to keep a single session from concurrent writes. */
   private readonly busy = new Set<string>();
@@ -304,6 +304,25 @@ export class SessionManager {
   /** Checkpoints written for a task, oldest first (M2). */
   async listCheckpoints(taskId: string): Promise<Checkpoint[]> {
     return this.checkpoints.listByTask(taskId);
+  }
+
+  // ------------------------------------------------------------ Sandbox mode
+
+  /**
+   * Switch the execution mode (docs/architecture.md §6.0.1).
+   *
+   * Takes effect from the **next** run: `sandbox.begin()` re-reads the mode at
+   * the start of every turn, so an in-flight turn keeps the mode it began
+   * with — a mid-turn switch would silently move the boundary under a tool
+   * that was already authorized against the old one.
+   */
+  setSandboxMode(mode: SandboxMode): void {
+    this.sandboxMode = mode;
+  }
+
+  /** The mode new runs will start with. */
+  getSandboxMode(): SandboxMode {
+    return this.sandboxMode;
   }
 
   // ---------------------------------------------------------- Approvals (M3)

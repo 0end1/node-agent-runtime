@@ -144,6 +144,11 @@ export interface CurrentModeUpdate {
   modeId: string;
 }
 
+export interface ConfigOptionUpdate {
+  sessionUpdate: "config_option_update";
+  configOptions: ConfigOption[];
+}
+
 export type SessionUpdate =
   | AgentMessageChunkUpdate
   | UserMessageChunkUpdate
@@ -152,11 +157,107 @@ export type SessionUpdate =
   | ToolCallPatchUpdate
   | UsageUpdate
   | PlanUpdate
-  | CurrentModeUpdate;
+  | CurrentModeUpdate
+  | ConfigOptionUpdate;
 
 export interface SessionUpdateParams {
   sessionId: string;
   update: SessionUpdate;
+}
+
+// -------------------------------------------------------------- permissions
+
+export type PermissionOptionKind =
+  | "allow_once"
+  | "allow_always"
+  | "reject_once"
+  | "reject_always";
+
+/**
+ * One button in the client's approval dialog.
+ *
+ * `kind` carries the semantics so the client can render its own wording and
+ * decide whether to remember the answer, instead of pattern-matching our
+ * labels.
+ */
+export interface PermissionOption {
+  optionId: string;
+  name: string;
+  kind: PermissionOptionKind;
+}
+
+export interface RequestPermissionParams {
+  sessionId: string;
+  toolCall: ToolCallUpdate_;
+  options: PermissionOption[];
+}
+
+export type PermissionOutcome =
+  | { outcome: "selected"; optionId: string }
+  | { outcome: "cancelled" };
+
+export interface RequestPermissionResult {
+  outcome: PermissionOutcome;
+}
+
+// ------------------------------------------------------------- session modes
+
+export interface SessionMode {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface SessionModeState {
+  currentModeId: string;
+  availableModes: SessionMode[];
+}
+
+export interface SetModeParams {
+  sessionId: string;
+  modeId: string;
+}
+
+export interface SetModeResult {
+  [key: string]: never;
+}
+
+// ------------------------------------------------------ session config options
+
+export interface ConfigOptionValue {
+  value: string;
+  name: string;
+  description?: string;
+}
+
+/**
+ * A session-level selector. Only `select` is emitted: `boolean` requires the
+ * client to advertise `session.configOptions.boolean` during initialize, and
+ * every option we expose today is an enumeration.
+ */
+export interface ConfigOption {
+  id: string;
+  name: string;
+  description?: string;
+  /**
+   * UX hint only; clients must tolerate unknown values. Spec-reserved values
+   * are `mode` / `model` / `model_config` / `thought_level`.
+   */
+  category?: string;
+  type: "select";
+  currentValue: string;
+  options: ConfigOptionValue[];
+}
+
+export interface SetConfigOptionParams {
+  sessionId: string;
+  configId: string;
+  value: string;
+}
+
+/** The full configuration state — not just the option that changed. */
+export interface SetConfigOptionResult {
+  configOptions: ConfigOption[];
 }
 
 // ------------------------------------------------------------- capabilities
@@ -213,6 +314,13 @@ export interface NewSessionParams {
 
 export interface NewSessionResult {
   sessionId: string;
+  /**
+   * Legacy mode selector (M8-3). Superseded by `configOptions`, but older
+   * clients only read this field — both are always sent, kept in sync.
+   */
+  modes?: SessionModeState;
+  /** Preferred selector surface; clients that support it should ignore `modes`. */
+  configOptions?: ConfigOption[];
 }
 
 export interface PromptParams {

@@ -19,6 +19,21 @@ export type {
 export { NoAskPolicy } from "./policy.js";
 
 export {
+  AcpPermissionBridge,
+  DEFAULT_PERMISSION_OPTIONS,
+  type AcpPermissionBridgeOptions,
+  type ApprovalSink,
+} from "./bridge.js";
+
+export {
+  MODE_CONFIG_ID,
+  SANDBOX_MODES,
+  configOptions,
+  isSandboxMode,
+  modeState,
+} from "./modes.js";
+
+export {
   StdioTransport,
   MemoryTransportPair,
   type AcpTransport,
@@ -40,11 +55,26 @@ export {
   type LoadSessionParams,
   type NewSessionParams,
   type NewSessionResult,
+  type ConfigOption,
+  type ConfigOptionUpdate,
+  type ConfigOptionValue,
+  type CurrentModeUpdate,
+  type PermissionOption,
+  type PermissionOptionKind,
+  type PermissionOutcome,
   type PlanEntry,
   type PromptParams,
   type PromptResult,
+  type RequestPermissionParams,
+  type RequestPermissionResult,
+  type SessionMode,
+  type SessionModeState,
   type SessionUpdate,
   type SessionUpdateParams,
+  type SetConfigOptionParams,
+  type SetConfigOptionResult,
+  type SetModeParams,
+  type SetModeResult,
   type StopReason,
   type TextContentBlock,
   type ToolCallContent,

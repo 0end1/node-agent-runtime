@@ -15,7 +15,9 @@ import {
 } from "@node-agent-runtime/policy";
 import type { Sandbox, SandboxMode } from "@node-agent-runtime/sandbox";
 import type { ChatMessage, Storage } from "@node-agent-runtime/types";
+import { AcpPermissionBridge } from "./bridge.js";
 import { AcpConnection, type MethodHandler, type NotificationHandler } from "./connection.js";
+import { MODE_CONFIG_ID, configOptions as modeConfigOptions, isSandboxMode, modeState } from "./modes.js";
 import { NoAskPolicy } from "./policy.js";
 import {
   ACP_PROTOCOL_VERSION,
@@ -32,6 +34,10 @@ import {
   type PromptParams,
   type PromptResult,
   type SessionUpdateParams,
+  type SetConfigOptionParams,
+  type SetConfigOptionResult,
+  type SetModeParams,
+  type SetModeResult,
 } from "./protocol.js";
 import { StdioTransport, type AcpTransport } from "./transport.js";
 import { translateEvent } from "./update.js";
@@ -48,8 +54,17 @@ export interface AcpAgentOptions {
   /** Run-level execution mode (docs/architecture.md §6.0.1). */
   sandboxMode?: SandboxMode;
   sandbox?: Sandbox;
-  /** Authorization policy. M8-2 wraps it so `ask` degrades to `deny`. */
+  /** Wrapped authorization policy; its `ask` verdicts become approval requests. */
   policy?: PermissionPolicy;
+  /**
+   * How an `ask` verdict is answered (M8-3).
+   *
+   *  - `"ask-client"` (default): relay to `session/request_permission`. A client
+   *    that does not implement it degrades to `deny` instead of stalling the
+   *    turn for the manager's 60s approval timeout.
+   *  - `"deny"`: the M8-2 behaviour — never ask, deny immediately.
+   */
+  permissions?: "ask-client" | "deny";
   /** Advertised in `initialize`. */
   agentInfo?: ImplementationInfo;
   /** Diagnostics sink — must be stderr; stdout carries ACP messages only. */
@@ -61,6 +76,8 @@ interface SessionContext {
   cwd: string;
   bus: EventBus<RuntimeEvent>;
   manager: SessionManager;
+  /** Approval-bridge subscription; released with the session. */
+  unsubscribe: () => void;
   controller?: AbortController;
 }
 
@@ -93,6 +110,7 @@ export class AcpAgent {
   private readonly sandboxMode: SandboxMode;
   private readonly sandbox?: Sandbox;
   private readonly policy: PermissionPolicy;
+  private readonly permissions: "ask-client" | "deny";
   private readonly agentInfo: ImplementationInfo;
   private readonly logger: (line: string) => void;
   private readonly sessions = new Map<string, SessionContext>();
@@ -105,7 +123,8 @@ export class AcpAgent {
     this.defaultAgentId = options.defaultAgentId;
     this.sandboxMode = options.sandboxMode ?? "workspace-write";
     this.sandbox = options.sandbox;
-    this.policy = new NoAskPolicy(options.policy ?? new DefaultPermissionPolicy());
+    this.permissions = options.permissions ?? "ask-client";
+    this.policy = options.policy ?? new DefaultPermissionPolicy();
     this.agentInfo = options.agentInfo ?? {
       name: "node-agent-runtime",
       title: "Node Agent Runtime",
@@ -125,7 +144,10 @@ export class AcpAgent {
   }
 
   stop(): void {
-    for (const context of this.sessions.values()) context.controller?.abort();
+    for (const context of this.sessions.values()) {
+      context.controller?.abort();
+      context.unsubscribe();
+    }
     this.sessions.clear();
     this.connection?.close();
     this.connection = undefined;
@@ -140,6 +162,9 @@ export class AcpAgent {
       "session/prompt": (params) => this.prompt(params as PromptParams),
       "session/load": (params) => this.loadSession(params as LoadSessionParams),
       "session/close": (params) => this.closeSession(params as CloseSessionParams),
+      "session/set_mode": (params) => this.setMode(params as SetModeParams),
+      "session/set_config_option": (params) =>
+        this.setConfigOption(params as SetConfigOptionParams),
     };
   }
 
@@ -182,7 +207,10 @@ export class AcpAgent {
     const session = await context.manager.createSession({ agentId });
     context.sessionId = session.id;
     this.sessions.set(session.id, context);
-    return { sessionId: session.id };
+    return {
+      sessionId: session.id,
+      ...sessionSelectors(context.manager.getSandboxMode()),
+    };
   }
 
   /**
@@ -245,9 +273,46 @@ export class AcpAgent {
     const context = this.sessions.get(sessionId);
     if (!context) throw AcpConnection.invalidParams(`未知会话：${sessionId}`);
     context.controller?.abort();
+    context.unsubscribe();
     await context.manager.closeSession(sessionId);
     this.sessions.delete(sessionId);
     return {};
+  }
+
+  // ------------------------------------------------- modes & config options
+
+  /**
+   * Legacy mode switch (spec-deprecated, still implemented by older clients).
+   *
+   * The mode change applies from the next turn: `sandbox.begin()` re-reads it at
+   * the start of every run, so an in-flight turn keeps the boundary it was
+   * authorized against.
+   */
+  setMode(params: SetModeParams): SetModeResult {
+    const context = this.requireContext(params?.sessionId);
+    const modeId = params?.modeId;
+    if (!isSandboxMode(modeId)) {
+      throw AcpConnection.invalidParams(`未知执行模式：${String(modeId)}`);
+    }
+    context.manager.setSandboxMode(modeId);
+    // Mirror it back so clients reading only the legacy surface stay in sync.
+    this.sendUpdate(context.sessionId, { sessionUpdate: "current_mode_update", modeId });
+    return {};
+  }
+
+  /** Preferred selector surface; answers with the complete configuration state. */
+  setConfigOption(params: SetConfigOptionParams): SetConfigOptionResult {
+    const context = this.requireContext(params?.sessionId);
+    if (params?.configId !== MODE_CONFIG_ID) {
+      throw AcpConnection.invalidParams(`未知配置项：${String(params?.configId)}`);
+    }
+    const value = params?.value;
+    if (!isSandboxMode(value)) {
+      throw AcpConnection.invalidParams(`未知执行模式：${String(value)}`);
+    }
+    context.manager.setSandboxMode(value);
+    this.sendUpdate(context.sessionId, { sessionUpdate: "current_mode_update", modeId: value });
+    return { configOptions: modeConfigOptions(value) };
   }
 
   // ------------------------------------------------------------------ helpers
@@ -255,6 +320,18 @@ export class AcpAgent {
   private createContext(cwd: string): SessionContext {
     const bus = new EventBus<RuntimeEvent>();
     const runtime = new AgentRuntime({ provider: this.provider, events: bus });
+
+    // The bridge needs the manager (to answer decisions) and the manager needs
+    // the policy (the bridge) — so it is attached right after construction.
+    const bridge =
+      this.permissions === "ask-client"
+        ? new AcpPermissionBridge({
+            connection: () => this.connection,
+            inner: this.policy,
+            logger: this.logger,
+          })
+        : undefined;
+
     const manager = new SessionManager({
       runtime,
       storage: this.storage,
@@ -262,11 +339,19 @@ export class AcpAgent {
       events: bus,
       sandboxMode: this.sandboxMode,
       scope: { workspace: cwd, writablePaths: [], network: "deny" },
-      policy: this.policy,
+      policy: bridge ?? new NoAskPolicy(this.policy),
       ...(this.sandbox ? { sandbox: this.sandbox } : {}),
       approvalStore: new StorageApprovalStore(this.storage),
     });
-    return { sessionId: "", cwd, bus, manager };
+    bridge?.attach(manager);
+
+    const unsubscribe = bus.subscribe((event) => {
+      if (!bridge) return;
+      if (event.type === "tool:start") bridge.noteToolStart(event);
+      else if (event.type === "permission:request") void bridge.handle(event);
+    });
+
+    return { sessionId: "", cwd, bus, manager, unsubscribe };
   }
 
   private forward(context: SessionContext, event: RuntimeEvent): void {
@@ -281,12 +366,27 @@ export class AcpAgent {
     this.connection.notify("session/update", params);
   }
 
+  private requireContext(sessionId: string | undefined): SessionContext {
+    const context = this.sessions.get(sessionId ?? "");
+    if (!context) throw AcpConnection.invalidParams(`未知会话：${String(sessionId)}`);
+    return context;
+  }
+
   private requireAbsoluteCwd(cwd: string | undefined): string {
     if (typeof cwd !== "string" || !cwd.trim()) {
       throw AcpConnection.invalidParams("cwd 必填且必须是绝对路径");
     }
     return resolve(cwd);
   }
+}
+
+/**
+ * Both selector surfaces for `session/new`, always in sync — the spec prefers
+ * `configOptions`, while clients that only know `modes` must not see a stale
+ * value.
+ */
+function sessionSelectors(mode: SandboxMode): Pick<NewSessionResult, "modes" | "configOptions"> {
+  return { modes: modeState(mode), configOptions: modeConfigOptions(mode) };
 }
 
 /**

@@ -10,6 +10,7 @@
 
 ### Added
 
+- **M8-3 落地（ACP 权限桥接 + 模式协商）**：`packages/acp` 新增 `AcpPermissionBridge` 与 `modes.ts`。① **权限**：把 `PermissionManager` 挂起的审批决策变成 `session/request_permission` —— 桥接**保留** `ask` 判定（替换 M8-2 的 `NoAskPolicy` 兜底，后者仍可通过 `permissions: "deny"` 使用），四个标准选项映射为 `approve()` / `approve({ always: true })`（落 P3 grant 持久化）/ `deny()` / `deny()`+会话内记住；请求携带**真实 `toolCallId`**（`tool:start` 先于 `gate()` 发出）、参数过 `redact()`，客户端回 `-32601` 时**降级为拒绝**而非空等 60s 审批超时。② **模式**：`session/set_mode` ↔ `SandboxMode`，并按规范「set_mode 将被移除」**双轨**提供 `session/set_config_option`；`session/new` 同时返回 `modes` 与 `configOptions`（同表生成、取值恒一致）。③ **底座增量（additive）**：`host` 的 `SessionManager` 新增 `setSandboxMode()` / `getSandboxMode()` —— 因 `sandbox.begin()` 在每次 run 开始时重读模式，切换自**下一次 run** 生效，避免在已授权的工具执行中悄悄移动沙箱边界。测试 21 → 33 例（新增权限 7 例 + 模式 5 例，含「切 `read-only` 后写工具被策略直接拒绝、不再弹审批」的行为验证）。
 - **M8-2 补测（真实传输链路）**：新增 `packages/acp/test/stdio.test.ts` 与子进程固件，用**真实 stdio 子进程**（而非内存传输）验证握手、半帧写入重组、stdout 纯净性 —— 补上 M8-2 唯一未验证的传输链路。
 
 ### Changed

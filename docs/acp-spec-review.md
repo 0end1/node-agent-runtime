@@ -71,6 +71,8 @@
 
 → 与 `PermissionManager` 的审批结果（approve once / approve always / deny）形状一致；`always` 白名单持久化（P3 已实现）对应 `allow_always`。
 
+**M8-3 已落地（2026-09-17）**：`AcpPermissionBridge` 完成该映射 —— `allow_once` → `approve()`、`allow_always` → `approve({ always: true })`（落 P3 的 grant 持久化）、`reject_once` → `deny()`、`reject_always` → `deny()` 并在会话内记住（`PermissionManager` 只持久化授权、没有拒绝名单，故不跨重启）。请求携带**真实 `toolCallId`**（`tool:start` 先于 `gate()` 发出，客户端此时已在渲染该调用），参数经 `redact()`，符合 ACP「pending = awaiting approval」语义。
+
 ## 7. Session Modes 的废弃风险（M8-3 必读）
 
 官方 Session Modes 页顶部原文：
@@ -78,6 +80,8 @@
 > "You can now use Session Config Options. Dedicated session mode methods will be removed in a future version of the protocol. Until then, you can offer both to clients for backwards compatibility."
 
 即 `session/set_mode` 属**过渡机制**。M8-3 实现 `session/set_mode ↔ SandboxMode` 时应**同时提供 Session Config Options**，否则 v2 落地后需返工。
+
+**M8-3 已落地（2026-09-17）**：按此执行 —— `session/new` 同时返回 `modes` 与 `configOptions`（同一张模式表生成，两侧取值恒一致），`session/set_mode` 与 `session/set_config_option` 均可切换并同步另一侧（补发 `current_mode_update`）。模式不是 UI 装饰：经 `SessionManager.setSandboxMode()` 改变 `sandbox.begin()` 与策略判定的 `sandboxMode`，从**下一次 run** 起真实改变沙箱边界（切到 `read-only` 后写工具被策略直接拒绝，不再弹审批）。
 
 ## 8. 相关文档
 

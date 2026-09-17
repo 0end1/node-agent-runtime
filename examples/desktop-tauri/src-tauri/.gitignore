@@ -1,8 +1,0 @@
-# Tauri / Cargo build artifacts
-/target
-
-# Tauri codegen output
-/gen
-
-# sidecar binaries (added during production packaging)
-/binaries

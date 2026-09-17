@@ -12,7 +12,7 @@
 
 一个**零第三方运行时依赖**的 TypeScript/Node.js Agent 运行时：提供模型接入层、工具系统、事件总线与**多步推理（ReAct 式）事件循环**。同一套核心即可对接任意 OpenAI 兼容模型服务，也可使用内置的免密钥 Mock Provider 在离线环境完整演示「模型决策 → 工具调用 → 结果回填 → 继续推理 → 最终回答」闭环。
 
-> **项目定位（2026-09-10 底座收敛）**：本项目的交付物是 `packages/*` 下的 **12 个 `@node-agent-runtime/*` 包**（每个都可单独 `npm i` 消费）；`examples/`（CLI · Web）与 `deploy/` 是**验证载体**——用于演示治理链路与回归验证，不承诺接口稳定；桌面壳 `examples/desktop-tauri/` 与 P5.1~P5.4 已**整体移出底座、方向归产品侧**（底座不再投入与判定）。边界、纪律与立项口径见 `docs/base-convergence.md` §2.3，产品侧承接见 `docs/product-direction.md` §4。
+> **项目定位（2026-09-10 底座收敛）**：本项目的交付物是 `packages/*` 下的 **12 个 `@node-agent-runtime/*` 包**（每个都可单独 `npm i` 消费）；`examples/`（CLI · Web）与 `deploy/` 是**验证载体**——用于演示治理链路与回归验证，不承诺接口稳定；桌面端（`examples/desktop-tauri/` · `.github/workflows/desktop.yml` · `scripts/verify-desktop.mjs` · `scripts/e2e/desktop.mjs` 与 P5.1~P5.4）已于 **2026-09-17 从仓库移除**（此前 2026-09-10 已裁定移出底座、方向归产品侧）。边界、纪律与立项口径见 `docs/base-convergence.md` §2.3。
 
 ## 快速开始
 
@@ -163,10 +163,9 @@ packages/                   # 12 个 npm workspace 包（P4 起均可发布）�
 └── store-sqlite/           # C9 @node-agent-runtime/store-sqlite（SQLiteStorage 可选存储后端，node:sqlite）
 examples/                   # 验证载体（不随 npm 发布，接口不承诺稳定）
 ├── cli.ts                  # 最小消费者：终端交互（会话持久化到 .runtime-data/，M1）
-├── web/                    # 可视化验收面：SSE 事件流 + 审批卡片 + sandbox diff + artifact
-│   ├── server.ts           #   SSE 服务器（含鉴权/CORS/CSRF，跨重启恢复会话）
-│   └── public/index.html   #   控制台前端
-└── desktop-tauri/          # 【移出至产品侧 HANDOFF · 2026-09-10】桌面壳（P5.1~P5.4 随其移出底座，方向归产品侧）
+└── web/                    # 可视化验收面：SSE 事件流 + 审批卡片 + sandbox diff + artifact
+    ├── server.ts           #   SSE 服务器（含鉴权/CORS/CSRF，跨重启恢复会话）
+    └── public/index.html   #   控制台前端
 
 deploy/                     # 验证载体：容器化交付样例（Dockerfile · compose · systemd · nginx · env 分层）
 ```

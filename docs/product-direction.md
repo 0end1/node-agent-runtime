@@ -1,10 +1,10 @@
 # 产品方向规划（M7+）
 
 > 记录时间：2026-09-10
-> 前置状态：M6 生产级改造中 **Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）均已关闭**；**P5 实机验证、签名公证、三平台 CI、自动更新链路（P5.1~P5.4）已随桌面端自 2026-09-10 起整体移出底座、方向与投入归产品侧**（回填见 `docs/m6-productionization.md` §5 与 `docs/development-checklist.md`），不阻塞本规划。
+> 前置状态：M6 生产级改造中 **Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）均已关闭**；**P5 实机验证、签名公证、三平台 CI、自动更新链路（P5.1~P5.4）已随桌面端自 2026-09-10 起整体移出底座、方向与投入归产品侧**（回填见 `docs/historical/m6-productionization.md` §5 与 `docs/development-checklist.md`），不阻塞本规划。
 > 定位：**方向决策文档**。回答「底座之后做什么产品、卖给谁、先做什么」。技术执行级拆解待主线拍板后另立 M7 里程碑清单（`docs/m7-*.md`）。
 > 性质：本文含**待决策项**（§8），未拍板前不作为承诺性路线图；拍板后回填 `architecture.md` §11 新增 M7 行 + §13 修订记录。
-> **追注（2026-09-10，桌面端移入）**：底座收敛已**取消桌面端**并将其从底座范围移出（判定见 `docs/base-convergence.md` §2.3）；**桌面端方向自本日起由本文承接**，作为产品侧形态候选（§4 末条），其成本与替代路径评估见 `docs/product-build-paths.md`，决策项见 §8-3；M6 回填见 `docs/m6-productionization.md` §5。
+> **追注（2026-09-10，桌面端移入）**：底座收敛已**取消桌面端**并将其从底座范围移出（判定见 `docs/base-convergence.md` §2.3）；**桌面端方向自本日起由本文承接**，作为产品侧形态候选（§4 末条），其成本与替代路径评估见 `docs/product-build-paths.md`，决策项见 §8-3；M6 回填见 `docs/historical/m6-productionization.md` §5。
 > **追注（2026-09-17，桌面端资产出库）**：桌面端已**从本仓库实际移除**——`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 P5.1~P5.4 相关脚本全部删除（提交 `6cf5ebf`）。方向、实现与投入**完全移交产品侧**，由产品侧在自身仓库与里程碑中承接。本文涉及桌面端的表述（§0、§3-D、§4 末条、§6 桌面分发行、§8-3）自本日起**仅为方向记录与历史轨迹**，不再代表本仓库中存在的资产；产品侧如需承接历史实现，从 git 历史 `6cf5ebf^` 取回即可。
 
 ---
@@ -16,7 +16,7 @@
 | **推荐主线** | **「受治理 Agent 运行时」的开发者底座 + 企业治理增值**：核心 Apache-2.0 开源建信任与生态，治理/合规/审计能力做成企业版与托管交付 |
 | **一句话理由** | 12 包底座里真正稀缺、且已被工程验证的不是「又一个 agent loop」，而是**把 沙箱 × 审批 × 审计 × 可恢复 做成产品级闭环**；而这正是 2026 企业侧规模化落地的首要阻塞项 |
 | **产品形态定位** | **底座 SDK（L0，唯一一等公民）**：`packages/*` 12 包 + 治理能力导出（L1）；`examples/`（CLI/Web）与 `deploy/` **降级为验证载体，不作为产品线**（判定见 `docs/base-convergence.md`）；**桌面端已移交产品侧**（2026-09-10 移出底座、**2026-09-17 从本仓库删除**），作为产品形态候选另行评估（§4 末条） |
-| **M7 第一批（建议）** | **M7-1** 成本与上下文治理（token 计量/压缩）、**M7-2** 可观测与合规导出（traceId/OTEL/审计导出）、**M7-3** 策略工程化（声明式规则 + 内联测试）、**M7-6** 工具规模治理（`tool_search` + MCP 只读资源）；**审批体验（M7-4）按 §5 降级为验证载体增强，不占关键路径**。执行清单见 `docs/m7-base-governance.md` |
+| **M7 第一批（建议）** | **M7-1** 成本与上下文治理（token 计量/压缩）、**M7-2** 可观测与合规导出（traceId/OTEL/审计导出）、**M7-3** 策略工程化（声明式规则 + 内联测试）、**M7-6** 工具规模治理（`tool_search` + MCP 只读资源）；**审批体验（M7-4）按 §5 降级为验证载体增强，不占关键路径**。执行清单见 `docs/historical/m7-base-governance.md` |
 | **明确不做（现阶段）** | 垂直行业 Agent 应用（与底座资产错位、需领域数据与交付能力）。**桌面形态已自本条移出**：底座不再判定其立项与否，改由产品侧评估（§4 末条、§8-3） |
 
 ---
@@ -97,7 +97,7 @@ L0 开源底座（现在）         @node-agent-runtime/* 12 包（Apache-2.0）
 
 **建议首批（M7-1 / M7-2 / M7-3 / M7-6）**：四者全部落在 12 包上（可测试、可发布），合起来构成「企业能验收的最小治理交付包」——成本可见、链路可查、策略可测、工具可控。M7-4（CLI/Web 审批体验）与 M7-7 的控制台渲染部分按 `docs/base-convergence.md` §6 **降级为验证载体增强**，需要时才做，不占关键路径。
 
-> **执行清单已立（2026-09-10）**：首批四项已拆到「包 / 文件 / API / 验收用例 / 量级」粒度，见 `docs/m7-base-governance.md`——含实施顺序（批次 A **已定 2026-09-10 修订：延后实发，改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」** → 批次 B traceId 横切面 + M7-1 → 批次 C M7-3 → 批次 D **M7-6a** → 批次 E **M7-6b** 原定延后、**2026-09-15 已交付**）、API 变更分级（全部 additive minor）与决策记录（**8 项全部已定，无待拍板**；第 8 项为 6b 的资源物化取舍，见 §8-8）。**M7-6 已拆为 6a（`tool_search` + 工具面快照，进首批）与 6b（MCP 只读资源，原定延后、2026-09-15 已交付）** —— 四角交付包仍齐全（拆分依据见该文 §8-7）。清单为**执行清单草案**，本文 §5 的归类优先于 §0 概览；实发的三项前置见该文 §6 —— **已于 2026-09-15 全部解除**（npm 用户/组织 `node-agent-runtime` 与 granular token 就绪；§8-2 许可边界已拍板为 open-core；npm ≥ 11.5.1 经厘清系**转 OIDC** 的前置、非首发阻塞）。
+> **执行清单已立（2026-09-10）**：首批四项已拆到「包 / 文件 / API / 验收用例 / 量级」粒度，见 `docs/historical/m7-base-governance.md`——含实施顺序（批次 A **已定 2026-09-10 修订：延后实发，改为「版本 bump 到 0.3.0 并提交（不发布、不打 tag）」** → 批次 B traceId 横切面 + M7-1 → 批次 C M7-3 → 批次 D **M7-6a** → 批次 E **M7-6b** 原定延后、**2026-09-15 已交付**）、API 变更分级（全部 additive minor）与决策记录（**8 项全部已定，无待拍板**；第 8 项为 6b 的资源物化取舍，见 §8-8）。**M7-6 已拆为 6a（`tool_search` + 工具面快照，进首批）与 6b（MCP 只读资源，原定延后、2026-09-15 已交付）** —— 四角交付包仍齐全（拆分依据见该文 §8-7）。清单为**执行清单草案**，本文 §5 的归类优先于 §0 概览；实发的三项前置见该文 §6 —— **已于 2026-09-15 全部解除**（npm 用户/组织 `node-agent-runtime` 与 granular token 就绪；§8-2 许可边界已拍板为 open-core；npm ≥ 11.5.1 经厘清系**转 OIDC** 的前置、非首发阻塞）。
 
 ---
 
@@ -141,11 +141,11 @@ L0 开源底座（现在）         @node-agent-runtime/* 12 包（Apache-2.0）
 
 - **底座收敛（边界与纪律，口径事实源）**：`docs/base-convergence.md`
 - 阶段总览（已完成/未来）：`docs/development-checklist.md` §0 / §3.3
-- M6 执行清单（P5 桌面项移出回填）：`docs/m6-productionization.md` §5
+- M6 执行清单（P5 桌面项移出回填）：`docs/historical/m6-productionization.md` §5
 - 产品侧形态评估（桌面形态成本与 ACP 替代路径）：`docs/product-build-paths.md`
-- **M7 首批执行清单（底座治理交付 M7-1/2/3/6）**：`docs/m7-base-governance.md`
-- 遗留任务总池：`docs/remaining-tasks.md`
+- **M7 首批执行清单（底座治理交付 M7-1/2/3/6）**：`docs/historical/m7-base-governance.md`
+- 遗留任务总池：`docs/historical/remaining-tasks.md`
 - 架构与路线图：`docs/architecture.md` §1 分层 / §11 路线图 / §12 设计原则
-- 拆包与模块边界：`docs/crate-architecture.md`、`docs/crate-split-todo.md`
-- 机制参考（采纳复核）：`docs/codex-reference.md`、`docs/deepseek-harness-reference.md`
+- 拆包与模块边界：`docs/historical/crate-architecture.md`、`docs/historical/crate-split-todo.md`
+- 机制参考（采纳复核）：`docs/historical/codex-reference.md`、`docs/historical/deepseek-harness-reference.md`
 - 公共 API 面：`docs/api-surface.md`

@@ -2,7 +2,7 @@
 
 > 记录时间：2026-09-10
 > 定位：**收敛决策事实源**。把项目从「桌面产品驱动」叙事收敛为「**可发布 SDK 底座驱动**」：底座是唯一一等公民，其余形态降级为验证载体；**桌面端整体移出至产品侧**（2026-09-10，§2.3）。
-> 前置状态：M6 Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）已关闭；**桌面端（`examples/desktop-tauri/` 与 P5.1~P5.4）已自底座范围移出，方向与投入归产品侧**（回填见 `docs/m6-productionization.md` §5；产品侧承接见 `docs/product-direction.md` §4）。
+> 前置状态：M6 Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）已关闭；**桌面端（`examples/desktop-tauri/` 与 P5.1~P5.4）已自底座范围移出，方向与投入归产品侧**（回填见 `docs/historical/m6-productization.md` §5；产品侧承接见 `docs/product-direction.md` §4）。
 > **追注（2026-09-17，桌面端资产出库 · 处置口径变更）**：2026-09-10 的处置是「移出底座、保留代码作为产品侧资产」；本日该处置**升级为实际删除**——`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 全部从本仓库删除（提交 `6cf5ebf`）。**方向判定不变**（仍归产品侧，底座不投入、不立项、不判定）；但 §2.3 原「移出 ≠ 删除：不删文件 / 不删 workflow / 不删脚本」的**现状描述自本日起失效**，本文表格与目录树中的「保留 / 不删」表述**仅作历史记录**。产品侧承接实现请从 git 历史 `6cf5ebf^` 取回。
 > 与其它文档的关系：本文件定「**边界与取舍**」，`docs/product-direction.md` 定「**方向与里程碑**」，`docs/architecture.md` §11 定「**路线图**」。三者口径冲突时以本文件为准，并顺手修正另两处。
 
@@ -79,7 +79,7 @@
 | `examples/desktop-tauri/`（65 跟踪文件） | **2026-09-17 已从本仓库删除**（`6cf5ebf`）；删除前口径为「不再新增功能、不升级 Tauri / 插件版本、不调整图标与打包链」 | `docs/product-direction.md` §4（形态归属）· `docs/product-build-paths.md`（形态成本评估） |
 | `.github/workflows/desktop.yml` | **2026-09-17 已删除**（原触发为 `tag v*` / 手动，不进常规 CI 前置） | 同上；产品侧承接时从 git 历史 `6cf5ebf^` 取回 |
 | `scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` | **2026-09-17 已删除**；`run-all.mjs` 的 desktop 目标与 `--with-desktop` 开关同步移除（原「保留脚本作为回归资产」口径失效） | 同上 |
-| P5.1 桌面实机 / P5.2 签名公证 / P5.3 三平台 CI / P5.4 自动更新 | 自 M6 P5 移出，**不再是底座的保留项**（回填见 `docs/m6-productionization.md` §5） | 由产品侧按自身里程碑重新立项；前置条件不变（Apple Developer 证书 + 仓库 secrets） |
+| P5.1 桌面实机 / P5.2 签名公证 / P5.3 三平台 CI / P5.4 自动更新 | 自 M6 P5 移出，**不再是底座的保留项**（回填见 `docs/historical/m6-productization.md` §5） | 由产品侧按自身里程碑重新立项；前置条件不变（Apple Developer 证书 + 仓库 secrets） |
 
 **移出 ≠ 放弃**（2026-09-10 口径）：原定「不删文件、不删 workflow、不删脚本」，底座侧只停止投入与判定。桌面形态**是否做、何时做、以什么形态做**属产品侧问题——其成本与替代路径评估见 `docs/product-build-paths.md`。
 > **〔2026-09-17 修订〕上述「不删」口径已失效**：文件、workflow 与脚本**均已从本仓库删除**（提交 `6cf5ebf`）。本段保留为历史记录；当前事实是——本仓库**不含任何桌面端资产**，产品侧如需承接从 git 历史 `6cf5ebf^` 取回。「移出 ≠ 放弃」的方向判定本身不变（仍归产品侧，底座不投入、不判定）。
@@ -181,8 +181,8 @@ docs/                 ← 决策与事实源
 - 产品方向与 M7 里程碑草案：`docs/product-direction.md`
 - 架构与路线图（§1 分层 / §11 路线图 / §13 修订记录）：`docs/architecture.md`
 - 阶段总览与索引：`docs/development-checklist.md`
-- 遗留任务总池：`docs/remaining-tasks.md`
-- M6 执行清单（P5 桌面项移出回填）：`docs/m6-productionization.md` §5
+- 遗留任务总池：`docs/historical/remaining-tasks.md`
+- M6 执行清单（P5 桌面项移出回填）：`docs/historical/m6-productization.md` §5
 - 产品侧形态评估（桌面形态成本与替代路径）：`docs/product-build-paths.md`
 - 公共 API 面（底座冻结快照）：`docs/api-surface.md`
-- 模块边界与拆包：`docs/crate-architecture.md`、`docs/crate-split-todo.md`
+- 模块边界与拆包：`docs/historical/crate-architecture.md`、`docs/historical/crate-split-todo.md`

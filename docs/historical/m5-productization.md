@@ -2,7 +2,7 @@
 
 > 记录时间：2026-09-07
 > 背景：M5 行内定义 = **独立分包 + Desktop 壳 + Web 控制台全面 Session 化**（`docs/architecture.md` §11，验收：桌面 demo 全流程可用）。
-> 决策：拆包暂缓（C3~C6/C8/facade 见 `docs/crate-split-todo.md`），本清单只列**与拆包解耦、现在即可前置**的工作。
+> 决策：拆包暂缓（C3~C6/C8/facade 见 `crate-split-todo.md`），本清单只列**与拆包解耦、现在即可前置**的工作。
 > 原则：仅消费引擎包的**公共 API**（`@node-agent-runtime/core` 及已外置的 `provider-openai` / `store-sqlite` / `host` 等）；C8 host 已于 M6 拆出，examples 改从 `@node-agent-runtime/host` 导入，本清单前置工作不白做。
 >
 > **阶段状态（2026-09-07 收尾）**：本清单前置项全部落地并验证；余下 #5 验收（安装分发实机验证、自动化 E2E、typecheck/test 全绿）移交**下一开发阶段**跟踪，本文件保留为验收依据。
@@ -46,7 +46,7 @@
 
 ### #3 Desktop（`examples/desktop-tauri/`，Tauri v2）
 
-> **追注（2026-09-10，底座收敛 · 桌面端移出）**：本节为 M5 历史交付记录，内容仍然有效；但桌面端已**整体移出底座范围、方向与投入归产品侧**（取代原「冻结为保留项」口径），底座侧不再投入、也不再判定其立项与否。承接与回填见 `docs/base-convergence.md` §2.3 · `docs/product-direction.md` §4 · `docs/m6-productionization.md` §5。
+> **追注（2026-09-10，底座收敛 · 桌面端移出）**：本节为 M5 历史交付记录，内容仍然有效；但桌面端已**整体移出底座范围、方向与投入归产品侧**（取代原「冻结为保留项」口径），底座侧不再投入、也不再判定其立项与否。承接与回填见 `docs/base-convergence.md` §2.3 · `docs/product-direction.md` §4 · `m6-productionization.md` §5。
 
 - 壳用 **Tauri v2**：窗口加载 `examples/web` 控制台（`devUrl=http://localhost:8787`，由 `beforeDevCommand: npm --prefix ../../ run demo:web` 启动 Node server 提供 API + 静态，见 M5-4 Fixed）。
 - 仅依赖引擎公共 API（与 #1/#2 同源）；M6 起 C8 host 已拆为 `@node-agent-runtime/host`，示例改从子包导入，前置工作不白做。

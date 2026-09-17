@@ -38,7 +38,7 @@ npm workspaces monorepo，根包是容器（private），`packages/*` 为可发�
 | `@node-agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
 | `@node-agent-runtime/tools-basic` / `@node-agent-runtime/mock` | 内置工具集 / 免密钥 Mock Provider（演示与测试） |
 
-边界规则见 `docs/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
+边界规则见 `docs/historical/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
 
 ## 3. 分支与提交
 

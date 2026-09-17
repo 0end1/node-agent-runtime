@@ -1,7 +1,7 @@
 # DeepSeek Harness（dsh）参考：插件化 Agent Runtime 可借鉴清单
 
 > 入库日期：2026-09-06（来源为官方 GitHub 仓库主页/README + 官方文档站 `deepseek-harness.github.io/deepseek-harness/` 的 reference 子系统页；个别二手综述仅作线索并已显式标注，**实现时一律以官方仓库源码与文档为准**）
-> 范围：**仅作参考文档入库**（`docs/deepseek-harness-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
+> 范围：**仅作参考文档入库**（`deepseek-harness-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
 > 开源对象：`deepseek-ai/deepseek-harness`（MIT）。DeepSeek 于 2026-08-13 随 V4 Pro 同日发布 **v0.1 developer preview**（Technical Preview）——开源的正是 **Agent 运行层（harness/runtime）**，不是模型。
 >
 > **采纳复核（P6.6，2026-09-09）**：
@@ -109,6 +109,6 @@ dsh 官方 `permission-presets` 子系统（`dsh-permission-presets` / `Permissi
 
 ## 5. 与主架构文档的关系
 
-- 本文件为**独立参考文档**，不并入 `docs/architecture.md` / `docs/crate-architecture.md` 各章节；§6、§11 等不因本文档产生条目改动，不参与 CHANGELOG 版本条目（与 `docs/codex-reference.md` 同规则）。
+- 本文件为**独立参考文档**，不并入 `docs/architecture.md` / `crate-architecture.md` 各章节；§6、§11 等不因本文档产生条目改动，不参与 CHANGELOG 版本条目（与 `codex-reference.md` 同规则）。
 - 若后续某里程碑真正借鉴其中机制（预期最早为 M3 治理），再在该里程碑设计修订或 CHANGELOG 条目中**引用本文件**并回填实现对照。
 - 本文件与 `codex-reference.md` 构成两个正交样本：codex-rs（Rust，收敛 core + 外置 crate）与 dsh（TS，极薄内核 + 全插件）；二者在本项目文档中的角色均为**机制参考而非基座**。

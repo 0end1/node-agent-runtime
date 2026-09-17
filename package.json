@@ -1,7 +1,7 @@
 {
   "name": "node-agent-runtime",
   "version": "0.2.0",
-  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers. Organized as an npm-workspaces monorepo (packages/types · packages/core).",
+  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers. Organized as a 12-package npm-workspaces monorepo.",
   "private": true,
   "type": "module",
   "workspaces": [

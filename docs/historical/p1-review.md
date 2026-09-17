@@ -2,7 +2,7 @@
 
 > 审查时间：2026-09-08（split 分支，基线 `09e01be`）
 > 方法：① 依赖矩阵（package.json 声明 + 源码 `from "@node-agent-runtime/*"` 实际引用，已剔除注释）② 体量统计（`src/**/*.ts` 行数）③ 职责抽查（关键文件 grep）
-> 定位：**审查不改代码**。结论与整改建议供 P2~P6 及发布决策参考；事实源：`docs/api-surface.md`、`docs/crate-architecture.md`、`docs/crate-split-todo.md`。
+> 定位：**审查不改代码**。结论与整改建议供 P2~P6 及发布决策参考；事实源：`docs/api-surface.md`、`crate-architecture.md`、`crate-split-todo.md`。
 
 ---
 

@@ -3,7 +3,7 @@
 > 记录时间：2026-09-08（split 分支；P1 审查整改 P0/P1/P2 后重新冻结）
 > 定位：M6 **P1 的 Gate 1 退出项** —— 冻结各 workspace 包的对外导出面，作为后续兼容性评审基线。
 > 提取方式：TypeScript 编译器解析各包 `dist/index.d.ts`（`npm run build` 后）与 `packages/types/dist/*.d.ts`，符号按字母序排列。
-> 修订轨迹：2026-09-08 依 `docs/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）；2026-09-08 **M6-11 快照复核脚本化**（`scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`，见 §13）。
+> 修订轨迹：2026-09-08 依 `docs/historical/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）；2026-09-08 **M6-11 快照复核脚本化**（`scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`，见 §13）。
 
 ## 0. 总览
 
@@ -50,7 +50,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
 
-> **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
+> **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/historical/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
 
 ## 2. `@node-agent-runtime/core`（C2 · 引擎 + facade，`runtime.ts` 689 行）
 

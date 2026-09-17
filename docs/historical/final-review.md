@@ -11,9 +11,9 @@
 
 | # | 主题 | 结论 | 决策 / 证据主档 | 复核 |
 |---|---|---|---|---|
-| 1 | Core 最小核心 | ✅ 通过 | `docs/p1-review.md`（core 1804 → **1005 行**，引擎本体 ≈819 行）；`docs/api-surface.md` §2 | `npm test -w @node-agent-runtime/core`、`npm run check:api` |
-| 2 | Agent Loop 所有权冻结 | ✅ 冻结于 core 引擎 | `docs/architecture.md` §4.3 / §12-1；`docs/p1-review.md` Q3 | `npm run typecheck` |
-| 3 | Runtime Event / Host Event 边界 | ✅ 同一契约、总线可注入 | `architecture.md` §7；`docs/crate-architecture.md` §5-4；`api-surface.md` §2 注记 | — |
+| 1 | Core 最小核心 | ✅ 通过 | `p1-review.md`（core 1804 → **1005 行**，引擎本体 ≈819 行）；`docs/api-surface.md` §2 | `npm test -w @node-agent-runtime/core`、`npm run check:api` |
+| 2 | Agent Loop 所有权冻结 | ✅ 冻结于 core 引擎 | `docs/architecture.md` §4.3 / §12-1；`p1-review.md` Q3 | `npm run typecheck` |
+| 3 | Runtime Event / Host Event 边界 | ✅ 同一契约、总线可注入 | `architecture.md` §7；`crate-architecture.md` §5-4；`api-surface.md` §2 注记 | — |
 | 4 | Context / Memory / Checkpoint / Storage 边界 | ✅ 结构独立 | `architecture.md` §3.1/§8/§9；`api-surface.md` §2~§4/§12 | `npm test`（全仓） |
 | 5 | Tool Contract 最终冻结 | ✅ 已稳定 + 门禁 | `architecture.md` §5.1；`api-surface.md` §1/§2/§13 | `npm run check:api` |
 | 6 | types 防腐规则 | ✅ 红线成文 | `crate-architecture.md` C1 行 + §5；`p1-review.md` Q8③；`api-surface.md` §1（本轮明示） | `npm run typecheck -w @node-agent-runtime/types` |
@@ -90,7 +90,7 @@
 |---|---|---|
 | Agent 配方引用 `McpToolRef[]` 延迟解析 + `compileAgent()` 校验（重名 / MCP 可达性 / Schema） | `architecture.md` §3.2 | 设计条目，未排期 |
 | 排期归属 | `docs/development-checklist.md` §3.3 M7+ 候选池 | 未排期 |
-| MCP 供应链防护（stdio 超时 / streamable HTTP URL 白名单防 SSRF / 凭据 env 注入） | M6 P3.6（`docs/m6-productionization.md`） | ☐ |
+| MCP 供应链防护（stdio 超时 / streamable HTTP URL 白名单防 SSRF / 凭据 env 注入） | M6 P3.6（`m6-productionization.md`） | ☐ |
 
 即：**MCP 本体（client/transport/registry，28 符号）已实现并冻结**；「作为 tools」的抽象已审查定案；配方级一等引用等后续在 M7+ 窗口、以 architecture §3.2 为准推进。
 
@@ -111,9 +111,9 @@ npm run ci                   # P2.6 质量门总闸（接入 CI 后）
 ## 5. 关联文档
 
 - `docs/architecture.md` —— 架构设计 v1.9（§4.3 主循环、§5 Tool/MCP、§7 事件、§12 原则、§13 修订）
-- `docs/crate-architecture.md` —— 模块边界图 C1~C9（§5 边界规则、C1 职责行）
+- `crate-architecture.md` —— 模块边界图 C1~C9（§5 边界规则、C1 职责行）
 - `docs/api-surface.md` —— 公共 API 冻结快照（12 包 + 防腐红线 + §13 变更/复核规则）
-- `docs/p1-review.md` —— P1 审查（问题→P0/P1/P2 整改 → 状态回填）
-- `docs/m6-productionization.md` —— M6 执行清单（P1 Gate1 关闭；P2~P6 逐项勾选）
+- `p1-review.md` —— P1 审查（问题→P0/P1/P2 整改 → 状态回填）
+- `m6-productionization.md` —— M6 执行清单（P1 Gate1 关闭；P2~P6 逐项勾选）
 - `docs/development-checklist.md` —— 里程碑与 M7+ 候选池
 - `CHANGELOG.md` —— Unreleased M6-9 / M6-10 / M6-11 变更记录

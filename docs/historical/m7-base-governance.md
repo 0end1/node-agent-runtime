@@ -394,7 +394,7 @@ git add -A && git commit -m "chore: version packages"
    - **落地**：§5.3（含验收映射）。
 9. **M7-5 只做底座部分（`compileAgent()` + 配方快照），并发调度不进本批**。
    - **判定依据**：`docs/base-convergence.md` §6 已判「`compileAgent()` / 配方快照校验属底座；多任务并发调度需先论证」。并发调度引入的是**配额与取消语义**，属宿主编排职责，先论证再立项，不混入本批。
-   - **为什么仍要单独立项**：`docs/architecture.md` §3.2 的 `compileAgent()` 自 M4 起一直是「设计条目，未排期」（见 `docs/final-review.md`）——它是「配方变更不破坏历史会话」这条验收的唯一实现面，而后者是可恢复性的前提。
+   - **为什么仍要单独立项**：`docs/architecture.md` §3.2 的 `compileAgent()` 自 M4 起一直是「设计条目，未排期」（见 `final-review.md`）——它是「配方变更不破坏历史会话」这条验收的唯一实现面，而后者是可恢复性的前提。
    - **落地**：§9。
 10. **MCP 可达性校验采用注入式 `resolveMcp`，core 不依赖 `mcp` 包**。
    - **判定依据**：依赖方向为 `mcp → core`（M6 拆包 B1，见 `core/src/index.ts` 注记），core 反向引用会成环。故 core 只接受结构化解析函数 `(ref: { server; tool }) => AnyTool | undefined`，与 `McpRegistry.resolve()` 签名天然兼容，宿主一行 `resolveMcp: (ref) => registry.resolve(ref)` 即可接入。
@@ -491,5 +491,5 @@ function assertResumable(cp: Checkpoint, agent: ToolSurface & { instructions?: s
 - 总览索引与状态回填：`docs/development-checklist.md` §0 / §3.3
 - 路线图与修订记录：`docs/architecture.md` §11 / §13
 - 公共 API 面（本清单全部会触及）：`docs/api-surface.md`
-- 既有实现依据：M6 执行清单 `docs/m6-productionization.md`（P3.1 日志 / P3.3 审计 / P3.4 限额 / P3.7 生产预设）
+- 既有实现依据：M6 执行清单 `m6-productionization.md`（P3.1 日志 / P3.3 审计 / P3.4 限额 / P3.7 生产预设）
 - 产品路径评估（ACP / 流式，不在本清单）：`docs/product-build-paths.md`

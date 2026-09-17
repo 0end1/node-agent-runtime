@@ -2,7 +2,7 @@
 
 > 记录时间：2026-09-07
 > 定位：**阶段执行清单**。前置 demo 阶段（M1~M5：生命周期引擎 → 记忆/续跑 → 审批/沙箱治理 → MCP/Artifact → CLI/Web/Desktop 产品化与打包验证）已全部完成，本清单承接"**demo → 可用于生产的项目**"改造，分 6 批（P1~P6）逐项可勾选。
-> 事实源与同步：本计划**吸收并重排** `docs/remaining-tasks.md` 的 A（验收收口）/B（拆包批次）/C（开放决策）/D（远期）——C 决策提前到 P1 冻结、B 拆包作为发布前置在 P1 收口、A1/A2/A3 分别落入 P5/P2/P2、A4 落入 P6、D2 config/features **拉近**至 P3、D1/D3 维持远期。执行级细节仍以各自源清单为准（`crate-split-todo.md`、`crate-architecture.md` §8）；完成时**回填本文 + 源清单 + CHANGELOG 同一 commit**（延续维护约定）。
+> 事实源与同步：本计划**吸收并重排** `remaining-tasks.md` 的 A（验收收口）/B（拆包批次）/C（开放决策）/D（远期）——C 决策提前到 P1 冻结、B 拆包作为发布前置在 P1 收口、A1/A2/A3 分别落入 P5/P2/P2、A4 落入 P6、D2 config/features **拉近**至 P3、D1/D3 维持远期。执行级细节仍以各自源清单为准（`crate-split-todo.md`、`crate-architecture.md` §8）；完成时**回填本文 + 源清单 + CHANGELOG 同一 commit**（延续维护约定）。
 > **回填（2026-09-10）——桌面端移出底座**：底座收敛**取消桌面端**，`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 **P5.1~P5.4 整体移出底座范围，方向与投入归产品侧**（判定见 `docs/base-convergence.md` §2.3；产品侧承接见 `docs/product-direction.md` §4）。本文 §5 的「挂起决定」据此**修订为「移出决定」**：P5.1~P5.4 不再是底座的保留项，Gate 5 的底座交付物仅剩 P5.5 / P5.6（均已完成）；P5.5（`store-sqlite` 生产基线）与 P5.6（Web 容器交付）属底座，不受移出影响。
 > **回填（2026-09-17）——桌面端资产出库**：上条「移出底座」已于本日**执行为实际删除**——`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 全部从本仓库删除（提交 `6cf5ebf`），`npm run verify:desktop` / `npm run e2e:desktop` 脚本项同步移除。因此本文 §5 中「四项代码、脚本与 CI 配置均已就绪、作为产品侧资产保留」的**现状描述已失效**（保留为历史记录）：当前本仓库**不含任何桌面端资产**，产品侧承接需从 git 历史 `6cf5ebf^` 取回实现。P5.1~P5.4 的底座侧结论不变（非底座保留项、不纳入 Gate 5）。
 
@@ -143,7 +143,7 @@
 | P6.1 | 治理文件 | `CONTRIBUTING.md`（PR/分支/质量门约定）、`SECURITY.md`（漏洞报告渠道） | 文件入库，README 链接 | ✅（2026-09-09，M6-23）：`CONTRIBUTING.md`（质量门/分支/changeset/API 面冻结/PR 清单）+ `SECURITY.md`（私密报告渠道、响应目标、范围与排除项、部署安全默认值）；README「参与贡献」已链接 |
 | P6.2 | README 生产用法 | 安装/升级/配置/观测/发布指引节 + badges（CI/coverage/version/license） | 新用户按 README 可完成接入 | ✅（2026-09-09，M6-23）：badges（CI/Release/coverage/node/license）+「安装（作为依赖消费）」+「生产用法（配置 · 观测 · 安全）」三节；环境变量表、观测与安全默认、发布升级流程齐备 |
 | P6.3 | 路线图回填（吸收 A4） | `architecture.md` §11 新增 M6 行并标 ✅；§13 修订记录 v1.8 | 与本文状态一致 | ✅（2026-09-09，M6-26）：`docs/architecture.md` §11 M6 行更新为「Gate 1~4 已关闭 + P5/P6 进度」，§13 修订记录新增 v1.10 |
-| P6.4 | 文档收敛 | 用本文更新 `remaining-tasks.md` 状态（A/B/C 收口，D2 已拉近，D1/D3 留远期） | 双源无漂移 | ✅（2026-09-09，M6-26）：`docs/remaining-tasks.md` 同步 —— A1 ⏳（→P5.1，验收脚本就绪待签名）、A4 ✅（→P6.3）、D2 ✅、D1/D3 维持远期；顶部决策段与 §1 明细双处更新 |
+| P6.4 | 文档收敛 | 用本文更新 `remaining-tasks.md` 状态（A/B/C 收口，D2 已拉近，D1/D3 留远期） | 双源无漂移 | ✅（2026-09-09，M6-26）：`remaining-tasks.md` 同步 —— A1 ⏳（→P5.1，验收脚本就绪待签名）、A4 ✅（→P6.3）、D2 ✅、D1/D3 维持远期；顶部决策段与 §1 明细双处更新 |
 | P6.5 | CHANGELOG 阶段条目 | Unreleased 记 **M6 生产级改造** 段落（分批随 commit 追加） | 代码与条目同 commit | ✅（持续，M6-18~M6-26）：`CHANGELOG.md` `[Unreleased]` 按批次（M6-18 … M6-26）随 commit 追加，本批即 M6-26 条目 |
 | P6.6 | 参考机制复核（吸收 D3 部分） | codex/deepseek-harness 参考中与可观测/成本/UI 相关的机制标注"可采纳"，列入 next | 参考文档加采纳注记 | ✅（2026-09-09，M6-26）：`codex-reference.md` 与 `deepseek-harness-reference.md` 各加「采纳复核（P6.6）」——已采纳（执行边界/审批预设/会话持久化/插件化包边界/配置分层）、可采纳列入 next（token 计量与上下文压缩、traceId/OTEL、CLI TUI 审批、宿主装配轻量 DI、UI 按工具 kind 渲染）、不采纳（整体迁移 Cordis、绑 OpenAI 模型面） |
 
@@ -170,4 +170,4 @@ P6 治理/文档（全程并行，P6.5 CHANGELOG 随批 commit）
 ## 8. 维护约定与相关文档
 
 - 每项完成：**回填本文状态 + 源清单状态 + CHANGELOG 条目，同一 commit**；涉及公共 API 变更做全仓回归。
-- 事实源：`docs/remaining-tasks.md`（A~D 池）、`docs/crate-split-todo.md`（拆包执行级与验收）、`docs/crate-architecture.md` §8（模块边界/决策）、`docs/m5-productization.md`（M5 验收�
+- 事实源：`remaining-tasks.md`（A~D 池）、`crate-split-todo.md`（拆包执行级与验收）、`crate-architecture.md` §8（模块边界/决策）、`m5-productization.md`（M5 验收�

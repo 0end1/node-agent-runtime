@@ -204,4 +204,4 @@
 - 方向与 M7 里程碑草案：`docs/product-direction.md`
 - 架构与路线图：`docs/architecture.md`
 - 公共 API 面（G2 会影响）：`docs/api-surface.md`
-- 机制参考：`docs/codex-reference.md`、`docs/deepseek-harness-reference.md`
+- 机制参考：`docs/historical/codex-reference.md`、`docs/historical/deepseek-harness-reference.md`

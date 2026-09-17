@@ -1,7 +1,7 @@
 # Codex-rs 可借鉴实现清单（仅供 nodeRuntimes 参考）
 
 > 入库日期：2026-09-05（来源为 codex-rs 结构解析文章 + 官方 README/文档，均为二手整理，实现时以仓库源码为准）
-> 范围：**仅作参考文档入库**（`docs/codex-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
+> 范围：**仅作参考文档入库**（`codex-reference.md`），不并入 `architecture.md` / 路线图，不参与 CHANGELOG 版本条目；是否在后续设计中被采用由人工决定。
 > 开源对象：`openai/codex`（Apache-2.0），`codex-rs/` 下约 136 个 crate。开源的是**本地 harness**（Agent 循环、本地沙箱、审批、会话持久化）；codex-1 模型 / 云端并行 Agent / 云托管沙箱不在其中。
 >
 > **采纳复核（P6.6，2026-09-09）**：

@@ -1,7 +1,7 @@
 # Agent Runtime 拆包执行清单（Crate Split TODO）
 
 > 记录时间：2026-09-07
-> 依据：`docs/crate-architecture.md` §3（模块边界主表）与 §8（决策项）
+> 依据：`crate-architecture.md` §3（模块边界主表）与 §8（决策项）
 > 目标：把 `core` 内的宿主/外围模块逐步抽为独立 npm workspaces 包，最终 `core` 收窄为 facade（聚合出口）。
 > **进度（2026-09-07）**：§5 四项阻塞决策已全部落定（见 `remaining-tasks.md` §3）；批次 1~4 于 M6 全部执行完毕。
 >
@@ -11,7 +11,7 @@
 > - 补充外置 `@node-agent-runtime/tools-basic`（内置工具）与 `@node-agent-runtime/mock`（MockProvider），`core` 收窄至 1005 行；
 > - §5 决策按 `remaining-tasks.md` §3 修订：§8-5 由「不出」修订为「拆 host」（M6-7）；§8-4 由「实现并 C3」修订为「独立 artifact 包」（M6-9）；§8-2 的工具/事件契约随批次 3 下沉 C1，`classifyToolName` 于 M6-9/11 最终下沉 C1。
 >
-> 现状以 `docs/architecture.md` §10（v1.9）、`docs/api-surface.md`、`docs/final-review.md` 为唯一事实源，本文归档存档。
+> 现状以 `docs/architecture.md` §10（v1.9）、`docs/api-surface.md`、`final-review.md` 为唯一事实源，本文归档存档。
 
 ## 1. 拆分前现状（历史快照，保留归档；当前 12 包布局以 README「项目结构」与 `architecture.md` v1.9 §10 为准）
 
@@ -63,7 +63,7 @@
 - [x] §8-4：`Artifact` 归属 —— **已定：类型下沉 C1，实现并入 C3（memory 包）**
 - [x] §8-2：`tool.ts`/`ToolDefinition` 契约层是否下沉 C1 —— **已定：M6 暂不下沉**（外置包依赖 core 契约；循环出现或 Rust 移植前必须下沉）
 
-> 决策全文与理由/触发条件见 `docs/remaining-tasks.md` §3。
+> 决策全文与理由/触发条件见 `remaining-tasks.md` §3。
 
 ## 6. 每个包拆分的通用验收标准
 
@@ -76,8 +76,8 @@
 
 ## 7. 相关文档
 
-- 模块边界与依赖图：`docs/crate-architecture.md`
-- 决策全文与遗留总池：`docs/remaining-tasks.md`
-- M6 生产化执行清单（拆包所在批次 P1）：`docs/m6-productionization.md`
+- 模块边界与依赖图：`crate-architecture.md`
+- 决策全文与遗留总池：`remaining-tasks.md`
+- M6 生产化执行清单（拆包所在批次 P1）：`m6-productionization.md`
 - 顶层架构：`docs/architecture.md`
-- codex 参考：`docs/codex-reference.md`
+- codex 参考：`codex-reference.md`

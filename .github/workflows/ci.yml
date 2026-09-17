@@ -76,8 +76,10 @@ jobs:
       - name: audit (production deps, high+ blocks)
         run: npm audit --omit=dev --audit-level=high
 
-  # P2.4 跨形态 E2E（吸收 A2）：CLI → Web 全流程（ask 审批 → approve 落盘 → artifact → 续跑）。
-  # Desktop 形态需 Tauri/Rust 环境，CI 上默认跳过（见 scripts/e2e/desktop.mjs，仅 E2E_DESKTOP=1 启用）。
+  # P2.4 E2E（吸收 A2）：CLI → Web 全流程（ask 审批 → approve 落盘 → artifact → 续跑）。
+  # 桌面形态已于 2026-09-17 出库（提交 6cf5ebf）：scripts/e2e/desktop.mjs、E2E_DESKTOP 开关、
+  # --with-desktop 均随之移除，本 job 现只覆盖 examples/cli.ts 与 examples/web/ 两个验证载体。
+  # 注：job 名（cross-form E2E）与分支保护的 required check 绑定，改名须同步改 GitHub 侧设置。
   e2e:
     name: cross-form E2E (P2.4)
     runs-on: ubuntu-latest

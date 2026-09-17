@@ -35,6 +35,9 @@
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
     "demo:acp": "tsx examples/acp-agent.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,js,mjs,json}\"",
@@ -66,6 +69,7 @@
     "prettier": "^3.9.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.70.0",
+    "vitepress": "^1.6.4"
   }
 }

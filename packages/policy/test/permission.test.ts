@@ -185,6 +185,27 @@ describe("PermissionManager — gate (§6.1)", () => {
     assert.equal(requests.length, 1);
   });
 
+  it("an approve() made synchronously inside the permission:request listener settles at once", async () => {
+    const bus = new EventBus<RuntimeEvent>();
+    const pm = new PermissionManager({
+      events: bus,
+      policy: new DefaultPermissionPolicy(),
+      askTimeoutMs: 1000,
+    });
+    // 宿主最自然的写法：在事件监听器里同步批准。修复前 waiter 尚未登记，
+    // approve 静默失效 —— 决策要等满 askTimeoutMs 才按超时拒绝。
+    bus.on("permission:request", (event) => {
+      pm.approve(event.decisionId);
+    });
+
+    const started = Date.now();
+    const out = await pm.gate(call("sh"), ctx({ tool: { name: "sh", kind: "exec" } }));
+    const elapsed = Date.now() - started;
+
+    assert.equal(out.verdict, "ask-approved");
+    assert.ok(elapsed < 300, `批准应立即生效，实际耗时 ${elapsed}ms（说明等到了超时）`);
+  });
+
   it("a late approve after timeout is ignored", async () => {
     const { pm } = manager(new DefaultPermissionPolicy(), 20);
     const gating = pm.gate(call("sh"), ctx({ tool: { name: "sh", kind: "exec" } }));

@@ -302,6 +302,57 @@ export class PermissionManager {
       argumentsFingerprint: fingerprint(call.arguments),
     };
 
+    // waiter 必须在 emit **之前** 登记：宿主最自然的写法就是在
+    // `permission:request` 的监听器里同步 `approve()`（CLI 提示、示例、脚本
+    // 自动批准都这么写）。若 emit 时 waiter 还没进表，approve 会静默失效 ——
+    // 决策要等满 `askTimeoutMs` 才按超时拒绝，表现为「明明批准了，工具却卡
+    // 到超时才失败」。故先建 promise 与 waiter，再发事件。
+    let settle: (result: GateResult) => void = () => {};
+    const promise = new Promise<GateResult>((resolve) => {
+      settle = resolve;
+    });
+
+    const timer = setTimeout(() => {
+      this.waiters.delete(decisionId);
+      this.audit({
+        decisionId,
+        runId: ctx.runId,
+        ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+        ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
+        toolName: call.name,
+        argumentsFingerprint: decision.argumentsFingerprint,
+        verdict: "timeout",
+        source: "timeout",
+        reason: `审批超时（${this.askTimeoutMs}ms）`,
+      });
+      this.emit({
+        type: "permission:denied",
+        decisionId,
+        runId: ctx.runId,
+        ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+        toolName: call.name,
+        reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
+        timedOut: true,
+      });
+      settle({
+        ok: false,
+        verdict: "timeout",
+        reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
+        decisionId,
+      });
+    }, this.askTimeoutMs);
+
+    this.waiters.set(decisionId, {
+      decision,
+      timer,
+      resolve: ({ approved, reason: denyReason }) =>
+        settle(
+          approved
+            ? { ok: true, verdict: "ask-approved", decisionId }
+            : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId },
+        ),
+    });
+
     this.emit({
       type: "permission:request",
       decisionId,
@@ -313,48 +364,7 @@ export class PermissionManager {
       reason,
     });
 
-    return new Promise<GateResult>((resolve) => {
-      const timer = setTimeout(() => {
-        this.waiters.delete(decisionId);
-        this.audit({
-          decisionId,
-          runId: ctx.runId,
-          ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
-          ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
-          toolName: call.name,
-          argumentsFingerprint: decision.argumentsFingerprint,
-          verdict: "timeout",
-          source: "timeout",
-          reason: `审批超时（${this.askTimeoutMs}ms）`,
-        });
-        this.emit({
-          type: "permission:denied",
-          decisionId,
-          runId: ctx.runId,
-          ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
-          toolName: call.name,
-          reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
-          timedOut: true,
-        });
-        resolve({
-          ok: false,
-          verdict: "timeout",
-          reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
-          decisionId,
-        });
-      }, this.askTimeoutMs);
-
-      this.waiters.set(decisionId, {
-        decision,
-        timer,
-        resolve: ({ approved, reason: denyReason }) =>
-          resolve(
-            approved
-              ? { ok: true, verdict: "ask-approved", decisionId }
-              : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId },
-          ),
-      });
-    });
+    return promise;
   }
 
   private emit(event: RuntimeEvent): void {

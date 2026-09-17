@@ -12,7 +12,7 @@
 
 | 项 | 结论 |
 |---|---|
-| **一等公民** | `packages/*` **12 个 workspace 包**（`@node-agent-runtime/*`）+ 公共 API 快照 + 质量门 + 发布编排 |
+| **一等公民** | `packages/*` **14 个 workspace 包**（13 个 `@node-agent-runtime/*` + 脚手架 `create-node-agent-runtime`）+ 公共 API 快照 + 质量门 + 发布编排 |
 | **降级** | `examples/cli.ts`、`examples/web/`、`deploy/`、`scripts/e2e/`、`scripts/smoke-web.mjs` → **验证载体**（只验证底座，不演进产品） |
 | **移出（产品侧）** | `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs`、P5.1~P5.4 → **移出底座范围（HANDOFF）**：底座不再投入、也不再对其立项与否作判定，**方向与投入归产品侧**（见 §2.3） |
 | **不立项** | 垂直行业应用、Rust 移植、多 Agent 协同（维持远期/否决，见 §2.4）；**桌面形态不在底座判定范围**（见 §2.3） |

@@ -12,7 +12,7 @@
 
 一个**零第三方运行时依赖**的 TypeScript/Node.js Agent 运行时：提供模型接入层、工具系统、事件总线与**多步推理（ReAct 式）事件循环**。同一套核心即可对接任意 OpenAI 兼容模型服务，也可使用内置的免密钥 Mock Provider 在离线环境完整演示「模型决策 → 工具调用 → 结果回填 → 继续推理 → 最终回答」闭环。
 
-> **项目定位（2026-09-10 底座收敛）**：本项目的交付物是 `packages/*` 下的 **12 个 `@node-agent-runtime/*` 包**（其中 **10 个发布到 npm**、可单独 `npm i` 消费；`mock` / `tools-basic` 为 **internal/demo**，自 2026-09-17 起转 `private`、不再发布）；`examples/`（CLI · Web）与 `deploy/` 是**验证载体**——用于演示治理链路与回归验证，不承诺接口稳定；桌面端（`examples/desktop-tauri/` · `.github/workflows/desktop.yml` · `scripts/verify-desktop.mjs` · `scripts/e2e/desktop.mjs` 与 P5.1~P5.4）已于 **2026-09-17 从仓库移除**（此前 2026-09-10 已裁定移出底座、方向归产品侧）。边界、纪律与立项口径见 `docs/base-convergence.md` §2.3。
+> **项目定位（2026-09-10 底座收敛）**：本项目的交付物是 `packages/*` 下的 **14 个 workspace 包**（其中 **12 个发布到 npm**：11 个 `@node-agent-runtime/*` + 脚手架 `create-node-agent-runtime`，可单独 `npm i` / `npx` 消费；`mock` / `tools-basic` 为 **internal/demo**，自 2026-09-17 起转 `private`、不再发布）；`examples/`（CLI · Web）与 `deploy/` 是**验证载体**——用于演示治理链路与回归验证，不承诺接口稳定；桌面端（`examples/desktop-tauri/` · `.github/workflows/desktop.yml` · `scripts/verify-desktop.mjs` · `scripts/e2e/desktop.mjs` 与 P5.1~P5.4）已于 **2026-09-17 从仓库移除**（此前 2026-09-10 已裁定移出底座、方向归产品侧）。边界、纪律与立项口径见 `docs/base-convergence.md` §2.3。
 
 ## 快速开始
 
@@ -33,13 +33,15 @@ OPENAI_BASE_URL=https://api.deepseek.com/v1 OPENAI_API_KEY=sk-xxx OPENAI_MODEL=d
 
 ## 安装（作为依赖消费）
 
-**10 个包**以 `@node-agent-runtime/*` 发布到 npm（P4，ESM-only）；`mock` / `tools-basic` 为 **internal/demo**（已转 `private`，不发布，仅作仓库内 workspace 与示例使用）：
+**12 个包**发布到 npm（P4，ESM-only）：11 个以 `@node-agent-runtime/*` 发布，另加无 scope 的脚手架 `create-node-agent-runtime`；`mock` / `tools-basic` 为 **internal/demo**（已转 `private`，不发布，仅作仓库内 workspace 与示例使用）：
 
 ```bash
+npx create-node-agent-runtime my-agent                  # 最快上手：生成第一个受治理 Agent 项目
 npm i @node-agent-runtime/core @node-agent-runtime/types     # 引擎 + 契约（core 依赖 types）
 npm i @node-agent-runtime/host                          # 可选：SessionManager 会话编排
 npm i @node-agent-runtime/provider-openai               # 可选：真实模型后端
 npm i @node-agent-runtime/store-sqlite                  # 可选：SQLite 存储
+npm i @node-agent-runtime/acp                           # 可选：把底座暴露为 ACP agent（stdio，供 Zed / DeepChat 等客户端驱动）
 # internal/demo（private，不上 npm，仅在仓库内使用）：
 #   @node-agent-runtime/mock         免密钥 MockProvider（演示/测试）
 #   @node-agent-runtime/tools-basic  builtinTools 内置工具集
@@ -150,7 +152,7 @@ const out2 = await manager.chat(s.id, "那 4 + 5 呢？");
 npm workspaces monorepo（根包为容器，`packages/*` 为独立包）：
 
 ```
-packages/                   # 12 个 npm workspace 包（10 个发布到 npm；mock / tools-basic 为 internal/demo，private）；目录名即 scoped 包名，如 core → @node-agent-runtime/core
+packages/                   # 14 个 npm workspace 包（12 个发布到 npm；mock / tools-basic 为 internal/demo，private）；scoped 目录名即包名，如 core → @node-agent-runtime/core
 ├── types/                  # C1 共享叶子包 @node-agent-runtime/types（零依赖）：消息/工具/事件/Storage/Artifact 契约 + schema 校验器 + 零 IO 纯函数
 │                           #   src/: artifacts · events · schema · storage · tools · types · util
 ├── memory/                 # C3 @node-agent-runtime/memory（依赖 types）：SessionMemory 会话记忆 + Checkpoint 步级快照（M6 外置；checkpoint M6-10 归位）
@@ -165,7 +167,9 @@ packages/                   # 12 个 npm workspace 包（10 个发布到 npm；m
 ├── host/                   # C8 @node-agent-runtime/host（SessionManager 会话/任务生命周期，M6 外置，host 层）
 ├── mcp/                    # C6 @node-agent-runtime/mcp（MCP 适配：client/jsonrpc/registry/transport/types，M6 外置）
 ├── provider-openai/        # C7 @node-agent-runtime/provider-openai（OpenAI 兼容 fetch 模型后端）
-└── store-sqlite/           # C9 @node-agent-runtime/store-sqlite（SQLiteStorage 可选存储后端，node:sqlite）
+├── store-sqlite/           # C9 @node-agent-runtime/store-sqlite（SQLiteStorage 可选存储后端，node:sqlite）
+├── acp/                    # C10 @node-agent-runtime/acp（ACP agent：stdio 传输 + 权限桥接 + 执行模式，供 Zed / DeepChat 等客户端驱动）
+└── create-node-agent-runtime/  # C10 脚手架（无 scope）：npx create-node-agent-runtime 生成第一个受治理 Agent 项目（零运行时依赖）
 examples/                   # 验证载体（不随 npm 发布，接口不承诺稳定）
 ├── cli.ts                  # 最小消费者：终端交互（会话持久化到 .runtime-data/，M1）
 └── web/                    # 可视化验收面：SSE 事件流 + 审批卡片 + sandbox diff + artifact

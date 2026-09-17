@@ -21,6 +21,7 @@
 | `@node-agent-runtime/mcp` | 0.2.0 | 40 | C6 MCP 适配 + M7-6b 只读资源 |
 | `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
+| `@node-agent-runtime/acp` | 0.4.2 | 78 | C10 ACP agent（stdio 传输 + 权限桥接 + 执行模式，M8-2/M8-3） |
 
 **依赖方向（单向无环）**：
 
@@ -129,6 +130,24 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 `SQLiteStorage`、`SQLiteStorageOptions`、`SCHEMA_VERSION`
 
 > `SCHEMA_VERSION`（P5.5）随 schema 版本化一起导出：数据库版本存于 `PRAGMA user_version`，启动时自动应用缺失迁移（幂等可重复），并新增 session/task/run 与审计排序的表达式索引。
+
+---
+
+## 12.1 `@node-agent-runtime/acp`（C10 · ACP agent，M8-2/M8-3）
+
+78 个导出按职责分组（**完整符号清单以 `scripts/api-surface.baseline.json` 为唯一事实源**，本表只给分组与代表符号 —— 协议类型面很宽，逐条抄进文档只会让读者失去重点）：
+
+| 分组 | 代表符号 | 说明 |
+|---|---|---|
+| **传输 / 帧** | `LineDecoder`、`encodeMessage`、`parseMessage`、`isRequest`、`isResponse`、`isError`、`handshake` | 换行分隔 JSON-RPC；stdout 只写 ACP 消息，日志走 stderr |
+| **协议类型** | `SessionUpdate`、`ToolCallUpdate`、`PermissionOption`、`ConfigOption`、`SetConfigOptionResult`、`AgentCapabilities` | 与 ACP v1 对齐的类型面（多数是类型，编译后不占运行时体积） |
+| **agent** | `AcpAgent`、`StorageAcpAgent`、`createDefaultAcpAgent` | `createDefaultAcpAgent({ provider, agents })` 即开箱入口 |
+| **权限桥接** | `AcpPermissionBridge` | `session/request_permission` ↔ `PermissionManager`；客户端不实现该方法时降级为拒绝 |
+| **执行模式** | `MODE_CONFIG_ID`、`toModeState`、`applyMode` | `session/set_mode` ↔ `SandboxMode`，并双轨提供 `session/set_config_option` |
+| **错误码** | `METHOD_NOT_FOUND`、`INVALID_PARAMS`、`INTERNAL_ERROR` 等 | JSON-RPC 标准错误码 |
+
+> 该包**不**被 `core` re-export（方向为 `acp → core`，反向成环），消费者须直接 `import ... from "@node-agent-runtime/acp"`。
+> 脚手架 `create-node-agent-runtime` **不在本快照内**：它是 CLI，公共面是命令行与生成物，不是可 import 的库 API。
 
 ---
 

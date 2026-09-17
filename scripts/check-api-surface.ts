@@ -29,14 +29,20 @@ const PACKAGES = [
   { name: "@node-agent-runtime/artifact", dir: "artifact", expect: 8 },
   { name: "@node-agent-runtime/sandbox", dir: "sandbox", expect: 14 },
   { name: "@node-agent-runtime/policy", dir: "policy", expect: 28 },
-  { name: "@node-agent-runtime/core", dir: "core", expect: 70 },
+  { name: "@node-agent-runtime/core", dir: "core", expect: 78 },
   { name: "@node-agent-runtime/tools-basic", dir: "tools-basic", expect: 4 },
   { name: "@node-agent-runtime/mock", dir: "mock", expect: 1 },
   { name: "@node-agent-runtime/host", dir: "host", expect: 14 },
   { name: "@node-agent-runtime/mcp", dir: "mcp", expect: 40 },
   { name: "@node-agent-runtime/provider-openai", dir: "provider-openai", expect: 2 },
   { name: "@node-agent-runtime/store-sqlite", dir: "store-sqlite", expect: 3 },
+  { name: "@node-agent-runtime/acp", dir: "acp", expect: 78 }, // M8-2/3 新包，随基线冻结
 ];
+
+/**
+ * 脚手架 `create-node-agent-runtime` **刻意不纳入**：它是 CLI（公共面是命令行
+ * 与生成物，不是可 import 的库 API），纳入只会给快照表增加噪声。
+ */
 
 const BASELINE_FILE = path.join(ROOT, "scripts", "api-surface.baseline.json");
 

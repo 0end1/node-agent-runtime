@@ -22,7 +22,7 @@ npm run ci         # 全部门禁：typecheck → lint → test → policy:test 
 
 ## 2. 仓库结构
 
-npm workspaces monorepo，根包是容器（private），`packages/*` 为可发布包：
+npm workspaces monorepo，根包是容器（private）；`packages/*` 下 12 个包中 **10 个发布到 npm**，`mock` / `tools-basic` 为 **internal/demo**（已 `private`，不发布，仅仓库内与示例使用）：
 
 | 包 | 职责 |
 | --- | --- |
@@ -36,7 +36,8 @@ npm workspaces monorepo，根包是容器（private），`packages/*` 为可发�
 | `@node-agent-runtime/mcp` | C6 MCP 客户端（stdio / streamable HTTP） |
 | `@node-agent-runtime/provider-openai` | C7 OpenAI 兼容模型后端 |
 | `@node-agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
-| `@node-agent-runtime/tools-basic` / `@node-agent-runtime/mock` | 内置工具集 / 免密钥 Mock Provider（演示与测试） |
+| `@node-agent-runtime/tools-basic` | **internal/demo**（`private`，不发布）：内置工具集 `builtinTools`，仅仓库内与示例使用 |
+| `@node-agent-runtime/mock` | **internal/demo**（`private`，不发布）：免密钥 Mock Provider（演示/测试），仅仓库内与示例使用 |
 
 边界规则见 `docs/historical/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
 

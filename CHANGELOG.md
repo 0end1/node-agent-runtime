@@ -15,7 +15,7 @@
 
 ### Docs
 
-- README 同步标注 `mock` / `tools-basic` 为 **internal/demo**：两包已转 `private`、不再发布，「已发布包」口径由 12 个收敛为 10 个；项目定位、安装示例、项目结构树、代码示例提示四处同步，避免外部消费者照抄 import 失败。
+- README / CONTRIBUTING 同步标注 `mock` / `tools-basic` 为 **internal/demo**：两包已转 `private`、不再发布，「已发布包」口径由 12 个收敛为 10 个；README 四处（项目定位、安装示例、项目结构树、代码示例提示）与 CONTRIBUTING 包表同步，避免外部消费者照抄 import 失败。
 
 ## [0.4.2] - 2026-09-17
 

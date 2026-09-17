@@ -1,0 +1,24 @@
+name: Audit
+
+# 供应链安全：定期 + 手动扫描依赖漏洞（公开仓标准动作）。
+# 有 high 及以上漏洞时本 job 失败，触发通知。
+on:
+  schedule:
+    - cron: "17 3 * * 1" # 每周一 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high

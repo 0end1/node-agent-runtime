@@ -1,0 +1,167 @@
+# P5.6 / M8-5 · Helm values
+#
+# 默认值刻意保守：**单副本 + 最小权限 + 沙箱禁网 + 只读根文件系统**。
+# 密钥一律不出现在本文件 —— 见下方 `existingSecret` / `secret`。
+
+# SQLite 是**本机文件**存储（`@node-agent-runtime/store-sqlite`）：多副本会各自
+# 写各自的库，会话与审批审计直接串台。故默认 1 副本 + `strategy: Recreate`；
+# 要多副本请先外部化存储（届时把 replicaCount 调大并改 RollingUpdate）。
+replicaCount: 1
+
+image:
+  repository: node-agent-runtime/console
+  # 留空则用 Chart.appVersion；升级时通常只改这一个值
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  # 控制台不调 K8s API —— 不挂载 token，少一条横向移动的通路
+  automount: false
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  # 让 PVC 对 10001 可写
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8787
+
+# ---------------------------------------------------------------- 配置（非密钥）
+# 与 deploy/env/prod.env.example 同一套变量；这里只放**可以公开**的配置，
+# 渲染进 ConfigMap（`kubectl get cm` 可读，故不 secrets）。
+config:
+  HOST: "0.0.0.0"
+  PORT: "8787"
+  AGENT_LOG_LEVEL: "warn"
+
+  # P3.7 —— 默认禁网；确需外网改 allowlist 并列出域名
+  AGENT_SANDBOX_NETWORK: "deny"
+
+  # P3.4 —— 运行预算，超限产 run:error（0 是合法值：禁止任何消费）
+  AGENT_LIMIT_MAX_STEPS: "20"
+  AGENT_LIMIT_MAX_DURATION_MS: "120000"
+  AGENT_LIMIT_MAX_COST_USD: "1"
+  AGENT_RATE_TOOL_MAX_CALLS: "30"
+  AGENT_RATE_TOOL_WINDOW_MS: "60000"
+
+  # P3.6 —— MCP stdio 超时
+  AGENT_MCP_STDIO_TIMEOUT_MS: "5000"
+
+  # P3 特性开关
+  AGENT_FEATURE_MCP: "true"
+  AGENT_FEATURE_SQLITE: "true"
+  AGENT_FEATURE_ARTIFACTS: "true"
+
+  # P3.5 —— 跨站白名单；留空 = 不放行任何跨站请求
+  AGENT_CORS_ALLOW_ORIGINS: ""
+
+  # P3 §3 第 3 项 —— policy-allow 审计开关（true = 全量留痕；deny/ask/宿主决策不受影响）
+  AGENT_PERMISSION_AUDIT_POLICY_ALLOWS: "true"
+
+  # 数据目录 —— 与下方 PVC 挂载点一致
+  RUNTIME_DATA: "/app/.runtime-data"
+
+# -------------------------------------------------------------------- 密钥
+# 方式 A（推荐）：密钥先落进集群，这里只引用名字。
+#   kubectl create secret generic node-agent-runtime \
+#     --from-literal=AGENT_API_TOKEN="$(openssl rand -hex 32)" \
+#     --from-literal=OPENAI_API_KEY="sk-..."
+existingSecret: ""
+
+# 方式 B：由本 chart 渲染。**不要把真值写进这个文件** —— 用
+#   helm upgrade ... --set-string secret.AGENT_API_TOKEN=... 注入（CI 从 secrets 取）。
+# `AGENT_API_TOKEN` 在 HOST=0.0.0.0（非 loopback）下是**启动强制项**，缺了会拒绝启动。
+secret: {}
+#  secret:
+#    AGENT_API_TOKEN: ""
+#    OPENAI_API_KEY: ""
+
+# ------------------------------------------------------------------ 持久化
+persistence:
+  enabled: true
+  # ReadWriteOnce：单副本独占。多副本场景见顶部 replicaCount 注释。
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  storageClass: ""
+  # 已有 PVC（例如由外部备份/恢复流程创建）时填名字，本 chart 不再自己建
+  existingClaim: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# 只读根文件系统 → /tmp 走内存盘（Node 运行时需要可写临时目录）
+tmpfs:
+  enabled: true
+  sizeLimit: 64Mi
+
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# RWO 卷无法被新旧两个 Pod 同时挂载，RollingUpdate 会卡在 "Multi-Attach" /
+# 等待旧 Pod 释放卷上。单副本场景用 Recreate 语义最直白：先停后起。
+strategy:
+  type: Recreate
+
+ingress:
+  enabled: false
+  className: nginx
+  annotations:
+    # SSE 必须关闭缓冲，否则增量被攒着不发（与 deploy/nginx 同口径）
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: console.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: console-tls
+  #    hosts:
+  #      - console.example.com
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

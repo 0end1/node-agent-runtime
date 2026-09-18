@@ -11,7 +11,7 @@ import {
   type ToolStartEvent,
   type UserMessageEvent,
 } from "./events.js";
-import type { ModelProvider } from "./provider.js";
+import type { ModelProvider, ModelRequest, ModelResponse } from "./provider.js";
 import { findDuplicateToolNames } from "./tool.js";
 import type { AnyTool } from "./tool.js";
 import type { ChatMessage, PriceTable, RunUsage, ToolCall, ToolResultMessage } from "@node-agent-runtime/types";
@@ -54,6 +54,13 @@ export interface AgentRuntimeOptions {
    * overrides it.
    */
   context?: ContextBudget;
+  /**
+   * M8-4: 是否默认开启流式（`message:delta` 增量事件）。默认 **false** ——
+   * 关掉时事件流与引入流式之前逐字节一致，opt-in 才不会打扰既有的消费者。
+   * 真正的开关在 per-run `RunOptions.stream`（覆盖此处），因为是否要增量
+   * 通常是「这一次调用」的事（交互式要，批处理不要）。
+   */
+  stream?: boolean;
 }
 
 /**
@@ -147,6 +154,12 @@ export interface RunOptions {
    * runtime default).
    */
   context?: ContextBudget;
+  /**
+   * M8-4: 本次 run 是否流式。覆盖 `AgentRuntimeOptions.stream`，默认 false。
+   * 只有 provider 实现了 `chatStream()` 才真正产生 `message:delta`；否则静默
+   * 走非流式（不是错误 —— 流式是体验增强，不是能力前提）。
+   */
+  stream?: boolean;
   traceId?: string;
 }
 
@@ -211,6 +224,7 @@ export class AgentRuntime {
   private readonly defaultLimits?: RunLimits;
   private readonly pricing?: PriceTable;
   private readonly contextBudget?: ContextBudget;
+  private readonly defaultStream?: boolean;
 
   constructor(options: AgentRuntimeOptions) {
     this.provider = options.provider;
@@ -219,6 +233,7 @@ export class AgentRuntime {
     this.defaultLimits = options.limits;
     this.pricing = options.pricing;
     this.contextBudget = options.context;
+    this.defaultStream = options.stream;
   }
 
   /** Subscribe to all runtime lifecycle events. */
@@ -285,6 +300,8 @@ export class AgentRuntime {
     // 注入点收口在 `emit`（与 `redact()` 同处），保证「一处注入、全局一致」；
     // 用 run 内闭包而非实例字段，故同一 runtime 上的并发 run 互不串扰。
     const traceId = options.traceId ?? newId("trace");
+    // M8-4: per-run 覆盖 runtime 默认值；默认关闭（关掉时事件流与以往一致）。
+    const stream = options.stream ?? this.defaultStream ?? false;
     const emit = (event: RuntimeEvent): void => this.emit(event, traceId);
     const logger = this.logger?.child?.({ traceId, runId }) ?? this.logger;
     const log = (line: string, meta?: unknown): void => logger?.info(line, meta);
@@ -350,14 +367,17 @@ export class AgentRuntime {
         emit({ type: "step:start", runId, step, declaredTools: declaredNames, at: Date.now() });
         log(`  step ${step} -> provider "${this.provider.id}" (messages=${history.length})`);
 
-        const response = await this.provider.chat({
-          messages: history,
-          tools: requestTools,
-          system: agent.instructions,
-          temperature: agent.temperature,
-          maxTokens: agent.maxTokens,
-          signal: options.signal,
-        });
+        const response = await this.callModel(
+          {
+            messages: history,
+            tools: requestTools,
+            system: agent.instructions,
+            temperature: agent.temperature,
+            maxTokens: agent.maxTokens,
+            signal: options.signal,
+          },
+          { runId, step, emit, stream },
+        );
 
         if (options.signal?.aborted) throw new RunAbortedError();
 
@@ -632,6 +652,42 @@ export class AgentRuntime {
         }),
         ok: false,
       };
+    }
+  }
+
+  /**
+   * M8-4: 一次模型调用 —— 「流式与否」的唯一收口点。
+   *
+   * 回退规则：**只有在还没吐出任何增量之前失败才回退**。已经出过块说明服务
+   * 端接收了请求并开始计费，再跑一次非流式会重复扣费，而且消费者会先收到半
+   * 截增量、再收到一整段重复文本 —— 那种情况下直接把错误交给 run 的错误路径，
+   * 由宿主决定（重试 / 提示 / 从 checkpoint 续跑）。provider 没实现
+   * `chatStream()` 则静默走非流式：流式是体验增强，不是能力前提。
+   */
+  private async callModel(
+    request: ModelRequest,
+    ctx: {
+      runId: string;
+      step: number;
+      emit: (event: RuntimeEvent) => void;
+      stream: boolean;
+    },
+  ): Promise<ModelResponse> {
+    const { runId, step, emit, stream } = ctx;
+    if (!stream || typeof this.provider.chatStream !== "function") {
+      return this.provider.chat(request);
+    }
+    let index = 0;
+    let delivered = false;
+    try {
+      return await this.provider.chatStream(request, (delta) => {
+        if (!delta) return;
+        delivered = true;
+        emit({ type: "message:delta", runId, step, delta, index: index++ });
+      });
+    } catch (err) {
+      if (delivered) throw err;
+      return this.provider.chat(request);
     }
   }
 

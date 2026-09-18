@@ -11,6 +11,7 @@ import type { SessionUpdate, ToolKind } from "./protocol.js";
  * deliberately a pure function so it can be unit-tested without a connection.
  *
  * M8-2 covers: message chunks, tool calls, usage. M8-3 adds plan/current mode.
+ * M8-4 adds token-level `message:delta` chunks.
  */
 
 /** Runtime `ToolKind` (sensitivity class) + name heuristics → ACP display kind. */
@@ -89,6 +90,17 @@ export function translateEvent(event: RuntimeEvent): SessionUpdate[] {
           // intermediate turns (text followed by tool calls) visually separate.
           messageId: `${event.runId}:${event.step}`,
           content: { type: "text", text },
+        },
+      ];
+    }
+    case "message:delta": {
+      // M8-4: token 级增量。`messageId` 与同一步 `model:response` 的取值一致，
+      // 客户端据此把这些 chunk 拼回同一条消息（规范里分块是 MAY，不是 MUST）。
+      return [
+        {
+          sessionUpdate: "agent_message_chunk",
+          messageId: `${event.runId}:${event.step}`,
+          content: { type: "text", text: event.delta },
         },
       ];
     }

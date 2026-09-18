@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T06:12:44.372Z",
+  "generatedAt": "2026-09-18T01:13:35.477Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -27,6 +27,7 @@
         "LimitKind",
         "LimitProbe",
         "LimitViolation",
+        "MessageDeltaEvent",
         "ModelResponseEvent",
         "PermissionApprovedEvent",
         "PermissionDeniedEvent",
@@ -196,6 +197,7 @@
         "McpConfig",
         "McpToolRefLike",
         "MemoryStorage",
+        "MessageDeltaEvent",
         "ModelProvider",
         "ModelRequest",
         "ModelRequestError",

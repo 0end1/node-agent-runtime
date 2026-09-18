@@ -273,9 +273,13 @@ class MemoryApprovalStore implements ApprovalStore {
 }
 
 describe("P3.3 — approval audit trail + persisted grants", () => {
-  function auditedManager(store: ApprovalStore, askTimeoutMs = 60_000) {
+  function auditedManager(
+    store: ApprovalStore,
+    askTimeoutMs = 60_000,
+    auditPolicyAllows?: boolean,
+  ) {
     const bus = new EventBus<RuntimeEvent>();
-    return new PermissionManager({ events: bus, store, askTimeoutMs });
+    return new PermissionManager({ events: bus, store, askTimeoutMs, auditPolicyAllows });
   }
 
   it("policy-allow decisions are audited (approved / policy-allow, fingerprinted args)", async () => {
@@ -295,6 +299,31 @@ describe("P3.3 — approval audit trail + persisted grants", () => {
     // 审计不存原始参数，只留指纹
     assert.ok(rows[0].argumentsFingerprint);
     assert.ok(!JSON.stringify(rows[0]).includes('"a":1'));
+  });
+
+  it("P3 §3 第 3 项: auditPolicyAllows=false 时 policy-allow 不留痕，deny 仍留痕", async () => {
+    const s = new MemoryApprovalStore();
+    const pm = auditedManager(s, 60_000, false);
+
+    const allowed = await pm.gate(
+      call("calculator", { a: 1, b: 2 }),
+      ctx({ tool: { name: "calculator", kind: "harmless" } }),
+    );
+    assert.equal(allowed.verdict, "allow");
+
+    const denied = await pm.gate(
+      call("get_secret"),
+      ctx({ tool: { name: "get_secret", kind: "credential" } }),
+    );
+    assert.equal(denied.verdict, "deny");
+
+    await pm.flush();
+    const rows = await s.list();
+    // 放行被跳过；deny 不受开关影响，始终留痕
+    assert.deepEqual(
+      rows.map((r) => r.source),
+      ["policy-deny"],
+    );
   });
 
   it("policy-deny decisions are audited (denied / policy-deny)", async () => {

@@ -57,6 +57,11 @@ export interface AcpAgentOptions {
   /** Wrapped authorization policy; its `ask` verdicts become approval requests. */
   policy?: PermissionPolicy;
   /**
+   * P3 §3 第 3 项: 透传 `SessionManager` → `PermissionManager`，关闭 `policy-allow` 审计（默认审计）。
+   * 高频无害工具（只读查询等）放行会产生大量审计行时可关闭；`deny` / `ask` / 宿主决策始终留痕。
+   */
+  auditPolicyAllows?: boolean;
+  /**
    * How an `ask` verdict is answered (M8-3).
    *
    *  - `"ask-client"` (default): relay to `session/request_permission`. A client
@@ -67,6 +72,14 @@ export interface AcpAgentOptions {
   permissions?: "ask-client" | "deny";
   /** Advertised in `initialize`. */
   agentInfo?: ImplementationInfo;
+  /**
+   * M8-4: 是否把文本增量逐块推给客户端（`agent_message_chunk`）。
+   *
+   * 默认 **true** —— ACP 客户端（Zed / DeepChat）本来就把回复当作流来渲染。
+   * provider 没实现 `chatStream()` 时引擎自动走非流式，行为与关闭时完全一致，
+   * 所以默认开着没有副作用。
+   */
+  stream?: boolean;
   /** Diagnostics sink — must be stderr; stdout carries ACP messages only. */
   logger?: (line: string) => void;
 }
@@ -79,6 +92,11 @@ interface SessionContext {
   /** Approval-bridge subscription; released with the session. */
   unsubscribe: () => void;
   controller?: AbortController;
+  /**
+   * M8-4: 本轮已经逐块流出过的 `messageId`。用于抑制 `model:response` 的整段
+   * 补发 —— 否则客户端会把同一段文本看两遍（增量一遍 + 完整一遍）。
+   */
+  streamedMessages: Set<string>;
 }
 
 const defaultLogger = (line: string): void => {
@@ -112,6 +130,8 @@ export class AcpAgent {
   private readonly policy: PermissionPolicy;
   private readonly permissions: "ask-client" | "deny";
   private readonly agentInfo: ImplementationInfo;
+  private readonly stream: boolean;
+  private readonly auditPolicyAllows?: boolean;
   private readonly logger: (line: string) => void;
   private readonly sessions = new Map<string, SessionContext>();
   private connection?: AcpConnection;
@@ -130,6 +150,8 @@ export class AcpAgent {
       title: "Node Agent Runtime",
       version: "0.4.2",
     };
+    this.stream = options.stream ?? true;
+    this.auditPolicyAllows = options.auditPolicyAllows;
     this.logger = options.logger ?? defaultLogger;
   }
 
@@ -228,9 +250,14 @@ export class AcpAgent {
 
     const controller = new AbortController();
     context.controller = controller;
+    // M8-4: 每轮 prompt 都是新的 runId，清空上一轮的「已流出」记录。
+    context.streamedMessages.clear();
     const unsubscribe = context.bus.subscribe((event) => this.forward(context, event));
     try {
-      const outcome = await context.manager.chat(sessionId, text, { signal: controller.signal });
+      const outcome = await context.manager.chat(sessionId, text, {
+        signal: controller.signal,
+        stream: this.stream,
+      });
       return {
         stopReason: outcome.run.stoppedByMaxSteps ? "max_turn_requests" : "end_turn",
       };
@@ -342,6 +369,9 @@ export class AcpAgent {
       policy: bridge ?? new NoAskPolicy(this.policy),
       ...(this.sandbox ? { sandbox: this.sandbox } : {}),
       approvalStore: new StorageApprovalStore(this.storage),
+      ...(this.auditPolicyAllows !== undefined
+        ? { auditPolicyAllows: this.auditPolicyAllows }
+        : {}),
     });
     bridge?.attach(manager);
 
@@ -351,10 +381,20 @@ export class AcpAgent {
       else if (event.type === "permission:request") void bridge.handle(event);
     });
 
-    return { sessionId: "", cwd, bus, manager, unsubscribe };
+    return { sessionId: "", cwd, bus, manager, unsubscribe, streamedMessages: new Set() };
   }
 
   private forward(context: SessionContext, event: RuntimeEvent): void {
+    // M8-4: 该步已经逐块流出过，就不再补发整段（否则客户端看到重复文本）。
+    if (
+      event.type === "model:response" &&
+      context.streamedMessages.has(`${event.runId}:${event.step}`)
+    ) {
+      return;
+    }
+    if (event.type === "message:delta") {
+      context.streamedMessages.add(`${event.runId}:${event.step}`);
+    }
     for (const update of translateEvent(event)) {
       this.sendUpdate(context.sessionId, update);
     }

@@ -1,47 +1,52 @@
 {
+  "@node-agent-runtime/acp": {
+    "packageSize": 35429,
+    "unpackedSize": 131515,
+    "entryCount": 42
+  },
   "@node-agent-runtime/artifact": {
-    "packageSize": 8359,
-    "unpackedSize": 25180,
+    "packageSize": 8364,
+    "unpackedSize": 25247,
     "entryCount": 10
   },
   "@node-agent-runtime/core": {
-    "packageSize": 116683,
-    "unpackedSize": 453881,
-    "entryCount": 122
+    "packageSize": 53107,
+    "unpackedSize": 184122,
+    "entryCount": 58
   },
   "@node-agent-runtime/host": {
-    "packageSize": 22362,
-    "unpackedSize": 84351,
+    "packageSize": 23152,
+    "unpackedSize": 86820,
     "entryCount": 18
   },
   "@node-agent-runtime/mcp": {
-    "packageSize": 37442,
-    "unpackedSize": 132061,
+    "packageSize": 37448,
+    "unpackedSize": 132170,
     "entryCount": 26
   },
   "@node-agent-runtime/memory": {
-    "packageSize": 19165,
-    "unpackedSize": 62279,
-    "entryCount": 22
+    "packageSize": 16295,
+    "unpackedSize": 51285,
+    "entryCount": 18
   },
   "@node-agent-runtime/mock": {
-    "packageSize": 12873,
-    "unpackedSize": 38032,
+    "packageSize": 14247,
+    "unpackedSize": 41267,
     "entryCount": 10
   },
   "@node-agent-runtime/policy": {
-    "packageSize": 21009,
-    "unpackedSize": 80068,
+    "packageSize": 21971,
+    "unpackedSize": 81884,
     "entryCount": 18
   },
   "@node-agent-runtime/provider-openai": {
-    "packageSize": 9059,
-    "unpackedSize": 27846,
-    "entryCount": 10
+    "packageSize": 14126,
+    "unpackedSize": 43421,
+    "entryCount": 14
   },
   "@node-agent-runtime/sandbox": {
-    "packageSize": 11148,
-    "unpackedSize": 34094,
+    "packageSize": 11157,
+    "unpackedSize": 34161,
     "entryCount": 10
   },
   "@node-agent-runtime/store-sqlite": {
@@ -50,13 +55,18 @@
     "entryCount": 10
   },
   "@node-agent-runtime/tools-basic": {
-    "packageSize": 12003,
-    "unpackedSize": 40724,
+    "packageSize": 11999,
+    "unpackedSize": 40803,
     "entryCount": 14
   },
   "@node-agent-runtime/types": {
-    "packageSize": 25693,
-    "unpackedSize": 84492,
+    "packageSize": 26401,
+    "unpackedSize": 85725,
     "entryCount": 50
+  },
+  "create-node-agent-runtime": {
+    "packageSize": 9385,
+    "unpackedSize": 24173,
+    "entryCount": 18
   }
 }

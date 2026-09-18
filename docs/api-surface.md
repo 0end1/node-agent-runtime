@@ -14,7 +14,7 @@
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 28 | C5 授权决策 + M7-3 声明式策略契约/编译/测试/预设 |
-| `@node-agent-runtime/core` | 0.2.0 | 78（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade + M7-5 配方编译 |
+| `@node-agent-runtime/core` | 0.2.0 | 79（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade + M7-5 配方编译 |
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@node-agent-runtime/host` | 0.2.0 | 14 | C8 会话/任务生命周期 + 审批审计导出 |
@@ -39,7 +39,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 | 子模块 | 导出 |
 |---|---|
 | `artifacts` | `Artifact`、`ArtifactInput`、`ArtifactKind` |
-| `events` | `RuntimeEvent` + `RunStartEvent`、`UserMessageEvent`、`StepStartEvent`、`ModelResponseEvent`、`ToolStartEvent`、`ToolEndEvent`、`RunEndEvent`、`RunErrorEvent`、`SessionCreatedEvent`、`SessionUpdatedEvent`、`SessionClosedEvent`、`TaskCreatedEvent`、`TaskStatusEvent`、`CheckpointSavedEvent`、`CheckpointRestoredEvent`、`PermissionRequestEvent`、`PermissionApprovedEvent`、`PermissionDeniedEvent`、`SandboxWriteEvent`、`EventEmitter` |
+| `events` | `RuntimeEvent` + `RunStartEvent`、`UserMessageEvent`、`StepStartEvent`、`ModelResponseEvent`、`MessageDeltaEvent`、`ToolStartEvent`、`ToolEndEvent`、`RunEndEvent`、`RunErrorEvent`、`SessionCreatedEvent`、`SessionUpdatedEvent`、`SessionClosedEvent`、`TaskCreatedEvent`、`TaskStatusEvent`、`CheckpointSavedEvent`、`CheckpointRestoredEvent`、`PermissionRequestEvent`、`PermissionApprovedEvent`、`PermissionDeniedEvent`、`SandboxWriteEvent`、`EventEmitter` |
 | `schema` | `JsonSchema`、`JsonSchemaType`、`validate` |
 | `codes` | `ErrorCode`、`ErrorInfo`、`errorInfo` |
 | `storage` | `Storage`、`DocDomain`、`StreamDomain` |
@@ -50,6 +50,8 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 > `fingerprint`（P3.3 审批审计指纹）与 `ProcessEnv`（P4.5 让发布产物不依赖 `@types/node`）于 2026-09-08 加入本包。
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
+
+> **M8-4 流式（2026-09-18，additive/minor）**：`events` 新增 `MessageDeltaEvent`（`type: "message:delta"`，含 `runId` / `step` / `delta` / `index` / 可选 `traceId`），承载模型侧的文本增量。**契约层只加一个事件接口，不引入任何传输或 SDK 依赖**：是否产生增量取决于 `RunOptions.stream` 是否显式开启且 provider 是否实现可选 `chatStream()`；未开启或未实现时事件流与 M8-4 之前**逐字一致**（无新增事件）。安全口径由契约固定 —— 增量**逐块**过 `redact()`，故跨块边界的敏感串不被识别，完整文本的安全保证仍来自整段脱敏的 `model:response`。
 
 > **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/historical/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
 

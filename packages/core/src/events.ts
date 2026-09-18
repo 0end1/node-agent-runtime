@@ -5,6 +5,7 @@ export type {
   UserMessageEvent,
   StepStartEvent,
   ModelResponseEvent,
+  MessageDeltaEvent,
   ToolStartEvent,
   ToolEndEvent,
   RunEndEvent,

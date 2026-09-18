@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import type {
+  MessageDeltaEvent,
   ModelResponseEvent,
   RunEndEvent,
   RuntimeEvent,
@@ -43,6 +44,23 @@ describe("update — event translation", () => {
       messageId: "run_1:2",
       content: { type: "text", text: "分析完成" },
     });
+  });
+
+  it("turns a text delta into a token-level chunk of the same message (M8-4)", () => {
+    const event: MessageDeltaEvent = {
+      type: "message:delta",
+      runId: "run_1",
+      step: 2,
+      delta: "分析",
+      index: 0,
+    };
+    assert.deepEqual(translateEvent(event), [
+      {
+        sessionUpdate: "agent_message_chunk",
+        messageId: "run_1:2",
+        content: { type: "text", text: "分析" },
+      },
+    ]);
   });
 
   it("skips assistant turns that only carry tool calls", () => {

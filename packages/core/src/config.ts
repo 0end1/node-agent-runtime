@@ -49,6 +49,11 @@ export interface RuntimeConfig {
     documentPath?: string;
     /** M7-3: compiled policy (set by `loadConfig` when `preset`/`documentPath` given). */
     policy?: PermissionPolicy;
+    /**
+     * P3 §3 第 3 项: 是否把 `policy-allow` 决策写入审计（默认 `true`）。
+     * 关闭可减少高频无害工具产生的审计行；`deny` / `ask` / 宿主决策始终留痕。
+     */
+    auditPolicyAllows?: boolean;
   };
   /** P3.4: budget guardrails derived from env / overrides (unset = no cap). */
   limits?: RunLimits;
@@ -90,10 +95,17 @@ export interface LoadConfigOptions {
   }>;
 }
 
-function parsePositiveInt(value: string | undefined): number | undefined {
+/**
+ * M8-4 顺带清理（P3 §3 第 1/2 项）：解析非负数（整数或小数，如 `MAX_COST_USD`）。
+ *
+ * 原先叫 `parsePositiveNumber` 却允许小数，且 `n > 0` 把 `0` 当成"未设置"丢弃——
+ * 但 `AGENT_LIMIT_MAX_COST_USD=0` 是合法预算（禁止消费），必须能表达。改为
+ * `>= 0`：**只有 `undefined` / 空串才表示"未设置"，显式 `0` 表示"零预算"**。
+ */
+function parsePositiveNumber(value: string | undefined): number | undefined {
   if (value === undefined || value.trim() === "") return undefined;
   const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : undefined;
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
 }
 
 /** P3.4: assemble `limits` from `AGENT_LIMIT_*` / `AGENT_RATE_TOOL_*` env + overrides. */
@@ -101,30 +113,26 @@ function buildLimits(
   env: ProcessEnv,
   overrides: Partial<RunLimits> | undefined,
 ): RunLimits | undefined {
-  const rateCalls = parsePositiveInt(env.AGENT_RATE_TOOL_MAX_CALLS);
-  const rateWindow = parsePositiveInt(env.AGENT_RATE_TOOL_WINDOW_MS);
+  // P3 §3 第 1 项：每个字段只求值一次，消除 `parsePositiveNumber(x) !== undefined
+  // ? { ...: parsePositiveNumber(x) }` 的重复对 env 的两次解析。
+  const maxSteps = parsePositiveNumber(env.AGENT_LIMIT_MAX_STEPS);
+  const maxModelCalls = parsePositiveNumber(env.AGENT_LIMIT_MAX_MODEL_CALLS);
+  const maxInputTokens = parsePositiveNumber(env.AGENT_LIMIT_MAX_INPUT_TOKENS);
+  const maxOutputTokens = parsePositiveNumber(env.AGENT_LIMIT_MAX_OUTPUT_TOKENS);
+  const maxTotalTokens = parsePositiveNumber(env.AGENT_LIMIT_MAX_TOTAL_TOKENS);
+  const maxDurationMs = parsePositiveNumber(env.AGENT_LIMIT_MAX_DURATION_MS);
+  const maxCostUsd = parsePositiveNumber(env.AGENT_LIMIT_MAX_COST_USD);
+  const rateCalls = parsePositiveNumber(env.AGENT_RATE_TOOL_MAX_CALLS);
+  const rateWindow = parsePositiveNumber(env.AGENT_RATE_TOOL_WINDOW_MS);
+
   const limits: RunLimits = {
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_STEPS) !== undefined
-      ? { maxSteps: parsePositiveInt(env.AGENT_LIMIT_MAX_STEPS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_MODEL_CALLS) !== undefined
-      ? { maxModelCalls: parsePositiveInt(env.AGENT_LIMIT_MAX_MODEL_CALLS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_INPUT_TOKENS) !== undefined
-      ? { maxInputTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_INPUT_TOKENS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_OUTPUT_TOKENS) !== undefined
-      ? { maxOutputTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_OUTPUT_TOKENS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_TOTAL_TOKENS) !== undefined
-      ? { maxTotalTokens: parsePositiveInt(env.AGENT_LIMIT_MAX_TOTAL_TOKENS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_DURATION_MS) !== undefined
-      ? { maxDurationMs: parsePositiveInt(env.AGENT_LIMIT_MAX_DURATION_MS) }
-      : {}),
-    ...(parsePositiveInt(env.AGENT_LIMIT_MAX_COST_USD) !== undefined
-      ? { maxCostUsd: parsePositiveInt(env.AGENT_LIMIT_MAX_COST_USD) }
-      : {}),
+    ...(maxSteps !== undefined ? { maxSteps } : {}),
+    ...(maxModelCalls !== undefined ? { maxModelCalls } : {}),
+    ...(maxInputTokens !== undefined ? { maxInputTokens } : {}),
+    ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
+    ...(maxTotalTokens !== undefined ? { maxTotalTokens } : {}),
+    ...(maxDurationMs !== undefined ? { maxDurationMs } : {}),
+    ...(maxCostUsd !== undefined ? { maxCostUsd } : {}),
     ...(rateCalls !== undefined && rateWindow !== undefined
       ? { toolRate: { maxCalls: rateCalls, windowMs: rateWindow } }
       : {}),
@@ -139,14 +147,14 @@ function buildContext(
   overrides: Partial<ContextBudget> | undefined,
 ): ContextBudget | undefined {
   const budget: ContextBudget = {
-    ...(parsePositiveInt(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) !== undefined
-      ? { maxInputTokens: parsePositiveInt(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) }
+    ...(parsePositiveNumber(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) !== undefined
+      ? { maxInputTokens: parsePositiveNumber(env.AGENT_CONTEXT_MAX_INPUT_TOKENS) }
       : {}),
-    ...(parsePositiveInt(env.AGENT_CONTEXT_WINDOW) !== undefined
-      ? { contextWindow: parsePositiveInt(env.AGENT_CONTEXT_WINDOW) }
+    ...(parsePositiveNumber(env.AGENT_CONTEXT_WINDOW) !== undefined
+      ? { contextWindow: parsePositiveNumber(env.AGENT_CONTEXT_WINDOW) }
       : {}),
-    ...(parsePositiveInt(env.AGENT_CONTEXT_KEEP_LAST_TURNS) !== undefined
-      ? { keepLastTurns: parsePositiveInt(env.AGENT_CONTEXT_KEEP_LAST_TURNS) }
+    ...(parsePositiveNumber(env.AGENT_CONTEXT_KEEP_LAST_TURNS) !== undefined
+      ? { keepLastTurns: parsePositiveNumber(env.AGENT_CONTEXT_KEEP_LAST_TURNS) }
       : {}),
     ...(overrides ?? {}),
   };
@@ -169,8 +177,8 @@ function buildMcpConfig(
   }
   const allowlist = parseList(env.AGENT_MCP_HTTP_ALLOWLIST);
   const mcp: McpConfig = {
-    ...(parsePositiveInt(env.AGENT_MCP_STDIO_TIMEOUT_MS) !== undefined
-      ? { stdioStartTimeoutMs: parsePositiveInt(env.AGENT_MCP_STDIO_TIMEOUT_MS) }
+    ...(parsePositiveNumber(env.AGENT_MCP_STDIO_TIMEOUT_MS) !== undefined
+      ? { stdioStartTimeoutMs: parsePositiveNumber(env.AGENT_MCP_STDIO_TIMEOUT_MS) }
       : {}),
     ...(allowlist?.length ? { httpUrlAllowlist: allowlist } : {}),
     ...(Object.keys(serverEnv).length > 0 ? { serverEnv } : {}),
@@ -187,6 +195,12 @@ function buildPermission(
   const perm: RuntimeConfig["permission"] = { ...(overrides ?? {}) };
   if (env.AGENT_POLICY_PRESET) perm.preset = env.AGENT_POLICY_PRESET;
   if (env.AGENT_POLICY_FILE) perm.documentPath = env.AGENT_POLICY_FILE;
+  // P3 §3 第 3 项: `policy-allow` 审计开关（默认 true）。关闭可减少高频无害工具产生的审计行。
+  if (env.AGENT_PERMISSION_AUDIT_POLICY_ALLOWS !== undefined) {
+    perm.auditPolicyAllows =
+      env.AGENT_PERMISSION_AUDIT_POLICY_ALLOWS !== "false" &&
+      env.AGENT_PERMISSION_AUDIT_POLICY_ALLOWS !== "0";
+  }
 
   // M7-3: 外部策略文件必须先校验再编译（P3.8 口径），非法即抛 ConfigError。
   if (perm.documentPath) {

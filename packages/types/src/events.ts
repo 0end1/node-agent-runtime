@@ -48,6 +48,30 @@ export interface ModelResponseEvent {
   traceId?: string;
 }
 
+/**
+ * M8-4: 一次模型调用过程中的文本增量（流式）。
+ *
+ * 等价关系（流式必须守住，否则「续跑 / 回放 / 审计」看到的文本会与一次性
+ * 生成不一致）：把同一步的 `delta` 按 `index` 顺序拼接 == 该步
+ * `model:response` 的 `message.content`。
+ *
+ * 仅当显式开启流式（`RunOptions.stream`）且 provider 实现 `chatStream()` 时
+ * 才出现；未开启时事件流与 M8-4 之前完全一致（无新增事件）。
+ *
+ * 脱敏权衡：`redact()` 作用于每一块，因此**跨块边界的敏感串不会被识别**。
+ * 完整文本的安全保证仍来自 `model:response`（该事件一定整段脱敏）。
+ */
+export interface MessageDeltaEvent {
+  type: "message:delta";
+  runId: string;
+  step: number;
+  /** 增量文本（非空）。 */
+  delta: string;
+  /** 步内序号，从 0 开始：可用来检测丢块/乱序。 */
+  index: number;
+  traceId?: string;
+}
+
 export interface ToolStartEvent {
   type: "tool:start";
   runId: string;
@@ -246,6 +270,7 @@ export type RuntimeEvent =
   | UserMessageEvent
   | StepStartEvent
   | ModelResponseEvent
+  | MessageDeltaEvent
   | ToolStartEvent
   | ToolEndEvent
   | RunEndEvent

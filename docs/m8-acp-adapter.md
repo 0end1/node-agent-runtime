@@ -1,6 +1,6 @@
 # M8-2 / M8-3 ACP 适配包执行清单
 
-> **状态**：✅ M8-2 + M8-3 代码完成（2026-09-17）｜**待办**：真实 ACP Client 联调
+> **状态**：✅ M8-2 + M8-3 + **M8-4（流式）** 代码完成（2026-09-18）｜**待办**：真实 ACP Client 联调（人工，不在 CI 内）
 > **包**：`packages/acp`（`@node-agent-runtime/acp`，新增第 13 个包）
 > **规范依据**：[`docs/acp-spec-review.md`](./acp-spec-review.md)（ACP v1 Stable 核对记录）
 > **排期**：[`docs/development-checklist.md`](./development-checklist.md) §3.4
@@ -22,7 +22,8 @@
 
 | RuntimeEvent | `session/update` |
 |---|---|
-| `model:response`（有文本） | `agent_message_chunk`（`messageId = runId:step`） |
+| `message:delta`（M8-4，须 `stream` 开启） | `agent_message_chunk` 增量（同一 `messageId = runId:step` 逐块下发） |
+| `model:response`（有文本） | `agent_message_chunk`（M8-4 起：该消息已流式流过时**不再整段补发**） |
 | `tool:start` | `tool_call`（`pending`，kind 由名称 + 敏感度共同推断） |
 | `tool:end` | `tool_call_update`（`completed` / `failed`） |
 | `usage:update`、`run:end` | `usage_update`（`used` / `size` / `cost`） |
@@ -66,7 +67,7 @@ spawn 真实 agent 子进程（`test/fixtures/stdio-agent-governed.ts`，带 wri
 
 ## 5. 已知限制
 
-- 一步一条完整 `agent_message_chunk`（分块是 MAY 而非 MUST），M8-4 升级
+- ~~一步一条完整 `agent_message_chunk`（分块是 MAY 而非 MUST）~~ —— **已由 M8-4 解决**：`AcpAgentOptions.stream`（默认 `true`）开启且 provider 实现 `chatStream()` 时逐块下发；provider 未实现则静默退回整段（是降级，不是错误）
 - `usage_update.size` 用实时上下文占用近似 —— 底座没有固定窗口的概念
 - prompt 接受 text（收到 `resource` 也会折叠进输入），未声明 image / audio
 

@@ -54,10 +54,11 @@
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
     "size": "node scripts/size-report.mjs",
     "size:update": "node scripts/size-report.mjs --update",
+    "verify:helm": "node scripts/verify-helm.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "npm run build && changeset publish",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run policy:test && npm run coverage:gate && npm run check:api && npm run size",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run policy:test && npm run coverage:gate && npm run check:api && npm run size && npm run verify:helm",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {

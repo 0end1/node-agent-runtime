@@ -1,0 +1,20 @@
+apiVersion: v2
+name: node-agent-runtime
+description: 受治理的 Agent Runtime Web 控制台（SSE 实时流 + 审批留痕 + 三档沙箱）
+type: application
+
+# chart 版本（模板自身的版本，每次改模板都要 +1）
+version: 0.1.0
+# 应用版本（镜像标签默认值，与仓库根 package.json 对齐）
+appVersion: "0.2.0"
+
+keywords:
+  - agent
+  - runtime
+  - llm
+  - governance
+home: https://github.com/0end1/node-agent-runtime
+sources:
+  - https://github.com/0end1/node-agent-runtime
+maintainers:
+  - name: wangzhiyong

@@ -1,7 +1,7 @@
 {
   "name": "node-agent-runtime",
   "version": "0.2.0",
-  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers. Organized as an npm-workspaces monorepo (packages/types · packages/core).",
+  "description": "A lightweight, zero-dependency Agent runtime for TypeScript/Node.js: event loop, tool-calling, multi-step reasoning and pluggable LLM providers. Organized as a 12-package npm-workspaces monorepo.",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -26,14 +26,18 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "npm run build -w @node-agent-runtime/types && npm run build -w @node-agent-runtime/memory && npm run build -w @node-agent-runtime/artifact && npm run build -w @node-agent-runtime/sandbox && npm run build -w @node-agent-runtime/policy && npm run build -w @node-agent-runtime/core && npm run build -w @node-agent-runtime/tools-basic && npm run build -w @node-agent-runtime/mock && npm run build -w @node-agent-runtime/host && npm run build -w @node-agent-runtime/mcp && npm run build -w @node-agent-runtime/provider-openai && npm run build -w @node-agent-runtime/store-sqlite",
+    "build": "npm run build -w @node-agent-runtime/types && npm run build -w @node-agent-runtime/memory && npm run build -w @node-agent-runtime/artifact && npm run build -w @node-agent-runtime/sandbox && npm run build -w @node-agent-runtime/policy && npm run build -w @node-agent-runtime/core && npm run build -w @node-agent-runtime/tools-basic && npm run build -w @node-agent-runtime/mock && npm run build -w @node-agent-runtime/host && npm run build -w @node-agent-runtime/mcp && npm run build -w @node-agent-runtime/provider-openai && npm run build -w @node-agent-runtime/store-sqlite && npm run build -w @node-agent-runtime/acp && npm run build -w create-node-agent-runtime",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "pretest": "npm run build",
-    "test": "npm run test -w @node-agent-runtime/types && npm run test -w @node-agent-runtime/memory && npm run test -w @node-agent-runtime/artifact && npm run test -w @node-agent-runtime/sandbox && npm run test -w @node-agent-runtime/policy && npm run test -w @node-agent-runtime/core && npm run test -w @node-agent-runtime/tools-basic && npm run test -w @node-agent-runtime/mock && npm run test -w @node-agent-runtime/host && npm run test -w @node-agent-runtime/mcp && npm run test -w @node-agent-runtime/provider-openai && npm run test -w @node-agent-runtime/store-sqlite && npm run test:web-security",
+    "test": "npm run test -w @node-agent-runtime/types && npm run test -w @node-agent-runtime/memory && npm run test -w @node-agent-runtime/artifact && npm run test -w @node-agent-runtime/sandbox && npm run test -w @node-agent-runtime/policy && npm run test -w @node-agent-runtime/core && npm run test -w @node-agent-runtime/tools-basic && npm run test -w @node-agent-runtime/mock && npm run test -w @node-agent-runtime/host && npm run test -w @node-agent-runtime/mcp && npm run test -w @node-agent-runtime/provider-openai && npm run test -w @node-agent-runtime/store-sqlite && npm run test -w @node-agent-runtime/acp && npm run test -w create-node-agent-runtime && npm run test:web-security",
     "test:web-security": "tsx --test examples/web/security.test.ts",
     "policy:test": "tsx scripts/policy-test.ts",
     "demo:cli": "tsx examples/cli.ts",
     "demo:web": "tsx examples/web/server.ts",
+    "demo:acp": "tsx examples/acp-agent.ts",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,js,mjs,json}\"",
@@ -44,17 +48,17 @@
     "e2e": "node scripts/e2e/run-all.mjs",
     "e2e:cli": "node scripts/e2e/run-all.mjs --only=cli",
     "e2e:web": "node scripts/e2e/run-all.mjs --only=web",
-    "e2e:desktop": "E2E_DESKTOP=1 node scripts/e2e/run-all.mjs --only=desktop",
+    "e2e:acp": "node scripts/e2e/run-all.mjs --only=acp",
     "smoke:web": "node scripts/smoke-web.mjs",
-    "verify:desktop": "node scripts/verify-desktop.mjs",
     "check:api": "tsx scripts/check-api-surface.ts",
     "check:api:update": "tsx scripts/check-api-surface.ts --update",
     "size": "node scripts/size-report.mjs",
     "size:update": "node scripts/size-report.mjs --update",
+    "verify:helm": "node scripts/verify-helm.mjs",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "npm run build && changeset publish",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run policy:test && npm run coverage:gate && npm run check:api && npm run size",
+    "ci": "npm run typecheck && npm run lint && npm run test && npm run policy:test && npm run coverage:gate && npm run check:api && npm run size && npm run verify:helm",
     "clean": "rm -rf packages/*/dist"
   },
   "devDependencies": {
@@ -66,6 +70,7 @@
     "prettier": "^3.9.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.70.0",
+    "vitepress": "^1.6.4"
   }
 }

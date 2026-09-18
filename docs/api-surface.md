@@ -3,7 +3,7 @@
 > 记录时间：2026-09-08（split 分支；P1 审查整改 P0/P1/P2 后重新冻结）
 > 定位：M6 **P1 的 Gate 1 退出项** —— 冻结各 workspace 包的对外导出面，作为后续兼容性评审基线。
 > 提取方式：TypeScript 编译器解析各包 `dist/index.d.ts`（`npm run build` 后）与 `packages/types/dist/*.d.ts`，符号按字母序排列。
-> 修订轨迹：2026-09-08 依 `docs/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）；2026-09-08 **M6-11 快照复核脚本化**（`scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`，见 §13）。
+> 修订轨迹：2026-09-08 依 `docs/historical/p1-review.md` 完成整改（core 1804 → **1005 行**；演示资产外置、artifact 独立、工具分类下沉 C1、checkpoint 归位 C3、事件总线可注入）；2026-09-08 **M6-11 快照复核脚本化**（`scripts/check-api-surface.ts` + 基线 `scripts/api-surface.baseline.json`，见 §13）。
 
 ## 0. 总览
 
@@ -14,13 +14,14 @@
 | `@node-agent-runtime/artifact` | 0.2.0 | 8 | 产物管理 |
 | `@node-agent-runtime/sandbox` | 0.2.0 | 14 | C4 执行域 |
 | `@node-agent-runtime/policy` | 0.2.0 | 28 | C5 授权决策 + M7-3 声明式策略契约/编译/测试/预设 |
-| `@node-agent-runtime/core` | 0.2.0 | 78（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade + M7-5 配方编译 |
+| `@node-agent-runtime/core` | 0.2.0 | 79（+ 5 个 `export *` 转发） | C2 引擎（`runtime.ts` **689 行**）+ facade + M7-5 配方编译 |
 | `@node-agent-runtime/tools-basic` | 0.2.0 | 4 | 内置基础工具集（演示友好，非引擎必需） |
 | `@node-agent-runtime/mock` | 0.2.0 | 1 | MockProvider（演示/测试桩） |
 | `@node-agent-runtime/host` | 0.2.0 | 14 | C8 会话/任务生命周期 + 审批审计导出 |
 | `@node-agent-runtime/mcp` | 0.2.0 | 40 | C6 MCP 适配 + M7-6b 只读资源 |
 | `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
+| `@node-agent-runtime/acp` | 0.4.2 | 78 | C10 ACP agent（stdio 传输 + 权限桥接 + 执行模式，M8-2/M8-3） |
 
 **依赖方向（单向无环）**：
 
@@ -38,7 +39,7 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 | 子模块 | 导出 |
 |---|---|
 | `artifacts` | `Artifact`、`ArtifactInput`、`ArtifactKind` |
-| `events` | `RuntimeEvent` + `RunStartEvent`、`UserMessageEvent`、`StepStartEvent`、`ModelResponseEvent`、`ToolStartEvent`、`ToolEndEvent`、`RunEndEvent`、`RunErrorEvent`、`SessionCreatedEvent`、`SessionUpdatedEvent`、`SessionClosedEvent`、`TaskCreatedEvent`、`TaskStatusEvent`、`CheckpointSavedEvent`、`CheckpointRestoredEvent`、`PermissionRequestEvent`、`PermissionApprovedEvent`、`PermissionDeniedEvent`、`SandboxWriteEvent`、`EventEmitter` |
+| `events` | `RuntimeEvent` + `RunStartEvent`、`UserMessageEvent`、`StepStartEvent`、`ModelResponseEvent`、`MessageDeltaEvent`、`ToolStartEvent`、`ToolEndEvent`、`RunEndEvent`、`RunErrorEvent`、`SessionCreatedEvent`、`SessionUpdatedEvent`、`SessionClosedEvent`、`TaskCreatedEvent`、`TaskStatusEvent`、`CheckpointSavedEvent`、`CheckpointRestoredEvent`、`PermissionRequestEvent`、`PermissionApprovedEvent`、`PermissionDeniedEvent`、`SandboxWriteEvent`、`EventEmitter` |
 | `schema` | `JsonSchema`、`JsonSchemaType`、`validate` |
 | `codes` | `ErrorCode`、`ErrorInfo`、`errorInfo` |
 | `storage` | `Storage`、`DocDomain`、`StreamDomain` |
@@ -50,7 +51,9 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > `classifyToolName` / `toolKind` 于 2026-09-08 由 sandbox 下沉至此（工具元数据推断，非执行域职责）；sandbox 仍 re-export 二者以保持其 API 不变。
 
-> **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
+> **M8-4 流式（2026-09-18，additive/minor）**：`events` 新增 `MessageDeltaEvent`（`type: "message:delta"`，含 `runId` / `step` / `delta` / `index` / 可选 `traceId`），承载模型侧的文本增量。**契约层只加一个事件接口，不引入任何传输或 SDK 依赖**：是否产生增量取决于 `RunOptions.stream` 是否显式开启且 provider 是否实现可选 `chatStream()`；未开启或未实现时事件流与 M8-4 之前**逐字一致**（无新增事件）。安全口径由契约固定 —— 增量**逐块**过 `redact()`，故跨块边界的敏感串不被识别，完整文本的安全保证仍来自整段脱敏的 `model:response`。
+
+> **防腐红线（2026-09-08 审查整改明确）**：本包只允许两类内容——**契约声明**（消息/工具/事件/Storage/Artifact 类型与接口）与 **零 IO 纯函数**（`validate` / `newId` / `stringifyResult` / `fmtNumber` / `classifyToolName` / `toolKind`）。**禁止**：任何 IO（HTTP/文件/进程/SQLite）、有状态运行逻辑、引入本仓库其他运行时代码（TS type-only 除外）。超此范畴的能力须下沉实现包（`memory`/`artifact`/`sandbox`/`policy`/`core`…），不得塞入 C1——依据 `docs/historical/crate-architecture.md` §5 边界规则 2/4/6 与 C1 行职责；包描述已含对应表述（`packages/types/package.json`："zero-IO pure helpers. No internal dependencies."）。
 
 ## 2. `@node-agent-runtime/core`（C2 · 引擎 + facade，`runtime.ts` 689 行）
 
@@ -129,6 +132,24 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 `SQLiteStorage`、`SQLiteStorageOptions`、`SCHEMA_VERSION`
 
 > `SCHEMA_VERSION`（P5.5）随 schema 版本化一起导出：数据库版本存于 `PRAGMA user_version`，启动时自动应用缺失迁移（幂等可重复），并新增 session/task/run 与审计排序的表达式索引。
+
+---
+
+## 12.1 `@node-agent-runtime/acp`（C10 · ACP agent，M8-2/M8-3）
+
+78 个导出按职责分组（**完整符号清单以 `scripts/api-surface.baseline.json` 为唯一事实源**，本表只给分组与代表符号 —— 协议类型面很宽，逐条抄进文档只会让读者失去重点）：
+
+| 分组 | 代表符号 | 说明 |
+|---|---|---|
+| **传输 / 帧** | `LineDecoder`、`encodeMessage`、`parseMessage`、`isRequest`、`isResponse`、`isError`、`handshake` | 换行分隔 JSON-RPC；stdout 只写 ACP 消息，日志走 stderr |
+| **协议类型** | `SessionUpdate`、`ToolCallUpdate`、`PermissionOption`、`ConfigOption`、`SetConfigOptionResult`、`AgentCapabilities` | 与 ACP v1 对齐的类型面（多数是类型，编译后不占运行时体积） |
+| **agent** | `AcpAgent`、`StorageAcpAgent`、`createDefaultAcpAgent` | `createDefaultAcpAgent({ provider, agents })` 即开箱入口 |
+| **权限桥接** | `AcpPermissionBridge` | `session/request_permission` ↔ `PermissionManager`；客户端不实现该方法时降级为拒绝 |
+| **执行模式** | `MODE_CONFIG_ID`、`toModeState`、`applyMode` | `session/set_mode` ↔ `SandboxMode`，并双轨提供 `session/set_config_option` |
+| **错误码** | `METHOD_NOT_FOUND`、`INVALID_PARAMS`、`INTERNAL_ERROR` 等 | JSON-RPC 标准错误码 |
+
+> 该包**不**被 `core` re-export（方向为 `acp → core`，反向成环），消费者须直接 `import ... from "@node-agent-runtime/acp"`。
+> 脚手架 `create-node-agent-runtime` **不在本快照内**：它是 CLI，公共面是命令行与生成物，不是可 import 的库 API。
 
 ---
 

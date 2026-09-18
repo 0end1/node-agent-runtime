@@ -79,6 +79,13 @@ export interface PermissionManagerOptions {
    * When set, every governance decision is appended and grants survive restarts.
    */
   store?: ApprovalStore;
+  /**
+   * P3 §3 第 3 项：是否对高频、低风险的 `policy-allow` 放行写审计留痕。
+   * 默认 true（保留全量审计）。置 false 可显著减少无害工具产生的审计行，
+   * 但会削弱"谁在何时放过什么工具"的可追溯性——仅在审计落盘压力大时关闭。
+   * 注意：deny / ask / 宿主决策**始终**留痕，不受此开关影响。
+   */
+  auditPolicyAllows?: boolean;
 }
 
 interface Waiter {
@@ -99,6 +106,8 @@ export class PermissionManager {
   private readonly alwaysAllowed = new Set<string>();
   /** P3.3: audit + grant persistence. */
   private readonly store?: ApprovalStore;
+  /** P3 §3 第 3 项：policy-allow 审计开关（默认全量留痕）。 */
+  private readonly auditPolicyAllows: boolean;
   private hydrated = false;
   /** Serialized chain of in-flight audit/grant writes (flushed by `flush()`). */
   private pendingFlush: Promise<void> = Promise.resolve();
@@ -109,6 +118,7 @@ export class PermissionManager {
     this.askTimeoutMs = options.askTimeoutMs ?? DEFAULT_ASK_TIMEOUT_MS;
     this.now = options.now ?? (() => Date.now());
     this.store = options.store;
+    this.auditPolicyAllows = options.auditPolicyAllows ?? true;
   }
 
   setPolicy(policy: PermissionPolicy): void {
@@ -181,13 +191,16 @@ export class PermissionManager {
     const decision = await this.policy.decide(ctx, call);
 
     if (decision.verdict === "allow") {
-      // P3.3: 放行也是一种治理决策——无害工具/白名单放行全部留痕。
-      this.audit({
-        ...approvalBase(ctx, call),
-        verdict: "approved",
-        source: "policy-allow",
-        reason: decision.reason ?? "策略放行",
-      });
+      // P3.3: 放行也是一种治理决策——无害工具/白名单放行默认全部留痕；
+      // P3 §3 第 3 项：高频无害工具的审计行可通过 `auditPolicyAllows` 关闭。
+      if (this.auditPolicyAllows) {
+        this.audit({
+          ...approvalBase(ctx, call),
+          verdict: "approved",
+          source: "policy-allow",
+          reason: decision.reason ?? "策略放行",
+        });
+      }
       return { ok: true, verdict: "allow" };
     }
 
@@ -302,6 +315,57 @@ export class PermissionManager {
       argumentsFingerprint: fingerprint(call.arguments),
     };
 
+    // waiter 必须在 emit **之前** 登记：宿主最自然的写法就是在
+    // `permission:request` 的监听器里同步 `approve()`（CLI 提示、示例、脚本
+    // 自动批准都这么写）。若 emit 时 waiter 还没进表，approve 会静默失效 ——
+    // 决策要等满 `askTimeoutMs` 才按超时拒绝，表现为「明明批准了，工具却卡
+    // 到超时才失败」。故先建 promise 与 waiter，再发事件。
+    let settle: (result: GateResult) => void = () => {};
+    const promise = new Promise<GateResult>((resolve) => {
+      settle = resolve;
+    });
+
+    const timer = setTimeout(() => {
+      this.waiters.delete(decisionId);
+      this.audit({
+        decisionId,
+        runId: ctx.runId,
+        ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+        ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
+        toolName: call.name,
+        argumentsFingerprint: decision.argumentsFingerprint,
+        verdict: "timeout",
+        source: "timeout",
+        reason: `审批超时（${this.askTimeoutMs}ms）`,
+      });
+      this.emit({
+        type: "permission:denied",
+        decisionId,
+        runId: ctx.runId,
+        ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
+        toolName: call.name,
+        reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
+        timedOut: true,
+      });
+      settle({
+        ok: false,
+        verdict: "timeout",
+        reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
+        decisionId,
+      });
+    }, this.askTimeoutMs);
+
+    this.waiters.set(decisionId, {
+      decision,
+      timer,
+      resolve: ({ approved, reason: denyReason }) =>
+        settle(
+          approved
+            ? { ok: true, verdict: "ask-approved", decisionId }
+            : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId },
+        ),
+    });
+
     this.emit({
       type: "permission:request",
       decisionId,
@@ -313,48 +377,7 @@ export class PermissionManager {
       reason,
     });
 
-    return new Promise<GateResult>((resolve) => {
-      const timer = setTimeout(() => {
-        this.waiters.delete(decisionId);
-        this.audit({
-          decisionId,
-          runId: ctx.runId,
-          ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
-          ...(ctx.taskId ? { taskId: ctx.taskId } : {}),
-          toolName: call.name,
-          argumentsFingerprint: decision.argumentsFingerprint,
-          verdict: "timeout",
-          source: "timeout",
-          reason: `审批超时（${this.askTimeoutMs}ms）`,
-        });
-        this.emit({
-          type: "permission:denied",
-          decisionId,
-          runId: ctx.runId,
-          ...(ctx.sessionId ? { sessionId: ctx.sessionId } : {}),
-          toolName: call.name,
-          reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
-          timedOut: true,
-        });
-        resolve({
-          ok: false,
-          verdict: "timeout",
-          reason: `审批超时（${this.askTimeoutMs}ms），按拒绝处理`,
-          decisionId,
-        });
-      }, this.askTimeoutMs);
-
-      this.waiters.set(decisionId, {
-        decision,
-        timer,
-        resolve: ({ approved, reason: denyReason }) =>
-          resolve(
-            approved
-              ? { ok: true, verdict: "ask-approved", decisionId }
-              : { ok: false, verdict: "ask-denied", reason: denyReason, decisionId },
-          ),
-      });
-    });
+    return promise;
   }
 
   private emit(event: RuntimeEvent): void {

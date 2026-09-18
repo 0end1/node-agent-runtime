@@ -15,14 +15,14 @@
 ```bash
 nvm use            # 读取 .nvmrc
 npm ci
-npm run ci         # 全部门禁：typecheck → lint → test → coverage:gate → check:api → size
+npm run ci         # 全部门禁：typecheck → lint → test → policy:test → coverage:gate → check:api → size
 ```
 
-`npm run ci` 是**唯一的收口口径**，本地通过后再推 PR。
+`npm run ci` 是**唯一的收口口径**。CI **只对 `main` 生效**（见 §3）：在 `dev` 上开发不会触发远端门禁，因此**合并到 `main` 之前必须在本地跑绿**。
 
 ## 2. 仓库结构
 
-npm workspaces monorepo，根包是容器（private），`packages/*` 为可发布包：
+npm workspaces monorepo，根包是容器（private）；`packages/*` 下 12 个包中 **10 个发布到 npm**，`mock` / `tools-basic` 为 **internal/demo**（已 `private`，不发布，仅仓库内与示例使用）：
 
 | 包 | 职责 |
 | --- | --- |
@@ -36,13 +36,14 @@ npm workspaces monorepo，根包是容器（private），`packages/*` 为可发�
 | `@node-agent-runtime/mcp` | C6 MCP 客户端（stdio / streamable HTTP） |
 | `@node-agent-runtime/provider-openai` | C7 OpenAI 兼容模型后端 |
 | `@node-agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
-| `@node-agent-runtime/tools-basic` / `@node-agent-runtime/mock` | 内置工具集 / 免密钥 Mock Provider（演示与测试） |
+| `@node-agent-runtime/tools-basic` | **internal/demo**（`private`，不发布）：内置工具集 `builtinTools`，仅仓库内与示例使用 |
+| `@node-agent-runtime/mock` | **internal/demo**（`private`，不发布）：免密钥 Mock Provider（演示/测试），仅仓库内与示例使用 |
 
-边界规则见 `docs/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
+边界规则见 `docs/historical/crate-architecture.md` 与 `docs/api-surface.md`（后者是公共导出面的唯一事实源）。
 
 ## 3. 分支与提交
 
-- **分支**：`main`（发布）/ `dev`（日常开发）/ `apps`（桌面与 Web 形态）。CI 对三个分支都跑质量门。
+- **分支**：`main`（发布）/ `dev`（日常开发）。**CI 只在 `main` 上跑** —— 在 `dev` 上开发不触发远端门禁，`dev → main` 开 PR（或直接 push `main`）时才跑完整质量门，门禁全绿方可合并。`main` 同时是 changesets Version Packages PR 的目标分支。
 - **提交信息**：Conventional Commits —— `feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:` / `perf:`。
 - **CHANGELOG**：可见改动必须在**同一个 commit** 里追加 `CHANGELOG.md` 条目（`[Unreleased]` 下对应的里程碑段落）。
 - **changeset**：用户可见改动（新增/变更/修复）需附一个 changeset：
@@ -95,4 +96,4 @@ npm run version-packages    # 消费 changesets：bump 版本 + 更新 CHANGELOG
 npm run release             # 构建并 npm publish（CI 由 .github/workflows/release.yml 执行）
 ```
 
-所有包 `fixed` 统一版本号；实际发布需仓库配置 `NPM_TOKEN` secret，经 tag `v*` 触发 `npm publish --provenance`。
+所有包 `fixed` 统一版本号；发布由 `release.yml` 编排，走 **OIDC Trusted Publishing**（免 `NPM_TOKEN`）——`main` 上的 changesets Version Packages PR 合并后自动打 tag 并发布，或 push tag `v*` 直接执行 `npm publish --provenance`。

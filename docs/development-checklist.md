@@ -3,7 +3,8 @@
 > 记录时间：2026-09-07
 > 定位：**总览索引**。一张表看清「已做了什么 / 接下来做什么」。执行级细节以事实源为准——`m6-productionization.md`（M6 生产化执行清单）、`remaining-tasks.md`（遗留池 A~D）、`crate-split-todo.md`（拆包执行级）、`architecture.md` §11（演进路线图）、`m5-productization.md`（M5 验收依据）。本文与各源清单**状态同步回填，同一 commit**。
 > 状态图例：✅ 完成 · 🟡 主体完成/收口中 · ☐ 待办 · ⏸ 远期（未排期）
-> 一句话现状：**能力层 M0~M4 与产品化 M5 主体已完成并验证；M6 生产级改造 Gate 1~4 与 Gate 6 已关闭；P5.5/P5.6 交付物已完成；P5.1~P5.4 自 2026-09-10 起随桌面端移出至产品侧（代码与脚本作为产品侧资产保留，底座侧不再跟踪），不阻塞 M7 产品方向推进（见 `docs/product-direction.md`）**。**项目已按「底座」收敛（2026-09-10）**：`packages/*` 12 包为唯一一等公民，`examples/cli.ts`、`examples/web/`、`deploy/` 降级为验证载体；**`examples/desktop-tauri` 与 P5.1~P5.4 已整体移出底座、方向归产品侧**；M7 只对底座立项（判定见 `docs/base-convergence.md` §2.3）。
+> **追注（2026-09-17，桌面端资产出库）**：桌面端已于本日**从本仓库实际删除**（提交 `6cf5ebf`），范围含 `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 与 `npm run verify:desktop` / `e2e:desktop` 脚本项。方向判定不变（仍归产品侧，底座不投入、不判定），但**「代码与脚本作为产品侧资产保留在本仓库」的表述自本日起失效**，本文 §0/§3.1/§3.2 中的同类描述**仅为历史记录**；产品侧承接请从 git 历史 `6cf5ebf^` 取回。
+> 一句话现状：**能力层 M0~M4 与产品化 M5 主体已完成并验证；M6 生产级改造 Gate 1~4 与 Gate 6 已关闭；P5.5/P5.6 交付物已完成；P5.1~P5.4 自 2026-09-10 起随桌面端移出至产品侧（**2026-09-17 已实际从本仓库删除**，提交 `6cf5ebf`；底座侧不再跟踪），不阻塞 M7 产品方向推进（见 `docs/product-direction.md`）**。**项目已按「底座」收敛（2026-09-10）**：`packages/*` 12 包为唯一一等公民，`examples/cli.ts`、`examples/web/`、`deploy/` 降级为验证载体；**`examples/desktop-tauri` 与 P5.1~P5.4 已整体移出底座、方向归产品侧，且实现已于 2026-09-17 从本仓库删除**；M7 只对底座立项（判定见 `docs/base-convergence.md` §2.3）。
 
 ---
 
@@ -18,8 +19,9 @@
 | M4 · 外部能力 | MCP + Artifact | ✅ | 远端工具物化同路径过治理；产物管理 |
 | M5 · 产品化 | 分包 + CLI/Web/Desktop 三形态 | 🟡 | 三形态与生产打包已验证；A1~A4 收口移交 M6（A2 → P2.4 ✅、A3 → P2.6 ✅、A4 → P6.3 ✅，**仅剩 A1 → P5.1 签名后实机复验**） |
 | **M6 · 生产级改造** | demo → 可用于生产 | 🟡 收尾中 | **Gate 1（P1）✅**（M6-7~12）：C1~C4 决策落定 + **12 包终局**（Artifact 独立、mock/tools-basic 外置、checkpoint 归位 memory，core 1005 行）+ 公共 API 冻结快照（`docs/api-surface.md`）；**Gate 2（P2）✅**（M6-16/17）：CI / Lint·Format / audit 门 / 覆盖率门禁（行均值 92.38%）/ 跨形态 E2E / `npm run ci` 总闸；**Gate 3（P3）✅**（M6-18~21）：可观测·错误码、脱敏、审批审计、限额、Web/MCP 安全加固、默认安全策略、配置分层；**Gate 4（P4）✅**（M6-22）：LICENSE / 发布元数据 / engines / changesets + 发版编排 / peer 边界 / 体积基线（canary 12 包实装验证）；**Gate 6（P6）✅**（M6-23~26）：治理文件 / README 生产用法 / 路线图回填 v1.10 / 双源收敛 / 参考机制复核；**P5 部分（Gate 5 待关）**：P5.5 store-sqlite 生产基线 ✅、P5.6 Web 部署形态 ✅（M6-24）；P5.1 实机验收 / P5.2 签名+公证 / P5.3 三平台矩阵 / P5.4 auto-updater **配置与脚本就绪**（M6-25/27），自 **2026-09-10 起随桌面端移出至产品侧**（不再是底座保留项；配置与脚本作为产品侧资产保留，不阻塞 M7）；产品方向见 `docs/product-direction.md`（详见 §3.1） |
-| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | 🟡 进行中（M7-1 + **M7-2 全量（traceId + OTEL span + 审计导出）** + M7-3 + M7-6a + **M7-6b** + **M7-5 底座部分（配方编译与快照）** 已落地，2026-09-15） | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3；**首批执行清单见 `docs/m7-base-governance.md`**（包归属 / API 变更分级 / 验收用例 / 顺序）；**进度**：批次 A（12 包 bump 到 0.3.0，未发布/未打 tag）✅、M7-2 traceId 贯穿 ✅（`packages/core/test/trace.test.ts` 12 例，`npm run ci` 全绿）；M7-6a 检索式声明（`tool_search`）+ 步骤级 `toolSurface` 快照 ✅；**M7-2 收尾（`toOtelSpans` OTEL span 导出 + `serializeAudit` 审计导出）✅**（`packages/core/test/otel.test.ts` / `packages/host/test/audit-export.test.ts` 各 7 例，`npm run ci` 六门全绿）—— 首批 M7-1 / M7-2 / M7-3 / M7-6a **均已交付**；**M7-6b（MCP 只读资源 `resources/list` / `resources/read` + `searchTools`）于同日交付**（`packages/mcp/test/m7-6b.test.ts` 13 例 + `mcp.test.ts` 增 4 例，`npm run ci` 六门全绿），M7 首批目标**全部落地** |
-| M8+ | 待规划 | ⏸ | 远期（Rust 移植 D1、参考机制 D3 等，发生再激活） |
+| **M7 · 底座收敛与治理交付** | 以 **12 包为唯一一等公民** | ✅ **已关闭（2026-09-17 收口）** —— M7-1 + M7-2 全量 + M7-3 + M7-6a + M7-6b + M7-5 底座部分（配方编译与快照）全部交付，**无待做项** | **投入分层收敛**：底座（`packages/*` 12 包）→ 验证载体（`examples/` · `deploy/`）；桌面端（`examples/desktop-tauri` · `desktop.yml` · P5.1~P5.4）**已移出至产品侧**；**只对底座立项**，首批 M7-1（成本与上下文治理）/ M7-2（可观测与合规导出）/ M7-3（策略工程化）/ M7-6（工具规模治理）。判定规则见 `docs/base-convergence.md`，候选见 §3.3；**首批执行清单见 `docs/historical/m7-base-governance.md`**（包归属 / API 变更分级 / 验收用例 / 顺序）；**进度**：批次 A（12 包 bump 到 0.3.0，未发布/未打 tag）✅、M7-2 traceId 贯穿 ✅（`packages/core/test/trace.test.ts` 12 例，`npm run ci` 全绿）；M7-6a 检索式声明（`tool_search`）+ 步骤级 `toolSurface` 快照 ✅；**M7-2 收尾（`toOtelSpans` OTEL span 导出 + `serializeAudit` 审计导出）✅**（`packages/core/test/otel.test.ts` / `packages/host/test/audit-export.test.ts` 各 7 例，`npm run ci` 六门全绿）—— 首批 M7-1 / M7-2 / M7-3 / M7-6a **均已交付**；**M7-6b（MCP 只读资源 `resources/list` / `resources/read` + `searchTools`）于同日交付**（`packages/mcp/test/m7-6b.test.ts` 13 例 + `mcp.test.ts` 增 4 例，`npm run ci` 六门全绿），M7 首批目标**全部落地** |
+| **M8 · 采纳闭环与协议接入** | 依 2026-09-17 拍板：目标客户先 (a) 建生态 + 同步铺 (c) 交付物；形态先走 ACP 路径 D、不自建壳 | 🟡 **代码全部完成（2026-09-18）**：规范核对 ✅；**M8-1 生态入口 ✅ 已落地**（脚手架 / 示例库 / 文档站三项均完成）；**M8-2 / M8-3 ✅ 代码完成**（33 例单测 + 真实子进程 E2E 9 步）；**M8-4 流式 ✅ 代码完成**（core 106 / provider-openai 9 / acp 37 例，`npm run ci` 六门全绿）；**M8-5 K8s/Helm ✅ 已落地**（`deploy/helm/` + `deploy/README.md` §7/§8）；**剩余均为人工验收项** —— GUI Client（Zed / DeepChat）真机联调、Helm 真实集群验收，两者均不在 CI 内；**发布准备 ✅ 已通（2026-09-18）** —— M8-1 ~ M8-5 + P3 三项整批漏带的 changeset 已按特性补齐 6 份，`npx changeset status` 确认 12 个发布包全部 minor → **0.5.0**（详见 `docs/architecture.md` §13 v1.24） | 首批：生态入口（脚手架 + 示例库 + 文档站）+ ACP 规范核对；第二批：`@node-agent-runtime/acp` + 权限桥接（+ 流式，若核对为前置）；第三批：`deploy/` 的 K8s/Helm 与升级回滚说明。详见 §3.4 |
+| M8+ 远期池 | 触发式 | ⏸ | Rust 移植（D1）、参考机制（D3）、多 Agent 协同 —— 均**已判定不立项 / 维持远期**（`docs/base-convergence.md` §2.4），发生再激活 |
 
 ---
 
@@ -45,7 +47,7 @@
 | M5-4 | Desktop 壳 | `examples/desktop-tauri/`（Tauri v2）：窗口载 Web 控制台，`beforeDevCommand` 启本地 server；图标生成、`cargo check` 绿 | ✅ |
 | M5-5 | 清单状态刷新 | `m5-productization.md` #3 状态更新、验收路径细化（dev / 生产两条） | ✅ |
 | M5-6 | Desktop 生产打包闭环 | `build-server.mjs` esbuild 打包 server + 复制 Node 运行时与静态资源；app 自带 Node sidecar；`tauri build` 出 `.app`(123M)/`.dmg`(42M)，实跑 `:8787 → 200` | ✅ |
-| M5-7 | 遗留任务清单入库 | `docs/remaining-tasks.md`（A 验收 4 / B 拆包 4 / C 决策 4 / D 远期 3） | ✅ |
+| M5-7 | 遗留任务清单入库 | `docs/historical/remaining-tasks.md`（A 验收 4 / B 拆包 4 / C 决策 4 / D 远期 3） | ✅ |
 | M5-8 | 仓库更名引用同步 | GitHub `0end1/nodeRuntimes` → `0end1/nodeRuntime`；`package.json` 三处引用 + origin remote 更新 | ✅ |
 | — | 工程基线 | npm workspaces monorepo（4 包，均 `private`）；TS strict + NodeNext + `declaration`/`sourceMap`；逐包 `node:test`（`tsx --test`）；docs 8 篇；CHANGELOG 按 M 编号；分支 `apps`/`main`/`dev` 三线同步 | ✅ |
 
@@ -57,14 +59,14 @@
 
 ## 3. 未来要做
 
-### 3.1 M6 · 生产级改造（进行中，执行清单见 `docs/m6-productionization.md`）
+### 3.1 M6 · 生产级改造（进行中，执行清单见 `docs/historical/m6-productization.md`）
 
 | 批次 | 主题 | 关键项 | 状态 |
 |---|---|---|---|
 | **P1** | 决策冻结 + 包边界收口（**发布前置**） | 落定 C1~C4 决策 → 拆包 B1 mcp / B2 host / B3 memory·sandbox·policy / B4 facade 收窄 → M6-9~11 自查整改（Artifact 独立 / mock·tools-basic 外置 / checkpoint 归位，**12 包终局**）→ 公共 API 冻结快照 | ✅ 全部完成（Gate 1 已关闭，快照见 `docs/api-surface.md`，基线复核见 P2.7） |
 | **P2** | 工程护栏与质量门 | GitHub Actions CI（typecheck/lint/test/build）、ESLint+Prettier、覆盖率门禁、跨形态 E2E（吸收 A2）、`npm audit` 门、收敛为 `npm run ci`（吸收 A3） | ✅ **Gate 2 关闭（M6-17）**：P2.1 / P2.2 / P2.5 / P2.6 ✅（M6-14）：`.github/workflows/ci.yml`（quality / coverage / audit 三 job）+ ESLint 9 + Prettier 基线 + `npm run ci` 总闸；**P2.7 ✅** 已随总闸接入 CI；**P2.3 ✅**（M6-16）：统计口径修正为只统计本包 + 补 `types`/`tools-basic` 测试 + 阈值定档（逐包 行≥80 / 分支≥60 / 函数≥55，全仓均值 行≥90 / 分支≥78 / 函数≥85），`npm run coverage:gate` 阻断；**P2.4 ✅**（M6-17）：`scripts/e2e/` 跨形态 E2E（CLI + Web 全流程验证通过、CI `e2e` job 接入；Desktop 默认跳过） |
 | **P3** | 可观测 · 安全 · 配置 | 结构化日志+错误码、事件/日志脱敏、审批审计与白名单持久化、成本/速率上限、Web/本地 server 鉴权与防跨站、MCP 防 SSRF、默认安全策略包、config/features（吸收 D2） | ✅ **Gate 3 关闭（M6-18~19，评审加固 M6-20/21）**：`Logger`/错误码、`redact()` 强脱敏（密钥永不进事件/日志/diff）、审批审计 + 白名单持久化、`RunLimits` 成本/速率上限、web `security.ts`（CORS/CSRF/Bearer/体上限）、MCP URL 白名单 + 重定向逐跳校验、`PRODUCTION_MATRIX` 默认安全、`loadConfig()` 分层配置；均有单测 / E2E 覆盖 |
-| **P4** | SDK 发布工程 | LICENSE、去 `private` + `publishConfig`、engines/Node 基线统一、changesets 版本编排 + `npm publish --provenance`、依赖策略（`workspace:`）、包体积基线 | ✅ **Gate 4 关闭（M6-22）**：MIT + 12 包可发布元数据齐备（`npm pack --dry-run` 正确）、engines 统一 Node ≥22.13（ESM-only）、changesets 版本编排 + `release.yml`、core/types 提为插件 peer 边界、体积基线 CI 门禁；canary 12 包 tarball 全新项目实装验证通过；**已于 2026-09-16 以 0.4.0 首发（带 provenance）、0.4.1 补齐 workspace 内部依赖声明后实发完成**（详见 `docs/m7-base-governance.md` §6 复盘） |
+| **P4** | SDK 发布工程 | LICENSE、去 `private` + `publishConfig`、engines/Node 基线统一、changesets 版本编排 + `npm publish --provenance`、依赖策略（`workspace:`）、包体积基线 | ✅ **Gate 4 关闭（M6-22）**：MIT + 12 包可发布元数据齐备（`npm pack --dry-run` 正确）、engines 统一 Node ≥22.13（ESM-only）、changesets 版本编排 + `release.yml`、core/types 提为插件 peer 边界、体积基线 CI 门禁；canary 12 包 tarball 全新项目实装验证通过；**已于 2026-09-16 以 0.4.0 首发（带 provenance）、0.4.1 补齐 workspace 内部依赖声明后实发完成**（详见 `docs/historical/m7-base-governance.md` §6 复盘） |
 | **P5** | 分发与部署矩阵 | 桌面实机验证（吸收 A1）、macOS 签名+公证、Windows/Linux 三平台产物、auto-updater、store-sqlite 生产基线（WAL/索引/迁移）、Web 容器化部署样例 | ⏸ **桌面项移出，Gate 5 仅剩 Web/存储（2026-09-10）**：P5.5 store-sqlite 基线 ✅（M6-24，SCHEMA_VERSION=2 迁移幂等 + 1k 记录耗时断言）、P5.6 Web 部署形态 ✅（M6-24，deploy/ Dockerfile·systemd·nginx + `smoke:web`，两者交付物不受挂起影响）；P5.1 实机验收 / P5.2 签名+公证 / P5.3 三平台 CI / P5.4 auto-updater **已随桌面端移出至产品侧**（配置与脚本作为产品侧资产保留，M6-25/27），底座侧不再跟踪、**不纳入 M7 关键路径** |
 | **P6** | 治理 · 文档 · 社区 | `CONTRIBUTING`/`SECURITY`、README 生产用法、路线图回填（吸收 A4）、双源收敛、CHANGELOG M6 条目 | ✅ **Gate 6 关闭（M6-23~26）**：P6.1 治理文件、P6.2 README 生产用法（badges + 安装/配置/观测/发布）、P6.3 路线图回填（`architecture.md` §11 + §13 v1.10）、P6.4 `remaining-tasks.md` 双源收敛、P6.5 CHANGELOG 分批条目、P6.6 参考机制采纳复核 |
 
@@ -81,15 +83,37 @@
 
 ### 3.3 M7+ 候选池（未排期，M6 收口后按反馈定优先级）
 
-> **M7 口径（2026-09-10）**：项目已按**底座**收敛，判定与纪律见 `docs/base-convergence.md`（底座 = `packages/*` 12 包；`examples/` 与 `deploy/` 为验证载体；`examples/desktop-tauri` 与 P5.1~P5.4 已移出至产品侧）；**只对底座立项**，首批 M7-1 成本与上下文治理 / M7-2 可观测与合规导出 / M7-3 策略工程化 / M7-6 工具规模治理。下表为技术候选池，其中「多 Agent 协同」「Rust 移植」维持远期不立项，其余候选立项前先过 `base-convergence.md` §3 三问准入规则。方向与里程碑草案见 `docs/product-direction.md`；**首批四项执行清单见 `docs/m7-base-governance.md`**（2026-09-10 立；立项前需按 §4 先回填 `architecture.md` §11 + §13）。
+> **M7 口径（2026-09-10）**：项目已按**底座**收敛，判定与纪律见 `docs/base-convergence.md`（底座 = `packages/*` 12 包；`examples/` 与 `deploy/` 为验证载体；`examples/desktop-tauri` 与 P5.1~P5.4 已移出至产品侧）；**只对底座立项**，首批 M7-1 成本与上下文治理 / M7-2 可观测与合规导出 / M7-3 策略工程化 / M7-6 工具规模治理。下表为技术候选池，其中「多 Agent 协同」「Rust 移植」维持远期不立项，其余候选立项前先过 `base-convergence.md` §3 三问准入规则。方向与里程碑草案见 `docs/product-direction.md`；**首批四项执行清单见 `docs/historical/m7-base-governance.md`**（2026-09-10 立；立项前需按 §4 先回填 `architecture.md` §11 + §13）。
 
 | 候选 | 说明 | 来源 |
 |---|---|---|
-| Agent 配方快照与编译期校验 | `agentId` 版本快照（防配方变更破坏历史会话）、`McpToolRef[]` 延迟解析、`compileAgent()` 校验重名/可达性/Schema | `architecture.md` §3.2 |
+| **✅ 已交付（M7-5，2026-09-15）** Agent 配方快照与编译期校验 | `agentId` 版本快照（防配方变更破坏历史会话）、`McpToolRef[]` 延迟解析、`compileAgent()` 校验重名/可达性/Schema | `architecture.md` §3.2；交付见 `docs/historical/m7-base-governance.md` §9 |
 | 宿主驱动 Task 流水线增强 | §4.2 目标流水线主线已随 M1~M3 落地；剩余增强（多任务编排、并发调度、失败重试策略）待定 | `architecture.md` §4.2 |
 | 多 Agent 协同 / 子任务编排 | 多 agent 协作与委派，生态常见诉求 | 待论证（可先做 ADR） |
 | 参考机制采纳 | codex / deepseek-harness 中的 model 路由、token 计量、UI 插件化等 | `codex-reference.md` / `deepseek-harness-reference.md`（D3） |
 | Rust workspace 移植 | 单二进制分发 / 深层并发 / 性能诉求触发时激活 | `crate-architecture.md` §7/§8-1（D1） |
+
+### 3.4 M8 执行草案（2026-09-17 立项，未开工）
+
+> **立项依据**：本日两项拍板 —— ① `docs/product-direction.md` §8-1 目标客户优先级 = **先 (a) 建生态、同步铺 (c) 交付物**；② `docs/product-build-paths.md` §9 形态路径 = **先走 D（ACP 适配包），不自建壳**。
+> **准入纪律**：每项开工前须过 `docs/base-convergence.md` §3 三问准入；已判定**不立项**的（多 Agent 协同 / Rust 移植 / 垂直应用 / 引入运行时依赖）不在表内。
+> **顺序理由**：生态入口是 (a) 建生态的地基，且不依赖 ACP 规范核对结果，故列首批并与核对并行；ACP 两项待核对结论明确后开工；`tools-code` 在 ACP 模式下由 Client 提供 fs/terminal，延后。
+
+| 批次 | 项 | 归属 | 验收口径 | 状态 |
+|---|---|---|---|---|
+| **前置** | **ACP 规范级核对** —— **✅ 已完成（2026-09-17，见 `docs/acp-spec-review.md`）**：传输 = **stdio**（换行分隔 JSON-RPC，stdout 只写 ACP 消息、日志走 stderr，与本项目既有纪律一致）；**`session/update` 不要求 token 级分块（MAY 非 MUST）→ 流式非前置、不阻塞 ACP 包**；方法名一律斜杠（`session/new` / `session/prompt` / `session/cancel`）；`session/set_mode` 有废弃风险，桥接须同时提供 Session Config Options | 调研（无代码） | 结论已落 `docs/acp-spec-review.md`；**流式维持第二批** | ✅ |
+| **第一批** | **M8-1 生态入口**：脚手架 `create-node-agent-runtime` **✅ 已落地（2026-09-17，第 14 个包，零运行时依赖；生成物已真跑通）** + 示例库（治理 / 续跑 / 审计三条主线）**✅ 已落地（`examples/cookbook/`，三个示例均实测可跑）** + 文档站 **✅ 已落地（`docs/` 即站点源，VitePress；`npm run docs:dev` / `docs:build`，构建已实测通过）** | 底座（分发设施，原 M7-7 底座部分） | 新用户 5 分钟内跑通第一个受治理任务；脚手架生成物 `npm install && npm start` 一次通过（已在本仓库内以 workspace 软链方式实测） | ✅ 完成（2026-09-17） |
+| 第一批 | **M8-2** `@node-agent-runtime/acp` —— **✅ 代码完成（2026-09-17）**：`initialize` / `session/new` / `session/prompt` / `session/cancel` + `session/update` 事件翻译，另含 `session/load` / `session/close` | 底座（新包 `packages/acp`） | 已用内存传输对跑通握手 / 多步 / 取消 / 回放（19 例）；**与真实 ACP Client（DeepChat / Zed）联调待做**；审批呈现属 M8-3 | ✅ 代码完成 + 子进程 E2E / ☐ GUI 客户端联调 |
+| 第一批 | **M8-3** ACP 权限桥接 —— **✅ 代码完成（2026-09-17）**：`session/request_permission` ↔ `PermissionManager`（**替换 M8-2 的 `NoAskPolicy` 兜底**，客户端不实现时降级为 `deny`），`session/set_mode` ↔ `SandboxMode` 并**同时提供 `session/set_config_option`**（官方明示 set_mode 将被移除）；`host` 新增 `SessionManager.setSandboxMode()` | 底座（`packages/acp` + `host` 增量） | 已验证：允许→工具执行、拒绝→工具失败且模型可自纠、切 `read-only` 后写工具被直接拒绝不再弹审批（33 例）；**与真实 ACP Client（DeepChat / Zed）联调待做** | ✅ 代码完成 + 子进程 E2E / ☐ GUI 客户端联调 |
+| **第二批** | **M8-4** 流式（`ModelProvider` 可选 `chatStream()` + SSE 解析 + `message:delta`）—— **✅ 代码完成（2026-09-18）**：需 `RunOptions.stream` / `AgentRuntimeOptions.stream` 显式开启（默认 false；ACP 侧 `AcpAgentOptions.stream` 默认 true）且 provider 实现 `chatStream()` 才产生增量，未实现则**静默走非流式**（不是错误） | 底座（`core` / `provider-openai` / `acp`） | 增量拼接结果与 `model:response` 文本一致；**只有还没吐出任何增量前失败才回退**到 `chat()`（已出块不重跑，避免重复计费 + 重复输出）；测试 core 106 / provider-openai 9 / acp 37 全通过 | ✅ 代码完成（2026-09-18） / ☐ GUI 客户端联调 |
+| **第三批** | **M8-5** `deploy/` 补 K8s/Helm 形态与升级回滚说明 —— **✅ 已落地（2026-09-18）**：`deploy/helm/node-agent-runtime/`（Chart + values + 8 模板，复用同一 Dockerfile）；README 新增 §7 K8s/Helm 与 §8 升级回滚 | 底座（交付物，对应 (c)） | `helm lint` 通过、`helm template` 渲染出预期对象；回滚步骤可复现（先备份 → 升级 → 回滚 → 必要时恢复数据） | ✅ 完成（2026-09-18） / ☐ 真实集群验收 |
+| 延后 | `tools-code`（`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash`） | 底座（新包） | 路径必须在 Sandbox 声明域内；`bash` 超时终止 | ⏸ ACP 模式下由 Client 提供 |
+| 随手 | P3 三项可维护性清理（`parsePositiveInt` / `buildLimits` 重复求值、`AGENT_LIMIT_MAX_COST_USD=0`、`auditPolicyAllows` 开关） | 底座 | 见 `docs/historical/p3-review.md` §3 | ✅ 完成（2026-09-18） |
+| 发布 | **M8 全批 changeset**（M8-1 脚手架 / M8-2 ACP 包 / M8-3 权限桥接 / M8-4 流式 / P3 审计开关 / P3 修复，共 6 份） | 发布工程（无功能改动） | `npx changeset status` 显示 12 个发布包**全部 minor → 0.5.0**；`mock` / `tools-basic`（已 `private`）不列入；Helm 与示例库 / 文档站非 npm 包无需 changeset | ✅ 完成（2026-09-18） / ☐ 合 `main` 后由 changesets 触发发布 |
+| **不做** | CLI 产品壳（bin + TUI） | 产品层，**独立仓库** | — | 已拍板不自建壳 |
+
+> **叙事口径**（拍板 5）：对外以「治理」（审批 + 三档沙箱 + 审计导出 + 续跑）为主叙事，而非「又一个编码 Agent」。
+> **执行约束**：M8 任何一项开工前，先在 `docs/architecture.md` §11 / §13 登记，再回填本表；完成即同 commit 回填本表 + 源清单 + `CHANGELOG.md`。
 
 ---
 
@@ -104,9 +128,9 @@
 - **产品方向规划（M7+）**：`docs/product-direction.md`
 - **收敛决策事实源（底座边界 / 准入 / 移出）**：`docs/base-convergence.md`
 - 产品落地路径评估（形态成本与 ACP 替代路径）：`docs/product-build-paths.md`
-- M7 首批执行清单（底座治理交付 M7-1/2/3/6）：`docs/m7-base-governance.md`
-- M6 执行清单：`docs/m6-productionization.md`
-- 遗留任务总池：`docs/remaining-tasks.md` · 拆包执行级：`docs/crate-split-todo.md`
+- M7 首批执行清单（底座治理交付 M7-1/2/3/6）：`docs/historical/m7-base-governance.md`
+- M6 执行清单：`docs/historical/m6-productization.md`
+- 遗留任务总池：`docs/historical/remaining-tasks.md` · 拆包执行级：`docs/historical/crate-split-todo.md`
 - 路线图与修订记录：`docs/architecture.md` §11 / §13
-- M5 验收依据：`docs/m5-productization.md`
-- 模块边界与决策：`docs/crate-architecture.md` §8
+- M5 验收依据：`docs/historical/m5-productization.md`
+- 模块边界与决策：`docs/historical/crate-architecture.md` §8

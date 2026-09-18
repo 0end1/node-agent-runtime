@@ -36,6 +36,17 @@ export interface ModelProvider {
   readonly id: string;
   readonly label: string;
   chat(request: ModelRequest): Promise<ModelResponse>;
+  /**
+   * M8-4: 可选的流式生成。实现者契约：
+   *
+   * - **返回的 `ModelResponse` 必须与同请求下 `chat()` 等价** —— 拼接后的
+   *   `content` 与 `toolCalls` 一致。否则 checkpoint 续跑、ACP 回放与审计
+   *   看到的文本会与一次性生成不同（这正是 `message:delta` 的等价关系）。
+   * - `onDelta` 只在产生非空文本增量时调用；结束前不得调用。
+   * - 抛错即失败。是否回退由调用方按「是否已经吐出过块」决定（见
+   *   `AgentRuntime#callModel`）—— 出过块再回退会重复计费并重复输出。
+   */
+  chatStream?(request: ModelRequest, onDelta: (delta: string) => void): Promise<ModelResponse>;
 }
 
 export interface ModelRequestErrorOptions {

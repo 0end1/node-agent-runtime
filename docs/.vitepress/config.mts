@@ -34,6 +34,7 @@ export default defineConfig({
           { text: "产品方向", link: "/product-direction" },
           { text: "形态路径", link: "/product-build-paths" },
           { text: "ACP 规范核对", link: "/acp-spec-review" },
+          { text: "M9 文件与命令工具", link: "/m9-tools-code" },
         ],
       },
     ],
@@ -65,6 +66,10 @@ export default defineConfig({
             { text: "ACP 适配执行清单", link: "/m8-acp-adapter" },
             { text: "ACP v1 规范核对", link: "/acp-spec-review" },
           ],
+        },
+        {
+          text: "里程碑执行清单",
+          items: [{ text: "M9 文件与命令工具包", link: "/m9-tools-code" }],
         },
         {
           text: "项目内部（研发用）",

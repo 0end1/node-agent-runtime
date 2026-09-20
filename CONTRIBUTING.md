@@ -22,7 +22,7 @@ npm run ci         # 全部门禁：typecheck → lint → test → policy:test 
 
 ## 2. 仓库结构
 
-npm workspaces monorepo，根包是容器（private）；`packages/*` 下 12 个包中 **10 个发布到 npm**，`mock` / `tools-basic` 为 **internal/demo**（已 `private`，不发布，仅仓库内与示例使用）：
+npm workspaces monorepo，根包是容器（private）；`packages/*` 下 15 个包中 **13 个发布到 npm**，`mock` / `tools-basic` 为 **internal/demo**（已 `private`，不发布，仅仓库内与示例使用）：
 
 | 包 | 职责 |
 | --- | --- |
@@ -36,6 +36,9 @@ npm workspaces monorepo，根包是容器（private）；`packages/*` 下 12 个
 | `@node-agent-runtime/mcp` | C6 MCP 客户端（stdio / streamable HTTP） |
 | `@node-agent-runtime/provider-openai` | C7 OpenAI 兼容模型后端 |
 | `@node-agent-runtime/store-sqlite` | C9 SQLite 存储后端（`node:sqlite`） |
+| `@node-agent-runtime/acp` | C10 ACP agent（stdio 传输 + 权限桥接 + 执行模式，供 Zed / DeepChat 等客户端驱动） |
+| `@node-agent-runtime/tools-code` | C11 受治理的文件与命令工具（`read_file` / `write_file` / `edit_file` / `list_dir` / `glob` / `grep` / `bash`，M9） |
+| `create-node-agent-runtime` | 脚手架（无 scope）：`npx create-node-agent-runtime` 生成第一个受治理 Agent 项目（零运行时依赖） |
 | `@node-agent-runtime/tools-basic` | **internal/demo**（`private`，不发布）：内置工具集 `builtinTools`，仅仓库内与示例使用 |
 | `@node-agent-runtime/mock` | **internal/demo**（`private`，不发布）：免密钥 Mock Provider（演示/测试），仅仓库内与示例使用 |
 

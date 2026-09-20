@@ -37,6 +37,7 @@ const PACKAGES = [
   { name: "@node-agent-runtime/provider-openai", dir: "provider-openai", expect: 2 },
   { name: "@node-agent-runtime/store-sqlite", dir: "store-sqlite", expect: 3 },
   { name: "@node-agent-runtime/acp", dir: "acp", expect: 78 }, // M8-2/3 新包，随基线冻结
+  { name: "@node-agent-runtime/tools-code", dir: "tools-code", expect: null }, // M9 新包，随基线冻结
 ];
 
 /**

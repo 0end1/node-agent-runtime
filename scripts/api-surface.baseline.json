@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T01:13:35.477Z",
+  "generatedAt": "2026-09-20T00:56:00.660Z",
   "note": "由 scripts/check-api-surface.ts --update 生成；随 docs/api-surface.md 同步冻结/刷新。",
   "packages": {
     "@node-agent-runtime/types": {
@@ -432,6 +432,43 @@
         "toolTitle",
         "translateEvent",
         "usageUpdate"
+      ],
+      "forwards": []
+    },
+    "@node-agent-runtime/tools-code": {
+      "symbols": [
+        "BashArgs",
+        "BashResult",
+        "BashToolOptions",
+        "CODE_TOOL_LIMITS",
+        "CODE_TOOL_NAMES",
+        "CodeToolLimits",
+        "CodeToolOptions",
+        "CodeToolsOptions",
+        "DirEntry",
+        "EditFileArgs",
+        "EditFileResult",
+        "GlobArgs",
+        "GlobResult",
+        "GrepArgs",
+        "GrepHit",
+        "GrepResult",
+        "ListDirArgs",
+        "ListDirResult",
+        "ReadFileArgs",
+        "ReadFileResult",
+        "WriteFileArgs",
+        "WriteFileResult",
+        "codeTools",
+        "createBashTool",
+        "createCodeTools",
+        "createEditFileTool",
+        "createGlobTool",
+        "createGrepTool",
+        "createListDirTool",
+        "createReadFileTool",
+        "createWriteFileTool",
+        "globToRegExp"
       ],
       "forwards": []
     }

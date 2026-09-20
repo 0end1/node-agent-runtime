@@ -22,6 +22,7 @@
 | `@node-agent-runtime/provider-openai` | 0.2.0 | 2 | C7 模型后端 |
 | `@node-agent-runtime/store-sqlite` | 0.2.0 | 3 | C9 存储后端 |
 | `@node-agent-runtime/acp` | 0.4.2 | 78 | C10 ACP agent（stdio 传输 + 权限桥接 + 执行模式，M8-2/M8-3） |
+| `@node-agent-runtime/tools-code` | 0.4.2 | 32 | C11 受治理的文件与命令工具（7 件，`pathArgs` 交沙箱校验，M9） |
 
 **依赖方向（单向无环）**：
 
@@ -150,6 +151,22 @@ types ← {memory, artifact, sandbox, policy} ← core ← {tools-basic, mock, h
 
 > 该包**不**被 `core` re-export（方向为 `acp → core`，反向成环），消费者须直接 `import ... from "@node-agent-runtime/acp"`。
 > 脚手架 `create-node-agent-runtime` **不在本快照内**：它是 CLI，公共面是命令行与生成物，不是可 import 的库 API。
+
+---
+
+## 12.2 `@node-agent-runtime/tools-code`（C11 · 受治理的文件与命令工具，M9）
+
+32 个导出按职责分组（**完整符号清单以 `scripts/api-surface.baseline.json` 为唯一事实源**，本表只给分组与代表符号）：
+
+| 分组 | 代表符号 | 说明 |
+|---|---|---|
+| **装配** | `createCodeTools`、`codeTools`、`CODE_TOOL_NAMES` | `createCodeTools({ workspace })` 为推荐入口；`codeTools` 默认以 `process.cwd()` 为域 |
+| **工具工厂** | `createReadFileTool`、`createWriteFileTool`、`createEditFileTool`、`createListDirTool`、`createGlobTool`、`createGrepTool`、`createBashTool` | 逐件取用，与集合共享同一份 options |
+| **上限与匹配** | `CODE_TOOL_LIMITS`、`globToRegExp` | 输出上限常量；glob → 正则的转换（暴露以便测试与复用） |
+| **参数/结果类型** | `ReadFileArgs`/`ReadFileResult`、`WriteFileArgs`/`WriteFileResult`、`EditFileArgs`/`EditFileResult`、`ListDirArgs`/`ListDirResult`、`GlobArgs`/`GlobResult`、`GrepArgs`/`GrepHit`/`GrepResult`、`BashArgs`/`BashResult` | 均为类型，编译后不占运行时体积 |
+
+> 该包**不**被 `core` re-export（方向为 `tools-code → core`，反向成环），消费者须直接 `import ... from "@node-agent-runtime/tools-code"`。
+> 七件工具的 `meta.kind` 与 `meta.pathArgs` **是治理契约的一部分**：`kind` 决定 read-only 沙箱下是否放行、`pathArgs` 是沙箱校验路径的入口 —— 二者变更等同 API 变更，需走本节流程。
 
 ---
 

@@ -7,5 +7,5 @@ dist/
 .runtime-data/
 # M6 P2.3: coverage report output
 coverage/
-# M6 P5.4: Tauri updater 签名私钥（公钥 .pub 可公开，私钥绝不入库）
-.tauri/
+# M8-1: VitePress 缓存（构建产物 dist/ 已被上面的规则忽略）
+docs/.vitepress/cache/

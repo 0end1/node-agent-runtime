@@ -1,0 +1,63 @@
+{
+  "name": "@node-agent-runtime/acp",
+  "version": "0.4.2",
+  "description": "C9 ACP adapter package of the Agent runtime: exposes the runtime as an Agent Client Protocol (v1) agent over stdio — initialize / session/new / session/prompt / session/cancel, translating the runtime EventBus into session/update notifications. Depends on @node-agent-runtime/core + host; the core never imports this package.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/node-agent-runtime.git",
+    "directory": "packages/acp"
+  },
+  "homepage": "https://github.com/0end1/node-agent-runtime",
+  "bugs": {
+    "url": "https://github.com/0end1/node-agent-runtime/issues"
+  },
+  "keywords": [
+    "node-agent-runtime",
+    "agent",
+    "acp",
+    "agent-client-protocol",
+    "json-rpc",
+    "stdio"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@node-agent-runtime/mock": "^0.4.2",
+    "@node-agent-runtime/tools-basic": "^0.4.2"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/host": "^0.4.2",
+    "@node-agent-runtime/policy": "^0.4.2",
+    "@node-agent-runtime/sandbox": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
+  }
+}

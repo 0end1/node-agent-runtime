@@ -65,7 +65,7 @@
 | 运行预算 | `AGENT_LIMIT_*`、`AGENT_RATE_TOOL_*` | 设置步数/时长/cost/工具速率上限（P3.4） |
 | 安全策略包 | `createProductionDefaults(workspace)` | 最小权限 + 沙箱锁域（禁网、仅工作区可写，P3.7） |
 
-更多细节见 `docs/m6-productionization.md` §3（P3 安全与可观测性）与 `docs/p3-review.md`（含已修复项与已知边界）。
+更多细节见 `docs/historical/m6-productization.md` §3（P3 安全与可观测性）与 `docs/historical/p3-review.md`（含已修复项与已知边界）。
 
 ## 致谢
 

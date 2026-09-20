@@ -2,7 +2,8 @@
 
 > 记录时间：2026-09-10
 > 定位：**收敛决策事实源**。把项目从「桌面产品驱动」叙事收敛为「**可发布 SDK 底座驱动**」：底座是唯一一等公民，其余形态降级为验证载体；**桌面端整体移出至产品侧**（2026-09-10，§2.3）。
-> 前置状态：M6 Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）已关闭；**桌面端（`examples/desktop-tauri/` 与 P5.1~P5.4）已自底座范围移出，方向与投入归产品侧**（回填见 `docs/m6-productionization.md` §5；产品侧承接见 `docs/product-direction.md` §4）。
+> 前置状态：M6 Gate 1（包边界）/ Gate 2（质量门）/ Gate 3（可观测与安全）/ Gate 4（SDK 发布工程）/ Gate 6（治理文档）已关闭；**桌面端（`examples/desktop-tauri/` 与 P5.1~P5.4）已自底座范围移出，方向与投入归产品侧**（回填见 `docs/historical/m6-productization.md` §5；产品侧承接见 `docs/product-direction.md` §4）。
+> **追注（2026-09-17，桌面端资产出库 · 处置口径变更）**：2026-09-10 的处置是「移出底座、保留代码作为产品侧资产」；本日该处置**升级为实际删除**——`examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` 全部从本仓库删除（提交 `6cf5ebf`）。**方向判定不变**（仍归产品侧，底座不投入、不立项、不判定）；但 §2.3 原「移出 ≠ 删除：不删文件 / 不删 workflow / 不删脚本」的**现状描述自本日起失效**，本文表格与目录树中的「保留 / 不删」表述**仅作历史记录**。产品侧承接实现请从 git 历史 `6cf5ebf^` 取回。
 > 与其它文档的关系：本文件定「**边界与取舍**」，`docs/product-direction.md` 定「**方向与里程碑**」，`docs/architecture.md` §11 定「**路线图**」。三者口径冲突时以本文件为准，并顺手修正另两处。
 
 ---
@@ -11,7 +12,7 @@
 
 | 项 | 结论 |
 |---|---|
-| **一等公民** | `packages/*` **12 个 workspace 包**（`@node-agent-runtime/*`）+ 公共 API 快照 + 质量门 + 发布编排 |
+| **一等公民** | `packages/*` **14 个 workspace 包**（13 个 `@node-agent-runtime/*` + 脚手架 `create-node-agent-runtime`）+ 公共 API 快照 + 质量门 + 发布编排 |
 | **降级** | `examples/cli.ts`、`examples/web/`、`deploy/`、`scripts/e2e/`、`scripts/smoke-web.mjs` → **验证载体**（只验证底座，不演进产品） |
 | **移出（产品侧）** | `examples/desktop-tauri/`、`.github/workflows/desktop.yml`、`scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs`、P5.1~P5.4 → **移出底座范围（HANDOFF）**：底座不再投入、也不再对其立项与否作判定，**方向与投入归产品侧**（见 §2.3） |
 | **不立项** | 垂直行业应用、Rust 移植、多 Agent 协同（维持远期/否决，见 §2.4）；**桌面形态不在底座判定范围**（见 §2.3） |
@@ -75,12 +76,13 @@
 
 | 移出对象 | 移出含义 | 产品侧承接位置 |
 |---|---|---|
-| `examples/desktop-tauri/`（65 跟踪文件） | 底座侧不再新增功能、不升级 Tauri / 插件版本、不调整图标与打包链 | `docs/product-direction.md` §4（形态归属）· `docs/product-build-paths.md`（形态成本评估） |
-| `.github/workflows/desktop.yml` | 底座侧不再维护其触发策略（现为 `tag v*` / 手动，不进常规 CI 前置） | 同上；是否保留该工作流由产品侧决定 |
-| `scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` | 保留脚本作为回归资产，但不作为底座验收门槛（E2E 默认跳过 desktop） | 同上 |
-| P5.1 桌面实机 / P5.2 签名公证 / P5.3 三平台 CI / P5.4 自动更新 | 自 M6 P5 移出，**不再是底座的保留项**（回填见 `docs/m6-productionization.md` §5） | 由产品侧按自身里程碑重新立项；前置条件不变（Apple Developer 证书 + 仓库 secrets） |
+| `examples/desktop-tauri/`（65 跟踪文件） | **2026-09-17 已从本仓库删除**（`6cf5ebf`）；删除前口径为「不再新增功能、不升级 Tauri / 插件版本、不调整图标与打包链」 | `docs/product-direction.md` §4（形态归属）· `docs/product-build-paths.md`（形态成本评估） |
+| `.github/workflows/desktop.yml` | **2026-09-17 已删除**（原触发为 `tag v*` / 手动，不进常规 CI 前置） | 同上；产品侧承接时从 git 历史 `6cf5ebf^` 取回 |
+| `scripts/verify-desktop.mjs`、`scripts/e2e/desktop.mjs` | **2026-09-17 已删除**；`run-all.mjs` 的 desktop 目标与 `--with-desktop` 开关同步移除（原「保留脚本作为回归资产」口径失效） | 同上 |
+| P5.1 桌面实机 / P5.2 签名公证 / P5.3 三平台 CI / P5.4 自动更新 | 自 M6 P5 移出，**不再是底座的保留项**（回填见 `docs/historical/m6-productization.md` §5） | 由产品侧按自身里程碑重新立项；前置条件不变（Apple Developer 证书 + 仓库 secrets） |
 
-**移出 ≠ 删除，也 ≠ 放弃**：不删文件、不删 workflow、不删脚本；底座侧只停止投入与判定。桌面形态**是否做、何时做、以什么形态做**属产品侧问题——其成本与替代路径评估见 `docs/product-build-paths.md`。
+**移出 ≠ 放弃**（2026-09-10 口径）：原定「不删文件、不删 workflow、不删脚本」，底座侧只停止投入与判定。桌面形态**是否做、何时做、以什么形态做**属产品侧问题——其成本与替代路径评估见 `docs/product-build-paths.md`。
+> **〔2026-09-17 修订〕上述「不删」口径已失效**：文件、workflow 与脚本**均已从本仓库删除**（提交 `6cf5ebf`）。本段保留为历史记录；当前事实是——本仓库**不含任何桌面端资产**，产品侧如需承接从 git 历史 `6cf5ebf^` 取回。「移出 ≠ 放弃」的方向判定本身不变（仍归产品侧，底座不投入、不判定）。
 
 ### 2.4 出局（DROP · 明确不立项）
 
@@ -115,12 +117,12 @@ packages/             ← 底座：12 包（唯一一等公民，随 npm 发布�
 examples/             ← 验证载体（不发布、不承诺接口）
   cli.ts              ← 最小消费者
   web/                ← 事件流/审批/安全 可视化验收面
-  desktop-tauri/      ← 【移出至产品侧】保留代码，底座侧停止投入
+  desktop-tauri/      ← 【2026-09-17 已从本仓库删除】原移出至产品侧，实现仅存于 git 历史 `6cf5ebf^`
 
 deploy/               ← 验证载体：容器化交付冒烟
-scripts/              ← 底座设施（api-surface/coverage/size/e2e）+ 移出脚本（verify-desktop）
+scripts/              ← 底座设施（api-surface/coverage/size/e2e）（原移出脚本 verify-desktop 于 2026-09-17 删除）
 docs/                 ← 决策与事实源
-.github/workflows/    ← ci.yml · release.yml（底座）｜ desktop.yml【移出至产品侧】
+.github/workflows/    ← ci.yml · release.yml（底座）（原 desktop.yml 于 2026-09-17 删除）
 ```
 
 **层级口径修正**：`architecture.md` §1 图 1 的「Desktop → Product Host → Runtime core」是**运行时分层**（描述依赖方向，仍然成立）；但**项目投入分层**是「底座 → 验证载体」，桌面端已移出至产品侧（§2.3），两者不是一回事，不得互相引用。
@@ -133,8 +135,8 @@ docs/                 ← 决策与事实源
 |---|---|---|
 | `.github/workflows/ci.yml` | 保留 | 底座质量门（typecheck / lint / test / coverage / audit） |
 | `.github/workflows/release.yml` | 保留 | 底座发布编排（changesets + `--provenance`） |
-| `.github/workflows/desktop.yml` | 移出标注 | 触发仍为 `tag v*` / 手动；注释标注「移出至产品侧」与承接位置（底座不再维护其触发策略） |
-| `scripts/e2e/` | 保留（desktop 默认跳过） | CLI + Web 常规跑；desktop 用例仅在显式 `E2E_DESKTOP=1` 时执行 |
+| `.github/workflows/desktop.yml` | **已删除（2026-09-17）** | 原「移出标注」处置作废；随桌面端整体删除（`6cf5ebf`） |
+| `scripts/e2e/` | 保留（**desktop runner 已删**） | CLI + Web 常规跑；desktop runner（`desktop.mjs`）与 `--with-desktop` 开关于 2026-09-17 移除 |
 | `deploy/` | 保留 | 随底座运行要求更新 |
 | README / architecture / checklist | **改叙事** | 不再以「桌面产品」为顶层定位 |
 
@@ -179,8 +181,8 @@ docs/                 ← 决策与事实源
 - 产品方向与 M7 里程碑草案：`docs/product-direction.md`
 - 架构与路线图（§1 分层 / §11 路线图 / §13 修订记录）：`docs/architecture.md`
 - 阶段总览与索引：`docs/development-checklist.md`
-- 遗留任务总池：`docs/remaining-tasks.md`
-- M6 执行清单（P5 桌面项移出回填）：`docs/m6-productionization.md` §5
+- 遗留任务总池：`docs/historical/remaining-tasks.md`
+- M6 执行清单（P5 桌面项移出回填）：`docs/historical/m6-productization.md` §5
 - 产品侧形态评估（桌面形态成本与替代路径）：`docs/product-build-paths.md`
 - 公共 API 面（底座冻结快照）：`docs/api-surface.md`
-- 模块边界与拆包：`docs/crate-architecture.md`、`docs/crate-split-todo.md`
+- 模块边界与拆包：`docs/historical/crate-architecture.md`、`docs/historical/crate-split-todo.md`

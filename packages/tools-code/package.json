@@ -1,0 +1,57 @@
+{
+  "name": "@node-agent-runtime/tools-code",
+  "version": "0.4.2",
+  "description": "Governed filesystem and command tools package of the Agent runtime: read_file / write_file / edit_file / list_dir / glob / grep / bash. Every path-bearing argument is declared via meta.pathArgs so the sandbox can enforce the declared domain, and bash kills its whole process group on timeout. Depends on @node-agent-runtime/core + types + sandbox; the core never imports this package.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/node-agent-runtime.git",
+    "directory": "packages/tools-code"
+  },
+  "homepage": "https://github.com/0end1/node-agent-runtime",
+  "bugs": {
+    "url": "https://github.com/0end1/node-agent-runtime/issues"
+  },
+  "keywords": [
+    "node-agent-runtime",
+    "agent",
+    "tools",
+    "filesystem",
+    "sandbox",
+    "code-tools"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@node-agent-runtime/core": "^0.4.2",
+    "@node-agent-runtime/sandbox": "^0.4.2",
+    "@node-agent-runtime/types": "^0.4.2"
+  }
+}

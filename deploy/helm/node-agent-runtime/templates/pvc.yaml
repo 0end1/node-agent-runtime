@@ -1,0 +1,21 @@
+{{- if and .Values.persistence.enabled (not .Values.persistence.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "node-agent-runtime.fullname" . }}
+  labels:
+    {{- include "node-agent-runtime.labels" . | nindent 4 }}
+  annotations:
+    {{- /* 删 release 时默认连卷一起删会让"回滚"变成空谈 —— 需要保留就把下面这行
+           改成 "false"（Helm 3 亦会尊重该注解）。 */}}
+    helm.sh/resource-policy: keep
+spec:
+  accessModes:
+    - {{ .Values.persistence.accessMode | quote }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | quote }}
+  {{- with .Values.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+{{- end }}

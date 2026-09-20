@@ -78,4 +78,34 @@ describe("loadConfig", () => {
       (err: unknown) => err instanceof ConfigError && err.code === ErrorCode.CONFIG_INVALID,
     );
   });
+
+  it("P3 §3 第 2 项: AGENT_LIMIT_MAX_COST_USD=0 是显式零预算，而非'未设置'", () => {
+    assert.equal(loadConfig({ env: ENV({ AGENT_LIMIT_MAX_COST_USD: "0" }) }).limits?.maxCostUsd, 0);
+    assert.equal(loadConfig({ env: ENV() }).limits?.maxCostUsd, undefined);
+    // 小数预算（0.5 美元）继续支持 —— 这正是改用 parsePositiveNumber 而非 parseInt 的由来
+    assert.equal(
+      loadConfig({ env: ENV({ AGENT_LIMIT_MAX_COST_USD: "0.5" }) }).limits?.maxCostUsd,
+      0.5,
+    );
+  });
+
+  it("P3 §3 第 3 项: AGENT_PERMISSION_AUDIT_POLICY_ALLOWS 关闭 policy-allow 审计", () => {
+    assert.equal(
+      loadConfig({ env: ENV({ AGENT_PERMISSION_AUDIT_POLICY_ALLOWS: "false" }) }).permission
+        .auditPolicyAllows,
+      false,
+    );
+    assert.equal(
+      loadConfig({ env: ENV({ AGENT_PERMISSION_AUDIT_POLICY_ALLOWS: "0" }) }).permission
+        .auditPolicyAllows,
+      false,
+    );
+    assert.equal(
+      loadConfig({ env: ENV({ AGENT_PERMISSION_AUDIT_POLICY_ALLOWS: "true" }) }).permission
+        .auditPolicyAllows,
+      true,
+    );
+    // 未设置 → undefined，交给 PermissionManager 兜底为 true（默认全量留痕）
+    assert.equal(loadConfig({ env: ENV() }).permission.auditPolicyAllows, undefined);
+  });
 });

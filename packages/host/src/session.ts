@@ -123,6 +123,11 @@ export interface SessionManagerOptions {
   permission?: PermissionManager;
   /** M3: policy used by the default permission manager (docs §6.1). */
   policy?: PermissionPolicy;
+  /**
+   * P3 §3 第 3 项: 透传给默认 `PermissionManager`，控制 `policy-allow` 是否审计（默认 `true`）。
+   * 若调用方已注入自定义 `permission`，本开关不生效。
+   */
+  auditPolicyAllows?: boolean;
   /** M4: artifact store. Defaults to one over `storage`. */
   artifacts?: ArtifactManager;
   /** P3.3: approval audit + grant persistence. Defaults to `StorageApprovalStore`. */
@@ -163,7 +168,7 @@ export class SessionManager {
   /** P3.3: audit trail + grants the permission manager writes through. */
   private readonly approvalStore: ApprovalStore;
   private readonly sandbox: Sandbox;
-  private readonly sandboxMode: SandboxMode;
+  private sandboxMode: SandboxMode;
   private readonly scope: SandboxScope;
   /** In-process busy guard to keep a single session from concurrent writes. */
   private readonly busy = new Set<string>();
@@ -198,6 +203,9 @@ export class SessionManager {
         events: this.events,
         store: this.approvalStore,
         policy: options.policy,
+        ...(options.auditPolicyAllows !== undefined
+          ? { auditPolicyAllows: options.auditPolicyAllows }
+          : {}),
       });
     this.artifacts =
       options.artifacts ?? new ArtifactManager({ storage: this.storage, now: this.now });
@@ -306,6 +314,25 @@ export class SessionManager {
     return this.checkpoints.listByTask(taskId);
   }
 
+  // ------------------------------------------------------------ Sandbox mode
+
+  /**
+   * Switch the execution mode (docs/architecture.md §6.0.1).
+   *
+   * Takes effect from the **next** run: `sandbox.begin()` re-reads the mode at
+   * the start of every turn, so an in-flight turn keeps the mode it began
+   * with — a mid-turn switch would silently move the boundary under a tool
+   * that was already authorized against the old one.
+   */
+  setSandboxMode(mode: SandboxMode): void {
+    this.sandboxMode = mode;
+  }
+
+  /** The mode new runs will start with. */
+  getSandboxMode(): SandboxMode {
+    return this.sandboxMode;
+  }
+
   // ---------------------------------------------------------- Approvals (M3)
 
   /** Decisions waiting for the host UI to answer. */
@@ -405,7 +432,7 @@ export class SessionManager {
   async chat(
     sessionId: string,
     input: string,
-    options: { signal?: AbortSignal } = {},
+    options: { signal?: AbortSignal; stream?: boolean } = {},
   ): Promise<ChatOutcome> {
     await this.requireOpenSession(sessionId); // 校验会话存在且处于 open 态
     const text = (input ?? "").trim();
@@ -418,7 +445,10 @@ export class SessionManager {
    * Schedule a run for an existing task. A task can be re-submitted to
    * continue (M2 resume / follow-up questions reuse the same task).
    */
-  async submitTask(taskId: string, options: { signal?: AbortSignal } = {}): Promise<ChatOutcome> {
+  async submitTask(
+    taskId: string,
+    options: { signal?: AbortSignal; stream?: boolean } = {},
+  ): Promise<ChatOutcome> {
     const { task, session, agent } = await this.prepareRun(taskId);
     const history = await this.messages(session.id);
     return this.executeRun({
@@ -428,6 +458,7 @@ export class SessionManager {
       history,
       input: task.goal,
       signal: options.signal,
+      stream: options.stream,
     });
   }
 
@@ -445,7 +476,7 @@ export class SessionManager {
   async resume(
     checkpointId: string,
     continuation?: string,
-    options: { signal?: AbortSignal } = {},
+    options: { signal?: AbortSignal; stream?: boolean } = {},
   ): Promise<ChatOutcome> {
     const checkpoint = await this.checkpoints.load(checkpointId);
     if (!checkpoint) throw new SessionError(`未知 checkpoint：${checkpointId}`);
@@ -470,6 +501,7 @@ export class SessionManager {
       // No new instruction -> replay the checkpoint's transcript as-is.
       appendUserMessage: Boolean(continuation?.trim()),
       signal: options.signal,
+      stream: options.stream,
       onRunStart: (runId) =>
         this.events.emit({
           type: "checkpoint:restored",
@@ -515,6 +547,11 @@ export class SessionManager {
     /** Resume keeps the transcript identical: no extra user turn by default. */
     appendUserMessage?: boolean;
     signal?: AbortSignal;
+    /**
+     * M8-4: 本次 run 是否流式（`message:delta`）。透传给 `AgentRuntime`，
+     * provider 不支持时静默降级为非流式。
+     */
+    stream?: boolean;
     onRunStart?: (runId: string) => void;
   }): Promise<ChatOutcome> {
     const { task, session, agent } = args;
@@ -605,6 +642,7 @@ export class SessionManager {
         sessionId: session.id,
         taskId: task.id,
         signal: args.signal,
+        stream: args.stream,
         onStepEnd,
         gate,
         ...(args.appendUserMessage === false ? { appendUserMessage: false } : {}),

@@ -10,8 +10,6 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/coverage/**",
-      "examples/desktop-tauri/src-tauri/**",
-      "examples/desktop-tauri/dist/**",
     ],
   },
   js.configs.recommended,

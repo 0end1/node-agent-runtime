@@ -28,10 +28,15 @@ export class MockProvider implements ModelProvider {
   label = "Mock (rule-based, no API key needed)";
 
   private readonly nowFn: () => Date;
+  /** M8-4: 模拟流式时每块的字符数与间隔（仅影响 `message:delta` 的观感）。 */
+  private readonly chunkSize: number;
+  private readonly chunkDelayMs: number;
   private issued = new Map<string, { name: string; args: Record<string, unknown> }>();
 
-  constructor(options: { now?: () => Date } = {}) {
+  constructor(options: { now?: () => Date; chunkSize?: number; chunkDelayMs?: number } = {}) {
     this.nowFn = options.now ?? (() => new Date());
+    this.chunkSize = options.chunkSize ?? 8;
+    this.chunkDelayMs = options.chunkDelayMs ?? 15;
   }
 
   async chat(request: ModelRequest): Promise<ModelResponse> {
@@ -51,6 +56,22 @@ export class MockProvider implements ModelProvider {
     }
 
     return this.final("请再说一遍？我可以帮你计算、查时间、看天气或换算汇率。");
+  }
+
+  /**
+   * M8-4: 模拟流式 —— 先按规则算出结果，再把同一份文本切成块吐出。
+   *
+   * 规则式 provider 本就一次性得出答案，所以"流式"只是交付方式：拼接结果
+   * 必然与 `chat()` 完全一致（这正是引擎对 provider 的要求）。它的价值是让
+   * `message:delta` 在没有 API Key、不联网的情况下也能被演示和测试。
+   */
+  async chatStream(request: ModelRequest, onDelta: (delta: string) => void): Promise<ModelResponse> {
+    const response = await this.chat(request);
+    for (const piece of chunkText(response.content ?? "", this.chunkSize)) {
+      await sleep(this.chunkDelayMs);
+      onDelta(piece);
+    }
+    return response;
   }
 
   // ------------------------------------------------------------------ intents
@@ -240,6 +261,15 @@ export class MockProvider implements ModelProvider {
 }
 
 // -------------------------------------------------------------------- helpers
+
+/** 按**码点**切块：按 UTF-16 下标切会把 emoji / 生僻字切成半个代理对。 */
+function chunkText(text: string, size: number): string[] {
+  if (!text || size <= 0) return [];
+  const chars = Array.from(text);
+  const out: string[] = [];
+  for (let i = 0; i < chars.length; i += size) out.push(chars.slice(i, i + size).join(""));
+  return out;
+}
 
 function toRaw(call: ToolCall): RawToolCall {
   return { id: call.id, name: call.name, arguments: JSON.stringify(call.arguments) };

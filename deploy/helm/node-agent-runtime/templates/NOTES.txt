@@ -1,0 +1,46 @@
+{{ include "node-agent-runtime.fullname" . }} 已部署。
+
+1. 探活（集群内）：
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "node-agent-runtime.fullname" . }} 8787:{{ .Values.service.port }}
+  curl -fsS http://127.0.0.1:8787/healthz          # → {"ok":true}
+
+{{- if .Values.ingress.enabled }}
+2. 对外访问（Ingress）：
+
+  {{- range .Values.ingress.hosts }}
+  {{- range .paths }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ . }}{{ .path }}
+  {{- end }}
+  {{- end }}
+{{- else }}
+2. 对外访问：当前未启用 Ingress（`ingress.enabled=false`）。
+   控制台**不应直接暴露公网** —— 请按 deploy/README.md 用网关终止 TLS，
+   并确认 SSE 缓冲已关闭（否则增量会被攒着不发）。
+{{- end }}
+
+3. 密钥自检（缺了会拒绝启动，见 P3.5）：
+
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "node-agent-runtime.secretName" . }} -o jsonpath='{.data.AGENT_API_TOKEN}' | wc -c
+
+{{- if not .Values.existingSecret }}
+{{- if not .Values.secret }}
+   ⚠ 当前 Secret 是**空**的（`secret` 未赋值）。`AGENT_API_TOKEN` 在
+     HOST=0.0.0.0（非 loopback）下是启动强制项，Pod 会 CrashLoopBackOff。
+     补上：helm upgrade {{ .Release.Name }} deploy/helm/node-agent-runtime \
+             --set-string secret.AGENT_API_TOKEN="$(openssl rand -hex 32)"
+{{- end }}
+{{- end }}
+
+4. 升级前先备份（P5.5）—— 代码可回滚，数据未必：
+
+  kubectl -n {{ .Release.Namespace }} exec deploy/{{ include "node-agent-runtime.fullname" . }} -- \
+    sqlite3 "$RUNTIME_DATA/app.db" "VACUUM INTO '$RUNTIME_DATA/backup-$(date +%F).db'"
+
+5. 回滚：
+
+  helm history {{ .Release.Name }} -n {{ .Release.Namespace }}
+  helm rollback {{ .Release.Name }} <REVISION> -n {{ .Release.Namespace }} --wait
+
+  回滚后若 Pod 起不来，多半是**新版本已把 schema 升上去**（`PRAGMA user_version`
+  只前进）。此时用第 4 步的备份恢复数据卷，再重启。详见 deploy/README.md §9。

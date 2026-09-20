@@ -185,6 +185,27 @@ describe("PermissionManager — gate (§6.1)", () => {
     assert.equal(requests.length, 1);
   });
 
+  it("an approve() made synchronously inside the permission:request listener settles at once", async () => {
+    const bus = new EventBus<RuntimeEvent>();
+    const pm = new PermissionManager({
+      events: bus,
+      policy: new DefaultPermissionPolicy(),
+      askTimeoutMs: 1000,
+    });
+    // 宿主最自然的写法：在事件监听器里同步批准。修复前 waiter 尚未登记，
+    // approve 静默失效 —— 决策要等满 askTimeoutMs 才按超时拒绝。
+    bus.on("permission:request", (event) => {
+      pm.approve(event.decisionId);
+    });
+
+    const started = Date.now();
+    const out = await pm.gate(call("sh"), ctx({ tool: { name: "sh", kind: "exec" } }));
+    const elapsed = Date.now() - started;
+
+    assert.equal(out.verdict, "ask-approved");
+    assert.ok(elapsed < 300, `批准应立即生效，实际耗时 ${elapsed}ms（说明等到了超时）`);
+  });
+
   it("a late approve after timeout is ignored", async () => {
     const { pm } = manager(new DefaultPermissionPolicy(), 20);
     const gating = pm.gate(call("sh"), ctx({ tool: { name: "sh", kind: "exec" } }));
@@ -252,9 +273,13 @@ class MemoryApprovalStore implements ApprovalStore {
 }
 
 describe("P3.3 — approval audit trail + persisted grants", () => {
-  function auditedManager(store: ApprovalStore, askTimeoutMs = 60_000) {
+  function auditedManager(
+    store: ApprovalStore,
+    askTimeoutMs = 60_000,
+    auditPolicyAllows?: boolean,
+  ) {
     const bus = new EventBus<RuntimeEvent>();
-    return new PermissionManager({ events: bus, store, askTimeoutMs });
+    return new PermissionManager({ events: bus, store, askTimeoutMs, auditPolicyAllows });
   }
 
   it("policy-allow decisions are audited (approved / policy-allow, fingerprinted args)", async () => {
@@ -274,6 +299,31 @@ describe("P3.3 — approval audit trail + persisted grants", () => {
     // 审计不存原始参数，只留指纹
     assert.ok(rows[0].argumentsFingerprint);
     assert.ok(!JSON.stringify(rows[0]).includes('"a":1'));
+  });
+
+  it("P3 §3 第 3 项: auditPolicyAllows=false 时 policy-allow 不留痕，deny 仍留痕", async () => {
+    const s = new MemoryApprovalStore();
+    const pm = auditedManager(s, 60_000, false);
+
+    const allowed = await pm.gate(
+      call("calculator", { a: 1, b: 2 }),
+      ctx({ tool: { name: "calculator", kind: "harmless" } }),
+    );
+    assert.equal(allowed.verdict, "allow");
+
+    const denied = await pm.gate(
+      call("get_secret"),
+      ctx({ tool: { name: "get_secret", kind: "credential" } }),
+    );
+    assert.equal(denied.verdict, "deny");
+
+    await pm.flush();
+    const rows = await s.list();
+    // 放行被跳过；deny 不受开关影响，始终留痕
+    assert.deepEqual(
+      rows.map((r) => r.source),
+      ["policy-deny"],
+    );
   });
 
   it("policy-deny decisions are audited (denied / policy-deny)", async () => {

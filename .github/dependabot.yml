@@ -1,8 +1,10 @@
 version: 2
+# 开发主分支为 dev（main 仅接收来自 dev 的发布 PR），因此所有依赖升级 PR 指向 dev。
 updates:
   # 依赖（仅 devDependencies：TypeScript / ESLint / changesets / tsx 等）
   - package-ecosystem: "npm"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
@@ -11,6 +13,7 @@ updates:
   # GitHub Actions 工作流本身
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
     labels:

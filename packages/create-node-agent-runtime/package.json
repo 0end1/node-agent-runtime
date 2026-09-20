@@ -1,0 +1,55 @@
+{
+  "name": "create-node-agent-runtime",
+  "version": "0.4.2",
+  "description": "C10 scaffolding CLI of the Agent runtime: generates the first governed agent project (session + permission gate + sandboxed write) with zero runtime dependencies. Templates are compiled into dist/, so nothing but dist is published.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "wangzhiyong",
+    "email": "y1378379002@gmail.com",
+    "url": "https://github.com/0end1"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "create-node-agent-runtime": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0end1/node-agent-runtime.git",
+    "directory": "packages/create-node-agent-runtime"
+  },
+  "homepage": "https://github.com/0end1/node-agent-runtime",
+  "bugs": {
+    "url": "https://github.com/0end1/node-agent-runtime/issues"
+  },
+  "keywords": [
+    "node-agent-runtime",
+    "agent",
+    "scaffold",
+    "create",
+    "starter",
+    "governance"
+  ],
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "tsx --test test/*.test.ts"
+  }
+}

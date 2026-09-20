@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Node Agent Runtime">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3c7afe" />
+      <stop offset="100%" stop-color="#6f42c1" />
+    </linearGradient>
+  </defs>
+  <!-- 盾牌：治理 -->
+  <path d="M60 6 L104 22 V58 C104 86 84 104 60 114 C36 104 16 86 16 58 V22 Z"
+        fill="none" stroke="url(#g)" stroke-width="6" stroke-linejoin="round" />
+  <!-- 环：事件循环 / 可续跑 -->
+  <circle cx="60" cy="58" r="20" fill="none" stroke="url(#g)" stroke-width="5"
+          stroke-dasharray="88 38" stroke-linecap="round" />
+  <!-- 点：决策点 -->
+  <circle cx="60" cy="58" r="6" fill="url(#g)" />
+</svg>
